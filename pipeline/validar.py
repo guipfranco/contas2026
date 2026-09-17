@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Confere o que vai ao ar. Aponta, nunca conserta.
+
+Roda depois de escrever e antes de publicar. Se apontar qualquer coisa, a
+rodada falha e o site de ontem continua no ar, que e melhor do que publicar
+numero errado.
+"""
+import json
+import os
+import sys
+
+LIMITE_UF_MB = 3.0
+LIMITE_INDICE_MB = 3.0
+
+
+def _le(caminho):
+    with open(caminho, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def validar(pasta):
+    erros = []
+
+    def falta(caminho):
+        if not os.path.exists(os.path.join(pasta, caminho)):
+            erros.append(f'{caminho} nao foi escrito')
+            return True
+        return False
+
+    for obrigatorio in ('meta.json', 'indice.json', 'alarmes.json'):
+        falta(obrigatorio)
+    if erros:
+        return erros
+
+    meta = _le(os.path.join(pasta, 'meta.json'))
+    dic = meta.get('dic', {})
+    for chave in ('tipo', 'partido', 'fed', 'alarme'):
+        if chave not in dic:
+            erros.append(f'meta.dic sem "{chave}"')
+    if not meta.get('ufs'):
+        erros.append('meta.ufs vazio')
+    c = meta.get('contagens', {})
+    if not c.get('candidaturas'):
+        erros.append('meta.contagens.candidaturas e zero')
+    if c.get('contratado', 0) < 0:
+        erros.append('total contratado negativo')
+
+    n_tipo, n_part, n_fed, n_al = (len(dic.get(k, [])) for k in
+                                   ('tipo', 'partido', 'fed', 'alarme'))
+    total_linhas = 0
+    for uf in sorted(meta.get('ufs', {})):
+        caminho = os.path.join(pasta, 'uf', f'{uf}.json')
+        if falta(os.path.join('uf', f'{uf}.json')):
+            continue
+        mb = os.path.getsize(caminho) / 1e6
+        if mb > LIMITE_UF_MB:
+            erros.append(f'uf/{uf}.json tem {mb:.1f} MB, acima de {LIMITE_UF_MB}')
+        d = _le(caminho)
+        linhas = d.get('c', [])
+        total_linhas += len(linhas)
+        if len(linhas) != meta['ufs'][uf]['n']:
+            erros.append(f'uf/{uf}.json tem {len(linhas)} linhas, meta diz '
+                         f'{meta["ufs"][uf]["n"]}')
+        soma = 0
+        for l in linhas:
+            if len(l) != 14:
+                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 14')
+                break
+            if not (0 <= l[3] < n_part):
+                erros.append(f'uf/{uf}.json: id de partido {l[3]} fora do dicionario')
+                break
+            if not (0 <= l[5] < n_fed):
+                erros.append(f'uf/{uf}.json: id de federacao {l[5]} fora do dicionario')
+                break
+            for tid, v in l[11]:
+                if not (0 <= tid < n_tipo):
+                    erros.append(f'uf/{uf}.json: id de tipo {tid} fora do dicionario')
+                    break
+            for aid, grav in l[12]:
+                if not (0 <= aid < n_al) or grav not in (1, 2, 3):
+                    erros.append(f'uf/{uf}.json: alarme {aid}/{grav} invalido')
+                    break
+            soma += l[6]
+        if soma != meta['ufs'][uf]['contratado']:
+            erros.append(f'uf/{uf}.json: soma {soma} != meta {meta["ufs"][uf]["contratado"]}')
+
+    indice = _le(os.path.join(pasta, 'indice.json')).get('c', [])
+    if len(indice) != total_linhas:
+        erros.append(f'indice tem {len(indice)} candidatos, as UFs somam {total_linhas}')
+    mb = os.path.getsize(os.path.join(pasta, 'indice.json')) / 1e6
+    if mb > LIMITE_INDICE_MB:
+        erros.append(f'indice.json tem {mb:.1f} MB, acima de {LIMITE_INDICE_MB}')
+
+    al = _le(os.path.join(pasta, 'alarmes.json')).get('a', [])
+    for linha in al[:2000]:
+        if len(linha) != 9:
+            erros.append(f'alarmes.json: linha com {len(linha)} campos, esperado 9')
+            break
+        if not linha[8] or not any(ch.isdigit() for ch in linha[8]):
+            erros.append(f'alarmes.json: texto sem numero: {linha[8][:60]!r}')
+            break
+
+    # amostra de fichas: existe o arquivo de quem tem movimento?
+    faltando = 0
+    for uf in sorted(meta.get('ufs', {}))[:3]:
+        d = _le(os.path.join(pasta, 'uf', f'{uf}.json'))
+        for l in d.get('c', [])[:40]:
+            if l[6] and not os.path.exists(os.path.join(pasta, 'cand', f'{l[0]}.json')):
+                faltando += 1
+    if faltando:
+        erros.append(f'{faltando} fichas de candidatos com gasto nao foram escritas')
+
+    return erros
+
+
+def main(argv=None):
+    pasta = (argv or sys.argv[1:] or ['site/dados'])[0]
+    erros = validar(pasta)
+    if erros:
+        print(f'{len(erros)} problemas em {pasta}:')
+        for e in erros:
+            print(f'   {e}')
+        return 1
+    print(f'{pasta}: limpo')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

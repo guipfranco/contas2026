@@ -1,0 +1,105 @@
+name: rodada diaria
+
+# Baixa a prestacao de contas do TSE, recalcula tudo e republica o site.
+# Duas vezes por dia porque a hora em que o TSE regenera os arquivos nao e
+# anunciada: o observado em 17/09 foi por volta das 04h de Brasilia.
+
+on:
+  schedule:
+    - cron: '30 9 * * *'    # 06:30 em Brasilia
+    - cron: '0 15 * * *'    # 12:00 em Brasilia
+  workflow_dispatch:
+    inputs:
+      ufs:
+        description: so estas UFs (vazio = o pais inteiro)
+        default: ''
+      sem_receita:
+        description: pular a consulta a Receita
+        type: boolean
+        default: false
+      publicar:
+        description: publicar no Pages
+        type: boolean
+        default: true
+
+concurrency:
+  group: rodada
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    outputs:
+      publicar: ${{ steps.decidir.outputs.publicar }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: buscar o estado das rodadas anteriores
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: dados
+          path: estado-repo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: testes
+        run: python -m unittest discover -s tests -v
+
+      - name: preparar estado
+        run: |
+          mkdir -p estado
+          if [ -d estado-repo/estado ]; then cp -r estado-repo/estado/. estado/; fi
+          ls -la estado/ || true
+
+      - name: rodada
+        run: |
+          python -m pipeline.rodar \
+            --site site/dados \
+            --estado estado \
+            --tmp "$RUNNER_TEMP/tse" \
+            --ufs "${{ inputs.ufs }}" \
+            ${{ inputs.sem_receita && '--sem-receita' || '' }}
+
+      - name: conferir o que vai ao ar
+        run: python -m pipeline.validar site/dados
+
+      - id: decidir
+        run: echo "publicar=${{ github.event_name == 'schedule' || inputs.publicar }}" >> "$GITHUB_OUTPUT"
+
+      - name: guardar o estado
+        continue-on-error: true
+        run: |
+          cd estado-repo || exit 0
+          rm -rf estado
+          cp -r ../estado .
+          git config user.name "rodada automatica"
+          git config user.email "noreply@github.com"
+          git add -A
+          git diff --quiet --cached || git commit -m "estado de $(date -I)"
+          git pull --rebase --autostash origin dados || true
+          git push origin HEAD:dados
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.decidir.outputs.publicar == 'true'
+        with:
+          path: site
+
+  publicar:
+    needs: construir
+    if: needs.construir.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
