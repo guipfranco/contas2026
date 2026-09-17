@@ -86,7 +86,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
 def _forn_linha(doc, e, alarmes_do_forn, cnae_nome):
     return [mascara(doc), (e[2] or 'Não informado')[:48], e[0], e[1],
             1 if len(doc) == 14 else 0,
-            cnae_nome.get(e[4], '')[:44],
+            (cnae_nome.get(e[4]) or '')[:44],
             sorted(alarmes_do_forn)]
 
 

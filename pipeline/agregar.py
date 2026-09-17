@@ -78,6 +78,9 @@ class Nacional:
         # (partido, uf) -> [publico_total, publico_para_mulheres, publico_para_negros]
         self.fundo_partido = collections.defaultdict(lambda: [0, 0, 0])
         self.cargos = collections.Counter()
+        # o proprio arquivo do TSE traz o nome de cada CNAE; nao
+        # precisa de tabela mantida a mao
+        self.cnae_nome = {}
         self.data_max = ''
         self.n_despesas = self.n_receitas = self.n_pagas = 0
         self.total_contratado = self.total_pago = self.total_receita = 0
@@ -94,19 +97,28 @@ class Nacional:
         self.docs_vistos.clear()
 
 
-def _bota_forn(mapa, doc, valor, nome, tipo_forn, cnae, sq_cand_forn=''):
+def _bota_forn(mapa, doc, valor, nome, tipo_forn, cnae, sq_cand_forn='', tipo=''):
+    """Acumula um fornecedor.
+
+    O indice 6 guarda o tipo de despesa do MAIOR lancamento daquele fornecedor
+    para aquele candidato. E o que o alarme A4 compara com a atividade da
+    empresa: comparar com o gasto dominante do candidato inteiro acusaria a
+    grafica pelo combustivel que outro fornecedor vendeu.
+    """
     e = mapa.get(doc)
     if e is None:
-        mapa[doc] = [valor, 1, nome, tipo_forn, cnae, sq_cand_forn]
-    else:
-        e[0] += valor
-        e[1] += 1
-        if not e[2] and nome:
-            e[2] = nome
-        if not e[4] and cnae:
-            e[4] = cnae
-        if not e[5] and sq_cand_forn:
-            e[5] = sq_cand_forn
+        mapa[doc] = [valor, 1, nome, tipo_forn, cnae, sq_cand_forn, tipo, valor]
+        return
+    e[0] += valor
+    e[1] += 1
+    if not e[2] and nome:
+        e[2] = nome
+    if not e[4] and cnae:
+        e[4] = cnae
+    if not e[5] and sq_cand_forn:
+        e[5] = sq_cand_forn
+    if valor > e[7]:
+        e[6], e[7] = tipo, valor
 
 
 def agregar_despesas(fluxo, aggs, nac):
@@ -140,9 +152,11 @@ def agregar_despesas(fluxo, aggs, nac):
         nome_forn = d.forn_rfb or d.forn
         if d.doc:
             _bota_forn(a.por_forn, d.doc, d.valor, nome_forn, d.tipo_forn,
-                       d.cnae, d.sq_cand_forn)
+                       d.cnae, d.sq_cand_forn, d.tipo)
             _bota_forn(nac.fornecedores, d.doc, d.valor, nome_forn, d.tipo_forn,
-                       d.cnae, d.sq_cand_forn)
+                       d.cnae, d.sq_cand_forn, d.tipo)
+            if d.cnae and d.ds_cnae and d.cnae not in nac.cnae_nome:
+                nac.cnae_nome[d.cnae] = d.ds_cnae
             nac._forn_cands[d.doc].add(d.sq)
             if d.num_doc:
                 chave = f'{d.doc}|{d.num_doc}'

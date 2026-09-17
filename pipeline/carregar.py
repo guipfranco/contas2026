@@ -70,7 +70,7 @@ COLUNAS_CAND = [
 ]
 
 Despesa = namedtuple('Despesa', 'uf cargo sq nr nome cpf partido prestador '
-                                'tipo_prest tipo_forn cnae doc forn forn_rfb '
+                                'tipo_prest tipo_forn cnae ds_cnae doc forn forn_rfb '
                                 'uf_forn sq_cand_forn cargo_forn part_forn '
                                 'tipo_doc num_doc tipo dt valor descricao')
 Paga = namedtuple('Paga', 'uf prestador fonte tipo especie dt valor')
@@ -212,6 +212,7 @@ def despesas(z, uf=None):
             tipo_prest=limpo(r['TP_PRESTACAO_CONTAS']),
             tipo_forn=limpo(r['DS_TIPO_FORNECEDOR']),
             cnae=limpo(r['CD_CNAE_FORNECEDOR']),
+            ds_cnae=limpo(r['DS_CNAE_FORNECEDOR']),
             doc=documento(r['NR_CPF_CNPJ_FORNECEDOR']),
             forn=limpo(r['NM_FORNECEDOR']), forn_rfb=limpo(r['NM_FORNECEDOR_RFB']),
             uf_forn=limpo(r['SG_UF_FORNECEDOR']),

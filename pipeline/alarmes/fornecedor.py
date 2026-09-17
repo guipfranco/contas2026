@@ -87,27 +87,24 @@ def a4_cnae(a, ctx):
     if not ctx.cnae_por_tipo:
         return
     curinga = ctx.cnae_por_tipo.get('__curinga__', set())
-    # o valor por (fornecedor, tipo) nao esta agregado; usa o tipo dominante
-    if not a.por_tipo:
-        return
-    tipo_top = a.por_tipo.most_common(1)[0][0]
-    plausiveis = ctx.cnae_por_tipo.get(tipo_top)
-    if not plausiveis:
-        return
     for doc, e in a.por_forn.items():
         if len(doc) != 14 or e[0] < MIN_A4:
+            continue
+        tipo = e[6] if len(e) > 6 else ''
+        plausiveis = ctx.cnae_por_tipo.get(tipo)
+        if not plausiveis:
             continue
         cnae = (e[4] or '').zfill(7)
         div = cnae[:2]
         if not div or div == '00' or div in curinga or div in plausiveis:
             continue
-        nome_cnae = ctx.cnae_nome.get(cnae) or ctx.cnae_nome.get(div) or ''
+        nome_cnae = ctx.cnae_nome.get(e[4]) or ctx.cnae_nome.get(cnae) or ''
         if not nome_cnae:
             continue
         yield Alarme('A4', 2 if e[0] >= MIN_A4_GRAVE else 1, a.sq, doc, e[0],
-                     f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])}. A '
-                     f'atividade registrada é "{nome_cnae[:38]}", e o gasto '
-                     f'predominante do candidato é "{tipo_top[:34]}".')
+                     f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])} em '
+                     f'"{tipo[:32]}". A atividade registrada da empresa e '
+                     f'"{nome_cnae[:38]}".')
 
 
 def a5_concentracao(a, ctx):

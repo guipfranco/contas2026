@@ -155,7 +155,7 @@ def main(argv=None):
     tetos = carregar_tetos(os.path.join(a.dados, 'tetos_2026.csv'))
     ctx = Contexto(nac, receita=dados_receita, tetos=tetos,
                    cnae_por_tipo=carregar_cnae(os.path.join(a.dados, 'cnae_por_tipo.csv')),
-                   cnae_nome=carregar_cnae_nome(os.path.join(a.dados, 'cnae_nome.csv')),
+                   cnae_nome=nac.cnae_nome,
                    hoje=hoje)
     ctx.colisao_por_cand = al_ritmo.indexar_colisoes(nac, aggs)
     ctx.doacoes_por_dia = al_doador.indexar_doacoes(doacoes_pf)
