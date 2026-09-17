@@ -196,8 +196,10 @@ QUANTOS_SOMAM = 6
 
 # Sinais que nao entram no indice, e por que.
 FORA_DO_INDICE = {
-    'C2': 'ausencia de declaracao nao e algo a conferir na conta, e a falta dela',
-    'D1': 'fornecedor aparecer hoje e o normal de uma prestacao entregue aos poucos',
+    'C2': 'Ausência de declaração não é algo a conferir dentro da conta: '
+          'é a falta dela.',
+    'D1': 'Fornecedor aparecer hoje é o normal de uma prestação de contas '
+          'entregue aos poucos.',
 }
 
 FAIXAS = ((50, 'confira primeiro'), (20, 'vale conferir'),

@@ -477,6 +477,28 @@ class TestRedacao(unittest.TestCase):
                     achados.append((mod.__name__, p, m[:60]))
         self.assertEqual(achados, [], f'{len(achados)} palavras sem acento')
 
+    def test_todo_texto_que_vai_para_a_tela_tem_acento(self):
+        """Nao so as mensagens: os dicionarios do catalogo tambem sao tela."""
+        import re
+        from pipeline.alarmes import (CATALOGO, CURTO, FAIXAS, FORA_DO_INDICE,
+                                      GRAVIDADE)
+        sem = re.compile(
+            r"(nao|acao|acoes|declaracao|prestacao|ausencia|conferencia|"
+            r"indice|codigo|proprio|propria|servico|fisica|publico|publica|"
+            r"minimo|numero|tambem|eleicao|situacao|atividade economica|"
+            r"digito|padrao|orgao)", re.I)
+        achados = []
+        for nome, d in (('FORA_DO_INDICE', FORA_DO_INDICE), ('CURTO', CURTO),
+                        ('GRAVIDADE', GRAVIDADE)):
+            for k, v in d.items():
+                achados += [(nome, k, m) for m in sem.findall(str(v))]
+        for corte, texto in FAIXAS:
+            achados += [('FAIXAS', corte, m) for m in sem.findall(texto)]
+        for cod, tupla in CATALOGO.items():
+            for parte in tupla:
+                achados += [(cod, parte[:24], m) for m in sem.findall(parte)]
+        self.assertEqual(achados, [], f'{len(achados)} sem acento')
+
     def test_moeda_legivel(self):
         self.assertEqual(moeda(123456789), 'R$ 1,2 mi')
         self.assertEqual(moeda(3500000), 'R$ 35 mil')
