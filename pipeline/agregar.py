@@ -272,6 +272,47 @@ def juntar_candidaturas(cands, aggs):
     return sem_ficha
 
 
+def referencias(aggs):
+    """A distribuicao de gasto entre pares, por (UF, cargo).
+
+    Um numero sozinho nao diz nada. R$ 800 mil e muito para deputado estadual
+    no Acre e pouco para federal em Sao Paulo. Esta e a lição que o Serenata
+    de Amor tirou do proprio classificador de precos: nunca comparar um caso
+    com a media geral, sempre com o grupo a que ele pertence.
+
+    Devolve {(uf, cargo): {n, mediana, p25, p75, p90, total}}, contando so
+    quem declarou gasto: incluir os zeros puxaria a mediana para zero e
+    descreveria o grupo errado.
+    """
+    porgrupo = collections.defaultdict(list)
+    for a in aggs.values():
+        if a.contratado:
+            porgrupo[(a.uf, a.cargo)].append(a.contratado)
+    saida = {}
+    for chave, vs in porgrupo.items():
+        vs.sort()
+        n = len(vs)
+        def q(f):
+            return vs[min(n - 1, int(n * f))]
+        saida[chave] = {'n': n, 'mediana': q(0.5), 'p25': q(0.25),
+                        'p75': q(0.75), 'p90': q(0.9), 'total': sum(vs)}
+    return saida
+
+
+def posicao(a, refs):
+    """Onde este candidato esta entre os pares: posicao e multiplo da mediana."""
+    r = refs.get((a.uf, a.cargo))
+    if not r or not a.contratado:
+        return None
+    return {
+        'grupo_n': r['n'],
+        'mediana': r['mediana'],
+        'p90': r['p90'],
+        'vezes_a_mediana': round(a.contratado / r['mediana'], 1) if r['mediana'] else 0,
+        'fatia_do_grupo': round(a.contratado / r['total'] * 100, 1) if r['total'] else 0,
+    }
+
+
 def por_uf(aggs):
     saida = collections.defaultdict(list)
     for a in aggs.values():

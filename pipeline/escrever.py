@@ -90,7 +90,7 @@ def _forn_linha(doc, e, alarmes_do_forn, cnae_nome):
             sorted(alarmes_do_forn)]
 
 
-def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None):
+def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None):
     forn = sorted(a.por_forn.items(), key=lambda kv: -kv[1][0])[:TOPO_FORN_FICHA]
     por_forn_alarme = {}
     for x in alarmes:
@@ -117,6 +117,8 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None):
         'alarmes': [{'cod': x.codigo, 'grav': x.grav, 'texto': x.texto}
                     for x in sorted(alarmes, key=lambda x: (-x.grav, -x.valor))],
     }
+    if pares:
+        ficha['pares'] = pares
     if extra:
         ficha.update(extra)
     return grava(os.path.join(destino, 'cand', f'{a.sq}.json'), ficha)

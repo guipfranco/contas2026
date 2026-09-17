@@ -180,6 +180,9 @@ def main(argv=None):
             print(f'      REDACAO: {r}')
         raise SystemExit('texto de alarme fora das travas: nao publica')
 
+    refs = A.referencias(aggs)
+    passo(t0, f'{len(refs)} grupos de comparacao (UF x cargo)')
+
     print('5. escrever')
     dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
     for cod in sorted(CATALOGO):
@@ -197,6 +200,8 @@ def main(argv=None):
             'receita': sum(x.receita for x in lista),
             'alarmes': sum(len(por_sq.get(x.sq, ())) for x in lista),
             'bytes': n,
+            'pares': {c: refs[(uf, c)] for c in A.CARGOS_PAINEL
+                      if (uf, c) in refs},
         }
     passo(t0, f'{len(ufs_saida)} UFs, {bytes_uf / 1e6:.1f} MB')
 
@@ -205,7 +210,8 @@ def main(argv=None):
         if not ag.movimento and ag.sq not in por_sq:
             continue
         bytes_ficha += E.escrever_ficha(ag, por_sq.get(ag.sq, []), dics,
-                                        ctx.cnae_nome, a.site)
+                                        ctx.cnae_nome, a.site,
+                                        pares=A.posicao(ag, refs))
         n_ficha += 1
     passo(t0, f'{n_ficha:,} fichas, {bytes_ficha / 1e6:.1f} MB')
 

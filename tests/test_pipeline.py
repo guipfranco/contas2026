@@ -166,6 +166,56 @@ class TestAgregadoReal(unittest.TestCase):
             self.assertIn(a.cargo, A.CARGOS_PAINEL)
 
 
+class TestComparacaoEntrePares(unittest.TestCase):
+    """Um numero sozinho nao diz nada; o grupo de comparacao e (UF, cargo)."""
+
+    def _agg(self, uf, cargo, valor):
+        a = A.Agg(f'{uf}{cargo}{valor}')
+        a.uf, a.cargo, a.contratado = uf, cargo, valor
+        return a
+
+    def test_grupo_e_uf_mais_cargo(self):
+        aggs = {}
+        for v in (100, 200, 300, 400, 500):
+            a = self._agg('SP', '6', v)
+            aggs[a.sq] = a
+        for v in (10, 20):
+            a = self._agg('AC', '7', v)
+            aggs[a.sq] = a
+        refs = A.referencias(aggs)
+        self.assertEqual(set(refs), {('SP', '6'), ('AC', '7')})
+        self.assertEqual(refs[('SP', '6')]['n'], 5)
+        self.assertEqual(refs[('SP', '6')]['mediana'], 300)
+
+    def test_quem_nao_gastou_nao_puxa_a_mediana_para_zero(self):
+        aggs = {}
+        for v in (100, 200, 300):
+            a = self._agg('SP', '6', v)
+            aggs[a.sq] = a
+        for i in range(20):
+            a = self._agg('SP', '6', 0)
+            a.sq = f'zero{i}'
+            aggs[a.sq] = a
+        refs = A.referencias(aggs)
+        self.assertEqual(refs[('SP', '6')]['n'], 3)
+        self.assertEqual(refs[('SP', '6')]['mediana'], 200)
+
+    def test_posicao_traz_multiplo_e_fatia(self):
+        aggs = {}
+        for v in (100, 200, 700):
+            a = self._agg('SP', '6', v)
+            aggs[a.sq] = a
+        refs = A.referencias(aggs)
+        maior = max(aggs.values(), key=lambda x: x.contratado)
+        p = A.posicao(maior, refs)
+        self.assertEqual(p['vezes_a_mediana'], 3.5)
+        self.assertEqual(p['fatia_do_grupo'], 70.0)
+
+    def test_sem_gasto_nao_tem_comparacao(self):
+        a = self._agg('SP', '6', 0)
+        self.assertIsNone(A.posicao(a, A.referencias({a.sq: a})))
+
+
 class TestAlarmes(unittest.TestCase):
     def setUp(self):
         self.a = A.Agg('999')
