@@ -90,7 +90,8 @@ def main(argv=None):
     p.add_argument('--dados', default='dados')
     p.add_argument('--fonte-local', default=None)
     p.add_argument('--ufs', default='', help='so estas UFs (teste)')
-    p.add_argument('--sem-receita', action='store_true')
+    p.add_argument('--sem-receita', action='store_true',
+                   help='nao consulta a rede; o cache continua valendo')
     p.add_argument('--orcamento-receita', type=int, default=4800)
     p.add_argument('--hoje', default='', help='data da rodada (o padrao e o relogio)')
     a = p.parse_args(argv)
@@ -140,17 +141,20 @@ def main(argv=None):
         aggs = {k: v for k, v in aggs.items() if v.uf in ufs_pedidas}
 
     print('3. Receita Federal')
-    dados_receita = {}
+    # O cache SEMPRE e lido, mesmo com --sem-receita. A opcao pula a consulta
+    # pela rede, nao o que ja foi consultado: uma rodada rapida, so para
+    # republicar a pagina, nao pode apagar do site os sinais de CNPJ que a
+    # rodada longa da vespera pagou para descobrir.
     cache = os.path.join(a.estado, 'receita.jsonl')
+    from .enriquecer import carregar_cache, enriquecer, fila_prioridade
+    dados_receita = carregar_cache(cache)
     if a.sem_receita:
-        passo(t0, 'pulada por opcao')
+        passo(t0, f'{len(dados_receita):,} no cache; consulta pela rede pulada')
     else:
-        from .enriquecer import carregar_cache, enriquecer, fila_prioridade
-        dados_receita = carregar_cache(cache)
         fila = fila_prioridade(nac, dados_receita)
         passo(t0, f'{len(dados_receita):,} no cache, {len(fila):,} a consultar')
         if fila:
-            n = enriquecer(fila, cache, a.orcamento_receita)
+            n = enriquecer(fila, cache, a.orcamento_receita, hoje=hoje)
             dados_receita = carregar_cache(cache)
             passo(t0, f'{n:,} consultados, cache com {len(dados_receita):,}')
 
