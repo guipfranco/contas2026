@@ -7,36 +7,86 @@
 <meta name="color-scheme" content="light dark">
 <title>Contas de campanha 2026</title>
 <style>
+/* =====================================================================
+   Contas de campanha 2026
+   A referência não é painel de produto: é página de dados de jornal e
+   relatório de tribunal de contas. Papel quente e tinta quente no lugar de
+   branco e preto puros, fio de 1px no lugar de caixa arredondada, duas vozes
+   tipográficas (serifa para o que fala, sem serifa para o que conta) e um
+   fio de duas cores que diz, em toda tela, quanto do dinheiro é público.
+
+   A escala tipográfica é fechada e tem seis degraus: 30, 21, 17.5, 15, 12.5
+   e 11 (este último só para rótulo em caixa alta e para a unidade "/100").
+   Fora dela não entra tamanho novo: hierarquia se faz com peso e cor.
+   ===================================================================== */
 :root{
-  --bg:#f3f5f8; --sf:#ffffff; --sf2:#e9edf3; --ink:#0f1720; --mut:#576374; --b:#d9dfe7;
-  --ac:#17538c; --acsf:#e6eefa; --acink:#ffffff;
-  --am:#845400; --amsf:#fbf0d9; --amb:#e4cb98;
-  --sl:#47586c; --slsf:#e7ecf2; --slb:#cdd7e1;
-  --pub:#1a6b66; --pubsf:#dfeeed;
-  --fc:#0a5ec4;
-  --raio:10px;
+  /* --- papel e tinta --- */
+  --pap:#faf8f4;      /* o papel: fundo de toda a página */
+  --sf:#faf8f4;       /* superfície de seção: igual ao papel, porque seção aqui é fio, não caixa */
+  --sf2:#efe9de;      /* superfície rebaixada: trilho da barra de magnitude, esqueleto, tecla, toque */
+  --campo:#fffdf8;    /* o campo de formulário, um tom acima do papel: parece coisa de escrever */
+  --ink:#1c1a17;      /* a tinta: preto quente */
+  --mut:#6b6358;      /* tinta secundária: rótulo, legenda, procedência */
+  --b:#cfc5b3;        /* o fio de 1px que separa item de item: decoração de lista */
+  /* No claro o fio forte e o trilho do fio do dinheiro público são a mesma tinta, e ela
+     subiu de 1,25:1 para 3,01:1 contra o papel. Antes o trilho sumia, e a assinatura de
+     duas cores virava uma barra teal flutuando sem denominador visível. */
+  --b2:#9a8f78;       /* o fio forte: topo de seção, régua do cabeçalho, borda de controle */
+  --tra:#9a8f78;      /* trilho do fio de duas cores */
+
+  /* --- o acento: estrutura e dinheiro. Verde-petróleo profundo, que não é
+         bandeira nem partido. Verde com amarelo lê bandeira; vermelho ou azul
+         sozinhos leem partido: num painel eleitoral os três estão fora. --- */
+  --ac:#0f5257;
+  --acfio:#0f5257;    /* o acento do fio do dinheiro público: no claro é o mesmo tom */
+  --acsf:#e3edec;     /* fundo do acento: item escolhido */
+  --acink:#faf8f4;    /* tinta sobre o acento cheio */
+  /* a barra de magnitude não é dinheiro público: ela perdeu o teal e virou cinza quente,
+     porque duas barras teal na mesma tela faziam a assinatura da página ter um sósia */
+  --mag:#7a725f;
+
+  /* --- o ocre, em três intensidades: é a cor de "a conferir", nunca de erro --- */
+  --am1:#f6eeda;      /* 1, superfície */
+  --am2:#dcc79b;      /* 2, fio */
+  --am3:#7d5410;      /* 3, tinta */
+  --amf:#8a5e10;      /* ocre cheio, para o selo de maior intensidade */
+
+  --fc:#1c1a17;       /* anel de foco: tinta, que não se confunde com nenhuma cor de dado */
+  --calha:32px;       /* a calha esquerda, onde mora o numeral de posição em serifa */
+  --ixc:48px;         /* a coluna da direita, onde mora o selo do índice de conferência */
+  --gut:16px;         /* o recuo lateral, um só na página inteira: testeira, busca e corpo */
+  --raio:2px;         /* quase nada: a página é de fios, não de cartões arredondados */
+  --ser:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0d1116; --sf:#151b22; --sf2:#1e262f; --ink:#e7edf4; --mut:#9dabbb; --b:#2a333d;
-    --ac:#7fb4ef; --acsf:#16273a; --acink:#0d1116;
-    --am:#e6b165; --amsf:#302512; --amb:#54411d;
-    --sl:#a6b6c8; --slsf:#1c242d; --slb:#333e4a;
-    --pub:#5cbcb2; --pubsf:#132a29;
-    --fc:#8cc4ff;
+    /* o escuro segue a mesma lógica do claro, papel e tinta quentes, e não o
+       inverso mecânico dele: o ocre troca de lado (a tinta vira clara, a superfície
+       vira profunda). O acento do fio é mais contido que o acento de link e de estado
+       ativo: o fio se repete em toda linha, e ciano vivo repetido dez vezes por tela
+       transformava a página de jornal em terminal. */
+    --pap:#15130f; --sf:#15130f; --sf2:#241f18; --campo:#1d1a14;
+    --ink:#ece5d8; --mut:#a89d8a; --b:#3b342a; --b2:#6b6354; --tra:#5b5344;
+    --ac:#5fb5ae; --acfio:#7fa09c; --acsf:#12302f; --acink:#0d0c09;
+    --mag:#8f866f;
+    --am1:#2e2413; --am2:#54411f; --am3:#deaa5b; --amf:#c9954a;
+    --fc:#ece5d8;
   }
 }
 *{box-sizing:border-box}
 /* O corte horizontal fica só no html, que propaga para a viewport. No body ele criava um
    container de rolagem próprio, e ali todo position:sticky da página parava de grudar sem
-   avisar: o cabeçalho, a coluna do lado no laptop e o rótulo da lista rolavam junto. */
-html{max-width:100%;overflow-x:hidden}
-body{max-width:100%}
-html{-webkit-text-size-adjust:100%}
+   avisar: a barra de busca, a coluna do lado no laptop e o rótulo da lista rolavam junto. */
+html{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
 body{
-  margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:15px;line-height:1.35;
+  max-width:100%;margin:0;background:var(--pap);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.45;
+  /* Algarismo alinhado e de largura fixa herdado por toda a página. Era uma lista de
+     seletores, e tudo que nascia novo ficava de fora por padrão; pior, a serifa do
+     sistema cai em Georgia, que tem algarismo antigo, e o numeral de posição do ranking
+     afundava e subia linha a linha em vez de fazer coluna. */
+  font-variant-numeric:lining-nums tabular-nums;
   /* o rodape e fixo e muda de altura com a largura: a altura dele e medida, nunca chutada */
   padding-bottom:calc(var(--fh,84px) + 8px);
 }
@@ -44,122 +94,229 @@ h1,h2,h3{margin:0;font-size:1em;font-weight:700}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 a{color:var(--ac)}
 input{font:inherit}
-.num{font-variant-numeric:tabular-nums}
-:focus-visible{outline:3px solid var(--fc);outline-offset:1px;border-radius:6px}
-.pular{position:absolute;left:-9999px;top:0;background:var(--sf);padding:10px;z-index:99}
+.num{font-variant-numeric:lining-nums tabular-nums}
+:focus-visible{outline:3px solid var(--fc);outline-offset:2px;border-radius:var(--raio)}
+.pular{position:absolute;left:-9999px;top:0;background:var(--pap);border:1px solid var(--ink);padding:10px;z-index:99}
 .pular:focus{left:8px;top:8px}
 
-/* cabecalho */
-header{position:sticky;top:0;z-index:30;background:var(--sf);border-bottom:1px solid var(--b)}
-.hwrap{max-width:1180px;margin:0 auto;padding:5px 10px 6px}
-.linha1{display:flex;gap:6px;align-items:center}
+/* ---------- a testeira: diz o que isto é, e depois o que esta tela é ----------
+   Ela rola com a página, em vez de encolher presa no alto. Encolher um cabeçalho
+   grudado muda a altura dele no meio da rolagem, e o conteúdo salta junto; aqui
+   quem fica preso é só a barra de busca e filtros, que já nasce compacta.
+   A linha fina desce para baixo do título, na mesma medida dele, e a terceira linha
+   é o recorte, que muda com a tela: numa página de dados de jornal o recorte
+   pertence à testeira, não a um chip cem pixels abaixo. */
+.masthead{border-top:3px solid var(--ac);background:var(--pap)}
+.mwrap{max-width:1180px;margin:0 auto;padding:14px var(--gut) 11px}
+.masthead h1{font-family:var(--ser);font-size:21px;font-weight:600;line-height:1.1;letter-spacing:-.015em}
+.mlinha{margin:4px 0 0;max-width:560px;font-size:12.5px;line-height:1.45;color:var(--mut)}
+.mrec{margin:10px 0 0;padding-top:8px;border-top:1px solid var(--b);font-size:12.5px;
+  font-weight:600;color:var(--ink);line-height:1.4}
+.mrec .rot{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-right:7px}
+@media(min-width:900px){
+  :root{--gut:20px}
+  .mwrap{padding:18px var(--gut) 13px}
+  .masthead h1{font-size:30px}
+}
+
+/* ---------- a barra presa: busca e filtros ---------- */
+header.barra{position:sticky;top:0;z-index:30;background:var(--pap);border-top:1px solid var(--b);border-bottom:1px solid var(--b2)}
+.hwrap{max-width:1180px;margin:0 auto;padding:7px var(--gut) 8px}
+.linha1{display:flex;gap:7px;align-items:center}
 .busca{position:relative;flex:1;min-width:0}
 .busca input{
-  width:100%;height:44px;padding:0 42px 0 32px;border:1px solid var(--b);border-radius:var(--raio);
-  background:var(--bg);color:var(--ink);font-size:14.5px;
+  width:100%;height:44px;padding:0 42px 0 34px;border:1px solid var(--b2);border-radius:var(--raio);
+  background:var(--campo);color:var(--ink);font-size:15px;
 }
 .busca input::placeholder{color:var(--mut)}
 .busca input::-webkit-search-cancel-button{display:none}
-.lupa{position:absolute;left:10px;top:13px;width:16px;height:16px;fill:none;stroke:var(--mut);stroke-width:2;pointer-events:none}
-.limpaq{position:absolute;right:0;top:0;width:42px;height:44px;border-radius:8px;color:var(--mut);font-size:16px}
-.ajuda{width:44px;height:44px;border:1px solid var(--b);border-radius:var(--raio);color:var(--mut);flex:none;font-size:17px}
-.abas{display:flex;gap:4px;background:var(--sf2);padding:2px;border-radius:var(--raio)}
-.abas button{flex:1;min-height:44px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--mut)}
-.abas button[aria-current="page"]{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.lupa{position:absolute;left:11px;top:13px;width:16px;height:16px;fill:none;stroke:var(--mut);stroke-width:2;pointer-events:none}
+.limpaq{position:absolute;right:0;top:0;width:42px;height:44px;border-radius:var(--raio);color:var(--mut);font-size:15px}
+.ajuda{width:44px;height:44px;border:1px solid var(--b2);border-radius:var(--raio);color:var(--mut);flex:none;font-size:17.5px;background:var(--sf)}
+.ajuda[disabled]{opacity:.45;cursor:default}
+@media(hover:hover){.ajuda:not([disabled]):hover{border-color:var(--ink);color:var(--ink)}}
+
+/* os filtros: retângulos de fio, não pastilhas. O que está valendo ganha o acento
+   e um fio grosso na base, para dar de varrer a linha inteira sem ler. */
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.chips:empty{display:none}
 .chip{
-  display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 9px;
-  border:1px solid var(--b);border-radius:22px;background:var(--bg);font-size:13px;color:var(--ink);
-  max-width:100%;overflow:hidden;
+  display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 10px;
+  border:1px solid var(--b);border-radius:var(--raio);background:var(--sf);
+  font-size:12.5px;color:var(--ink);max-width:100%;overflow:hidden;
 }
 .chip>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip .k{color:var(--mut)}
-.chip .seta{font-size:9px;color:var(--mut)}
-.chip[data-on="1"]{background:var(--acsf);border-color:var(--ac);color:var(--ac)}
-.chip[data-on="1"] .k,.chip[data-on="1"] .seta{color:var(--ac)}
-.chip.limpar{border-style:dashed;color:var(--mut)}
+.chip .seta{flex:none;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--mut)}
+.chip[data-on="1"]{background:var(--acsf);border-color:var(--ac);color:var(--ac);box-shadow:inset 0 -2px 0 var(--ac)}
+.chip[data-on="1"] .k{color:var(--ac)}
+.chip[data-on="1"] .seta{border-top-color:var(--ac)}
+.chip.limpar{border-style:dashed;color:var(--mut);background:none}
 .chip:active{background:var(--sf2)}
+@media(hover:hover){.chip:hover{border-color:var(--b2)}}
 /* no laptop a barra de filtros ocupa a largura toda, em vez de amontoar tudo a esquerda */
 @media(min-width:900px){
   .chips{gap:8px}
-  .chips .chip{flex:1 1 150px;justify-content:space-between}
-  .chips .chip.limpar{flex:0 0 auto}
+  /* A base tem de ser pequena para os seis filtros caberem numa linha so (num container que
+     quebra linha, a quebra e decidida pela base, antes de qualquer encolhimento), e o teto
+     tem de existir porque com tres filtros na tela um chip esticava ate 390px e virava faixa. */
+  .chips .chip{flex:1 1 130px;max-width:240px;justify-content:space-between}
+  .chips .chip.limpar,.chips .vtab,.chips .voltarbt{flex:0 0 auto}
 }
+/* o seletor de visão não é filtro: ele troca o conteúdo da tela em vez de recortá-lo,
+   então ele é aba de texto com filete embaixo, no idioma da barra de ordenação */
+.vtab{min-height:44px;padding:0 10px;font-size:12.5px;font-weight:600;color:var(--mut);border-bottom:2px solid transparent}
+.vtab[aria-pressed="true"]{color:var(--ac);border-bottom-color:var(--ac)}
+@media(hover:hover){.vtab:hover{color:var(--ink)}}
+/* na ficha, no lugar dos filtros que não filtram nada ali, fica a volta, com peso de verdade */
+.voltarbt{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;
+  font-size:15px;font-weight:600;color:var(--ac)}
+@media(hover:hover){.voltarbt:hover{text-decoration:underline}}
 
-main{max-width:1180px;margin:0 auto;padding:10px}
-.wrap{display:grid;gap:10px;align-items:start;grid-template-columns:minmax(0,1fr)}
+/* O recuo lateral é um só na página: a testeira, a busca e o corpo começam todos em
+   var(--gut). Quem tem padding aqui é o bloco, nunca o main, para que os fios de seção
+   corram de ponta a ponta como régua de jornal. */
+main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
+.wrap{display:grid;gap:0 34px;align-items:start;grid-template-columns:minmax(0,1fr)}
 .wrap>*{min-width:0}
 @media(min-width:960px){
-  .wrap{grid-template-columns:minmax(0,1fr) 336px;grid-template-areas:"lista lado"}
+  :root{--calha:40px}
+  .wrap{grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"lista lado"}
   .lista{grid-area:lista}
   /* a coluna do lado gruda abaixo do cabeçalho; mais alta que a tela, ela rola por dentro,
      senão o pé dela (os últimos tipos de gasto) ficaria fora de alcance enquanto estivesse presa */
-  .lado{grid-area:lado;position:sticky;top:calc(var(--hh,132px) + 10px);
-        max-height:calc(100vh - var(--hh,132px) - var(--fh,60px) - 24px);overflow:auto}
+  .lado{grid-area:lado;position:sticky;top:calc(var(--hh,132px) + 16px);
+        max-height:calc(100vh - var(--hh,132px) - var(--fh,60px) - 30px);overflow:auto}
 }
-/* overflow:clip corta igual ao hidden e nao cria container de rolagem: e o que deixa
-   a .status grudar no alto da lista. Quem nao entende 'clip' fica com 'hidden'. */
-.cartao{background:var(--sf);border:1px solid var(--b);border-radius:var(--raio);overflow:hidden;overflow:clip;min-width:0}
-.cab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--b)}
-.cab h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
-.cab .acao{font-size:12px;color:var(--ac);font-weight:600;min-height:30px;padding:0 4px}
 
-/* resumo */
-.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--b)}
+/* "Cartão" ficou só de nome: o que separa uma seção da outra é um fio de 1px e respiro
+   vertical, não uma caixa. Caixa de verdade sobrou onde ela separa mesmo uma coisa de
+   outra: a folha e o menu ancorado.
+   overflow:clip corta igual ao hidden e nao cria container de rolagem: e o que deixa
+   a .status grudar no alto da lista. Quem nao entende 'clip' fica com 'hidden'. */
+.cartao{background:var(--sf);border:0;border-top:1px solid var(--b2);border-radius:0;
+  overflow:hidden;overflow:clip;min-width:0;margin:0 0 20px}
+.cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:13px var(--gut) 8px;border-bottom:1px solid var(--b2)}
+.cab h2{font-family:var(--ser);font-size:17.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.cab .acao,.cab .cont{font-size:12.5px;color:var(--mut);font-weight:600;white-space:nowrap}
+.cab .acao{color:var(--ac);min-height:30px;padding:0 4px}
+/* a linha que separa dois assuntos parecidos: ela mora sob o título da seção */
+.subcab{padding:0 var(--gut) 10px;margin-top:-4px;font-size:12.5px;color:var(--mut);line-height:1.45}
+
+/* ---------- resumo: uma tabela de razão, não quatro cartõezinhos ---------- */
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--b);
+  border-top:1px solid var(--b);border-bottom:1px solid var(--b)}
 @media(min-width:520px){.tiles{grid-template-columns:repeat(4,1fr)}}
-@media(min-width:960px){.tiles{grid-template-columns:repeat(2,1fr)}}
-.tile{background:var(--sf);padding:8px 10px;min-width:0}
-.tile .r{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tile .v{font-size:17px;font-weight:700;margin-top:1px;white-space:nowrap}
-.tile .n{font-size:11px;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
-.tile.pub .v{color:var(--pub)}
-.tile.sin .v{color:var(--ink)}
-.abre{padding:9px 12px;font-size:13px;line-height:1.35;border-bottom:1px solid var(--b)}
+/* duas colunas so na coluna estreita do lado; na ficha, que ocupa a largura toda,
+   quatro celulas de 300px cada viram quatro cartazes */
+@media(min-width:960px){.lado .tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--sf);padding:10px var(--gut) 12px;min-width:0}
+.tile .r{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v{font-size:21px;font-weight:700;line-height:1.15;margin-top:3px;white-space:nowrap;letter-spacing:-.015em}
+.tile .n{font-size:12.5px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+.tile.pub .v{color:var(--ac)}
+.tile .fio{margin-top:8px}
+
+/* a frase de abertura é o único texto em prosa da tela, e merece parecer texto */
+.abre{padding:14px var(--gut) 15px;font-size:17.5px;line-height:1.5;font-family:var(--ser);border-bottom:1px solid var(--b)}
 .abre b{font-weight:700}
 
-.bar{height:6px;background:var(--sf2);border-radius:3px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
-.bar.p i{background:var(--pub)}
+/* Barra de magnitude: mede tamanho, "a fatia desta linha no total". Ela é cinza quente
+   de propósito. Enquanto era teal de 3px, com o mesmo trilho, ela era sósia do fio do
+   dinheiro público, que tem 4px: a 3 pixels de altura ninguém separa dois teais, e uma
+   assinatura com sósia em toda tela não é assinatura. */
+.bar{display:block;height:3px;background:var(--sf2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mag)}
 
-/* listas densas */
+/* ============ A ASSINATURA DA PÁGINA: o fio do dinheiro público ============
+   Quatro pixels de altura, duas cores. O acento mede a fatia que saiu de fundo
+   eleitoral ou partidário; o trilho mede o resto. Ele se repete em toda linha do
+   ranking, no resumo do recorte e na ficha, sempre com o mesmo significado, e é o que
+   faz esta página ser reconhecível de longe. Teal só aqui: nenhuma outra barra da
+   página usa o acento.
+   Sem pagamento declarado o fio fica cheio no trilho, e quem diz isso é a palavra
+   escrita ao lado: o tracejado de 4px na cor do trilho era indistinguível de fio nenhum. */
+.fio{display:block;height:4px;background:var(--tra);overflow:hidden}
+.fio i{display:block;height:100%;background:var(--acfio)}
+
+/* ---------- listas densas ---------- */
 ul.l{list-style:none;margin:0;padding:0}
 .row{position:relative;border-bottom:1px solid var(--b)}
 .row:last-child{border-bottom:0}
 .rowmain{
-  display:grid;grid-template-columns:24px minmax(0,1fr) auto;
-  grid-template-areas:"pos nome val" "pos meta meta" "pos pub pub";
-  gap:1px 8px;padding:8px 12px 9px;text-decoration:none;color:inherit;
+  display:grid;grid-template-columns:var(--calha) minmax(0,1fr) auto;
+  grid-template-areas:"pos nome val" "pos meta meta" "pos fio fio" "pos pub pub";
+  gap:1px 10px;padding:12px var(--gut) 13px;text-decoration:none;color:inherit;
 }
+/* Com o selo do índice na linha, ele ganha coluna própria na grade e sobe para a altura
+   do valor. Antes ele ficava centrado na altura do fio do dinheiro público e a 5px do fim
+   dele: os dois liam como uma figura só, "uma barra que enche até aqui e dá 5 de 100",
+   casando na retina o dinheiro público com o índice de conferência, que é exatamente o
+   que as travas da página exigem manter separado. Agora o fio corre sozinho, largura
+   inteira, e não termina onde nada começa. */
+.row.temix .rowmain{
+  grid-template-columns:var(--calha) minmax(0,1fr) auto var(--ixc);
+  grid-template-areas:"pos nome val ix" "pos meta meta ix" "pos fio fio fio" "pos pub pub pub";
+}
+.r-ixgap{grid-area:ix}
 .rowmain:active{background:var(--sf2)}
 @media(hover:hover){.rowmain:hover{background:var(--sf2)}}
 /* o cartao recorta o que passa da borda: o anel de foco desenha por dentro */
-.rowmain:focus-visible,.mais:focus-visible{outline-offset:-3px;border-radius:0}
-.r-pos{grid-area:pos;font-size:11px;color:var(--mut);padding-top:3px}
-.r-nome{grid-area:nome;font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.r-val{grid-area:val;font-weight:700;font-size:14.5px;white-space:nowrap}
-.r-meta{grid-area:meta;font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.r-pub{grid-area:pub;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut);margin-top:2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.r-pub .bar{width:44px;flex:none}
-.nomegrande{display:block;font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
-/* os selos ficam na propria linha, fora do link: ninguem mira num alvo por cima de outro */
-.selos{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:0 12px 9px;margin-top:-3px}
-.row[data-selos] .rowmain{padding-bottom:3px}
+.rowmain:focus-visible,.mais:focus-visible,.status .ordbt:focus-visible,
+details summary:focus-visible{outline-offset:-3px;border-radius:0}
+/* o numeral de posição, grande e leve na serifa, na calha da esquerda: ele é o
+   metrônomo da lista, e põe a segunda voz tipográfica em toda linha */
+.r-pos{grid-area:pos;align-self:start;font-family:var(--ser);font-size:21px;font-weight:400;
+  color:var(--mut);line-height:1;padding:1px 3px 0 0;text-align:right;letter-spacing:-.02em;
+  font-variant-numeric:lining-nums tabular-nums}
+.r-pos.seta{font-size:15px;padding-top:4px}
+.r-nome{grid-area:nome;align-self:baseline;font-weight:600;font-size:15px;letter-spacing:-.005em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* o valor em dinheiro é o número mais importante da linha, e parece isso em toda ordenação */
+.r-val{grid-area:val;align-self:baseline;font-weight:700;font-size:17.5px;line-height:1.1;
+  white-space:nowrap;letter-spacing:-.015em}
+.r-val.sigla{font-size:12.5px;font-weight:600;color:var(--mut)}
+.r-meta{grid-area:meta;font-size:12.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;margin-top:2px}
+.r-fio{grid-area:fio;margin-top:9px}
+.magn{display:block;grid-area:fio;margin-top:9px;max-width:260px}
+.r-pub{grid-area:pub;font-size:12.5px;color:var(--mut);margin-top:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nomegrande{display:block;font-weight:700;font-size:15px;overflow-wrap:anywhere;letter-spacing:-.005em}
+/* No celular o valor a 17,5px comia a faixa do nome, e 6 dos 8 primeiros nomes saíam
+   cortados com reticências. Numa página pública de prestação de contas, dois homônimos
+   parciais viravam a mesma linha na tela: o nome passa a ter a linha inteira. */
+@media(max-width:480px){
+  .rowmain{grid-template-areas:"pos nome nome" "pos val val" "pos meta meta" "pos fio fio" "pos pub pub"}
+  .row.temix .rowmain{grid-template-areas:"pos nome nome ix" "pos val val ix" "pos meta meta meta" "pos fio fio fio" "pos pub pub pub"}
+  .r-nome{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+  .r-val{justify-self:start;margin-top:3px}
+}
+
+/* os selos ficam na propria linha, fora do link: ninguem mira num alvo por cima de outro.
+   Eles se alinham à coluna do nome, e não à direita, para a lista ter uma calha só. */
+.selos{display:flex;flex-wrap:wrap;gap:8px;margin-top:-3px;padding:0 var(--gut) 12px calc(var(--calha) + var(--gut) + 10px)}
+.row[data-selos] .rowmain{padding-bottom:5px}
 .selo{
-  position:relative;display:inline-flex;align-items:center;min-width:30px;max-width:100%;height:24px;
-  padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;
-  background:var(--slsf);color:var(--sl);border:1px solid var(--slb);
+  position:relative;display:inline-flex;align-items:center;min-width:30px;max-width:100%;height:26px;
+  padding:0 8px;border-radius:var(--raio);font-size:12.5px;font-weight:600;letter-spacing:.01em;
+  background:var(--sf);color:var(--mut);border:1px solid var(--b);border-left:2px solid var(--b2);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 /* no botao quem corta o texto e o span de dentro: recorte na caixa comeria o ::after,
    que e a area de toque de 44px, e o selo e a porta da ressalva no celular */
 button.selo{overflow:visible}
 button.selo>span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* area de toque de 44px sem engordar o desenho */
-.selos .selo::after{content:"";position:absolute;top:-10px;bottom:-10px;left:-3px;right:-3px}
-.selo[data-g="2"]{background:var(--amsf);color:var(--am);border-color:var(--amb)}
-.selo[data-g="3"]{background:var(--am);color:var(--sf);border-color:var(--am)}
+/* area de toque de 44px sem engordar o desenho, em todo selo que é botão */
+button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;right:-3px}
+/* O ocre em três intensidades diz o quanto o sinal pede conferência. Nunca vermelho,
+   nunca ícone de perigo: um sinal não é acusação, e o índice também não é.
+   A cor sozinha não basta: quem tem deficiência de visão de cores via o mesmo selo em
+   1 e em 2, então a intensidade também está na espessura do fio da esquerda. */
+.selo[data-g="1"]{border-left-width:2px}
+.selo[data-g="2"]{background:var(--am1);color:var(--am3);border-color:var(--am2);border-left:4px solid var(--am3)}
+.selo[data-g="3"]{background:var(--amf);color:var(--pap);border-color:var(--amf);border-left:6px solid var(--am3)}
 /* rotulo por extenso cabe no laptop; no celular fica o primeiro e um "+N" que abre a lista toda */
-.selos .selomais{display:none;flex:none;background:var(--sf);color:var(--mut);border-color:var(--b)}
+.selos .selomais{display:none;flex:none;background:var(--sf);color:var(--mut);border-color:var(--b);border-left:2px solid var(--b)}
 @media(max-width:560px){
   .selos .extra{display:none}
   .selos .selomais.mob{display:inline-flex}
@@ -167,194 +324,280 @@ button.selo>span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsi
 @media(min-width:561px){
   .selos .selomais.desk{display:inline-flex}
 }
-.prop{position:absolute;left:0;bottom:0;height:3px;background:var(--ac);opacity:.35;pointer-events:none;border-radius:0 2px 2px 0}
 
 /* Indice de conferencia: coluna propria na linha, fora do link, com a ressalva a um toque.
-   Tres decisoes desta rodada: (1) o botao tem borda, porque ele e a unica porta para a
-   ressalva e precisa parecer controle; (2) a escala vai escrita ('/100'), porque numero
+   Tres decisoes que seguem valendo: (1) o botao tem borda, porque ele e a unica porta para
+   a ressalva e precisa parecer controle; (2) a escala vai escrita ('/100'), porque numero
    nu ao lado de um nome le como nota dada a pessoa; (3) nao ha cor por faixa nem regua na
-   lista, porque duas cores sem legenda viram semaforo e a regua por faixa exagerava valor
-   baixo. A palavra da faixa esta no rotulo de acessibilidade, na folha e na ficha. */
-.row.temix .rowmain{padding-right:48px}
-.row.temix .selos{padding-right:48px}
+   lista, porque duas cores sem legenda viram semaforo. A palavra da faixa esta no rotulo
+   de acessibilidade, na folha e na ficha.
+   Quando o índice é o critério de ordenação, ele ganha peso e o fio de acento, para a
+   tela mudar de peso quando muda de critério. O que ele nunca faz é tomar o lugar da
+   cifra: o assunto da página é o dinheiro. */
 .ixbt{
-  position:absolute;right:5px;top:50%;transform:translateY(-50%);
-  width:40px;min-height:44px;padding:2px 0;border:1px solid var(--b);border-radius:8px;
+  position:absolute;right:calc(var(--gut) - 2px);top:10px;
+  width:44px;min-height:38px;padding:3px 0;border:1px solid var(--b);border-radius:var(--raio);
   background:var(--sf);display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:1px;
 }
+.ixbt::after{content:"";position:absolute;top:-3px;bottom:-3px;left:0;right:0}
 .ixbt:active{background:var(--sf2)}
-@media(hover:hover){.ixbt:hover{background:var(--sf2)}}
-.ixbt .n{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.05;color:var(--ink)}
-.ixbt .de{font-size:9px;font-weight:600;line-height:1;color:var(--mut)}
+@media(hover:hover){.ixbt:hover{background:var(--sf2);border-color:var(--b2)}}
+.ixbt .n{font-size:15px;font-weight:700;line-height:1.05;color:var(--ink)}
+.ixbt .de{font-size:11px;font-weight:600;line-height:1;color:var(--mut)}
 .ixbt[data-f="0"] .n{color:var(--mut)}
+.ixbt[data-ord="1"]{border-color:var(--ac);box-shadow:inset 0 -2px 0 var(--ac)}
+.ixbt[data-ord="1"] .n{font-size:17.5px;color:var(--ink)}
 .ixficha{
-  padding:12px;border-top:1px solid var(--b);display:grid;
-  grid-template-columns:auto minmax(0,1fr);gap:2px 14px;align-items:center;
+  padding:14px var(--gut);border-top:1px solid var(--b);display:grid;
+  grid-template-columns:auto minmax(0,1fr);gap:3px 16px;align-items:center;
 }
-.ixficha .ixn{font-size:30px;font-weight:800;line-height:1;color:var(--sl);font-variant-numeric:tabular-nums}
+.ixficha .ixn{font-size:30px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:-.025em}
 .ixficha[data-f="0"] .ixn{color:var(--mut)}
-.ixficha[data-f="2"] .ixn,.ixficha[data-f="3"] .ixn{color:var(--am)}
-.ixficha .ixn .de{font-size:14px;font-weight:600;color:var(--mut)}
-.ixficha .ixt{font-size:13.5px}
-.ixficha .ixs{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.ixficha[data-f="2"] .ixn,.ixficha[data-f="3"] .ixn{color:var(--am3)}
+.ixficha .ixn .de{font-size:15px;font-weight:600;color:var(--mut)}
+.ixficha .ixt{font-size:15px}
+.ixficha .ixs{display:block;color:var(--mut);font-size:12.5px;margin-top:3px;line-height:1.45}
 .ixficha .nao{grid-column:1/-1;margin-top:0}
 
-/* ordenacao sempre a vista, em vez de escondida num menu */
-.ordwrap{display:flex;align-items:center;gap:8px;padding:7px 12px 9px;border-bottom:1px solid var(--b);flex-wrap:wrap}
-.ordrot{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);flex:none}
-.ord{display:flex;gap:3px;background:var(--sf2);padding:3px;border-radius:9px;flex:1 1 260px;flex-wrap:wrap}
-.ord button{flex:1 1 auto;min-height:38px;padding:0 9px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--mut);white-space:nowrap}
-.ord button[aria-pressed="true"]{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.ordnota{flex:1 1 100%;font-size:11.5px;color:var(--mut)}
+/* Ordenacao sempre a vista, desenhada como a linha de colunas de uma tabela: o critério
+   em vigor troca o fio de 1px por um fio de 2px no acento. É um desenho só para as três
+   abas: quem aprendeu a ordenar no ranking reconhece o controle nas outras duas. */
+.ordwrap{display:flex;align-items:center;gap:4px 14px;padding:5px var(--gut) 0;border-bottom:1px solid var(--b);flex-wrap:wrap}
+.ordrot{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--mut);flex:none}
+.ord{display:flex;gap:2px;flex:1 1 240px;flex-wrap:wrap}
+.ord button{flex:0 1 auto;min-height:44px;padding:0 10px;font-size:12.5px;font-weight:600;color:var(--mut);
+  border-bottom:2px solid transparent;white-space:nowrap}
+.ord button[aria-pressed="true"]{color:var(--ac);border-bottom-color:var(--ac)}
+@media(hover:hover){.ord button:hover{color:var(--ink)}}
+.ordnota{flex:1 1 100%;font-size:12.5px;color:var(--mut);line-height:1.45;padding-bottom:9px}
 
 /* O botao da direita e, ao mesmo tempo, o rotulo da coluna de indice. Solto, ele saia da
    tela na primeira rolada e sobravam numeros de 0 a 100 sem uma palavra que os explicasse. */
-.status{margin:0;padding:0 12px;min-height:44px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:8px;
-  position:sticky;top:var(--hh,132px);z-index:5;background:var(--sf)}
+.status{margin:0;padding:0 var(--gut);min-height:42px;font-size:12.5px;font-weight:600;letter-spacing:.02em;
+  color:var(--mut);border-bottom:1px solid var(--b2);display:flex;align-items:center;
+  justify-content:space-between;gap:8px;position:sticky;top:var(--hh,132px);z-index:5;background:var(--sf)}
 .status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.status .ordbt{min-height:44px;padding:0 2px;color:var(--ac);font-weight:600;font-size:12px;text-align:right;white-space:nowrap}
-.vazio{padding:26px 16px;text-align:center;color:var(--mut);font-size:13.5px}
-.vazio .bt{margin-top:12px}
+.status .ordbt{min-height:44px;padding:0 2px;color:var(--ac);font-weight:600;font-size:12.5px;text-align:right;white-space:nowrap}
+@media(hover:hover){.status .ordbt:hover{text-decoration:underline}}
+
+.vazio{padding:34px var(--gut);text-align:center;color:var(--mut);font-size:15px;line-height:1.55}
+.vazio .bt{margin-top:14px}
 .bt{
-  display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;
-  border:1px solid var(--b);border-radius:var(--raio);background:var(--sf);font-size:13.5px;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;
+  border:1px solid var(--b2);border-radius:var(--raio);background:var(--sf);font-size:15px;font-weight:600;
 }
 .bt.pri{background:var(--ac);color:var(--acink);border-color:var(--ac)}
-.mais{display:block;width:100%;min-height:46px;font-size:13.5px;font-weight:600;color:var(--ac);border-top:1px solid var(--b)}
+@media(hover:hover){.bt:hover{border-color:var(--ink)}.bt.pri:hover{opacity:.9;border-color:var(--ac)}}
+.mais{display:block;width:100%;min-height:48px;font-size:12.5px;font-weight:600;color:var(--ac);border-top:1px solid var(--b)}
 .mais:active{background:var(--sf2)}
+@media(hover:hover){.mais:hover{background:var(--acsf)}}
 
 /* esqueleto e erro */
-.sk{padding:10px 12px;border-bottom:1px solid var(--b)}
-.sk i{display:block;height:11px;border-radius:5px;background:var(--sf2);margin-bottom:6px}
+.sk{padding:12px var(--gut);border-bottom:1px solid var(--b)}
+.sk i{display:block;height:11px;background:var(--sf2);margin-bottom:7px}
 .sk i:nth-child(1){width:62%} .sk i:nth-child(2){width:38%} .sk i:nth-child(3){width:48%;margin-bottom:0}
 @media (prefers-reduced-motion:no-preference){.sk i{animation:pulso 1.3s ease-in-out infinite}}
 @keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
-.erro{padding:22px 16px;text-align:center}
-.erro p{margin:0 0 12px;font-size:13.5px;color:var(--mut)}
+.erro{padding:30px var(--gut);text-align:center}
+.erro p{margin:0 0 14px;font-size:15px;color:var(--mut);line-height:1.5}
 
-/* tipos e barras rotuladas */
-.blist{margin:0;padding:4px 12px 10px;list-style:none;min-width:0}
-.blist li{padding:2px 0;min-width:0}
-.blist .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;min-width:0}
+/* tipos, fontes do dinheiro e barras rotuladas */
+.blist{margin:0;padding:6px var(--gut) 12px;list-style:none;min-width:0}
+.blist li{min-width:0}
+.blist .t{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;font-size:12.5px;min-width:0;padding-bottom:4px}
+.blist div.t{padding-top:12px}
 .blist .t span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .blist .t b{font-weight:700;white-space:nowrap}
 .blist button.t{width:100%;text-align:left;min-height:44px}
 .blist li[aria-current="true"] .t{color:var(--ac)}
+.blist li[aria-current="true"] .bar i{background:var(--ink)}
+@media(hover:hover){.blist button.t:hover{color:var(--ink)}}
 
-/* ficha */
-.voltar{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px 0 6px;font-size:13.5px;font-weight:600;color:var(--ac);margin-bottom:6px}
-.fhead{padding:12px}
-.fhead h1{font-size:19px;line-height:1.2}
-.fhead .sub{font-size:13px;color:var(--mut);margin-top:4px}
-.fgrid{display:grid;gap:10px}
+/* ---------- ficha ---------- */
+.voltar{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px 0 var(--gut);font-size:12.5px;font-weight:600;color:var(--ac)}
+.fhead{padding:16px var(--gut) 15px;border-bottom:1px solid var(--b)}
+.fhead h1{font-family:var(--ser);font-size:30px;font-weight:600;line-height:1.15;letter-spacing:-.02em;overflow-wrap:anywhere}
+.fhead .sub{font-size:12.5px;color:var(--mut);margin-top:5px}
+.fgrid{display:grid;gap:0 34px}
 @media(min-width:900px){.fgrid{grid-template-columns:1fr 1fr}.fgrid .full{grid-column:1/-1}}
-.dest{padding:12px;background:var(--pubsf);border-top:1px solid var(--b)}
-.dest .g{font-size:26px;font-weight:800;color:var(--pub);line-height:1.1}
-.dest .d{font-size:12.5px;color:var(--mut);margin-top:3px}
+/* O destaque do dinheiro público era uma caixa teal cheia, a maior superfície preenchida
+   da página, e no escuro o único bloco de cor sólida da tela: ela pesava mais que o nome
+   da candidatura e invertia a hierarquia, com o percentual mandando na ficha e o dinheiro
+   mandando na lista. Agora é número grande sobre o papel, entre dois filetes, e o fio
+   ocupa a medida da coluna de texto, não a da tela, para a fatia pequena aparecer. */
+.dest{padding:14px var(--gut);border-top:1px solid var(--b2);border-bottom:1px solid var(--b2)}
+.dest .g{font-size:30px;font-weight:700;color:var(--ac);line-height:1.05;letter-spacing:-.025em}
+.dest .d{font-size:12.5px;color:var(--mut);margin-top:5px;line-height:1.45;max-width:560px}
+.dest .fio{margin-top:10px;max-width:560px}
 
 /* comparacao com quem disputa o mesmo cargo na mesma UF */
-.pares{padding:10px 12px;border-top:1px solid var(--b)}
-.pares .fr{font-size:13px;color:var(--ink)}
+.pares{padding:12px var(--gut)}
+.pares .fr{font-size:15px;line-height:1.5;color:var(--ink)}
 .pares .fr b{font-weight:700}
-.pares .rv{position:relative;height:30px;margin:12px 0 4px}
-.pares .eixo{position:absolute;left:0;right:0;top:13px;height:4px;background:var(--sf2);border-radius:2px}
-.pares .mc{position:absolute;top:6px;width:2px;height:18px;background:var(--mut);opacity:.7}
-.pares .eu{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;background:var(--ac);border:2px solid var(--sf);box-shadow:0 0 0 1px var(--ac)}
-.pares .leg{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mut)}
-.pares .rs{font-size:11.5px;color:var(--mut);margin-top:6px}
-.sinal{padding:10px 12px;border-bottom:1px solid var(--b)}
+.pares .rv{position:relative;height:26px;margin:16px 0 0}
+.pares .eixo{position:absolute;left:0;right:0;top:12px;height:3px;background:var(--tra)}
+.pares .mc{position:absolute;top:5px;width:2px;height:17px;background:var(--mut)}
+/* losango, não círculo com anel: círculo com anel é a forma de um controle deslizante
+   e convidava ao arrasto num desenho que não arrasta nada */
+.pares .eu{position:absolute;top:5px;width:13px;height:13px;margin-left:-6px;
+  background:var(--ac);transform:rotate(45deg)}
+/* cada rótulo fica ancorado sob a sua marca; quando dois se aproximam, o segundo desce
+   uma linha, em vez de o rótulo de uma marca aparecer sob outra */
+.pares .rleg{position:relative;font-size:12.5px;color:var(--mut);line-height:1.35}
+.pares .rleg .rl{position:absolute;white-space:nowrap}
+.pares .rleg .rl b{color:var(--ink);font-weight:600}
+.pares .rext{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--mut);
+  border-top:1px solid var(--b);padding-top:6px}
+.pares .rs{font-size:12.5px;color:var(--mut);margin-top:8px;line-height:1.45}
+
+.sinal{padding:12px var(--gut);border-bottom:1px solid var(--b)}
 .sinal:last-child{border-bottom:0}
-.sinal .top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
-.sinal .tx{font-size:13px;color:var(--ink)}
+.sinal .top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.sinal .tx{font-size:15px;color:var(--ink);line-height:1.5;max-width:66ch}
 .nao{display:block;font-size:12.5px;font-weight:600;color:var(--ac);min-height:44px;text-align:left}
-.sinal .nao{margin-top:10px}
+.sinal .nao{margin-top:6px}
 .nota .nao{margin-top:2px}
-.grav{font-size:11px;color:var(--mut)}
-.pontos i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sf2);margin-right:2px;border:1px solid var(--slb)}
-.pontos i.on{background:var(--am);border-color:var(--am)}
-.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 12px;font-size:13px}
+.grav{font-size:12.5px;color:var(--mut)}
+/* traços quadrados, não bolinhas: a página é feita de fios */
+.pontos i{display:inline-block;width:6px;height:6px;background:var(--sf);margin-right:3px;border:1px solid var(--b2)}
+.pontos i.on{background:var(--am3);border-color:var(--am3)}
+/* A lista de sinais é a mesma página: ela ganha o numeral em serifa na calha, a coluna de
+   leitura na mesma medida do ranking e o nome da candidatura como primeiro elemento do
+   bloco. Antes ela era uma tela de cartões de texto de 142 caracteres por linha. */
+.sinal.slin{display:grid;grid-template-columns:var(--calha) minmax(0,1fr);gap:0 10px}
+.sinal.slin .s-pos{font-family:var(--ser);font-size:21px;font-weight:400;color:var(--mut);
+  line-height:1;padding-top:2px;text-align:right}
+.sinal.slin .s-corpo{min-width:0;max-width:700px}
+.sinal.slin .top{margin:8px 0 6px}
+.sinal.slin .s-lado{grid-column:2;font-size:12.5px;color:var(--mut);margin-top:6px}
+.sinal.slin .s-meta{font-size:12.5px;color:var(--mut);font-weight:400}
+@media(min-width:900px){
+  .sinal.slin{grid-template-columns:var(--calha) minmax(0,700px) minmax(0,1fr)}
+  .sinal.slin .s-lado{grid-column:3;grid-row:1;margin-top:2px;text-align:right}
+}
+
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px var(--gut);font-size:12.5px}
 .kv .k{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kv .v{font-weight:600;text-align:right;white-space:nowrap}
-.forn{padding:8px 12px;border-bottom:1px solid var(--b)}
+.forn{padding:10px var(--gut);border-bottom:1px solid var(--b)}
 .forn:last-child{border-bottom:0}
-.forn .n1{display:flex;justify-content:space-between;gap:8px;font-size:13.5px}
-.forn .n1 b{white-space:nowrap}
+.forn .n1{display:flex;justify-content:space-between;gap:10px;font-size:15px;align-items:baseline}
+.forn .n1 b{white-space:nowrap;font-weight:700;font-size:15px}
 .forn .n1 .nm{font-weight:600;min-width:0;overflow-wrap:anywhere}
-.forn .n2{font-size:11.5px;color:var(--mut);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
-.tag{display:inline-block;padding:1px 5px;border-radius:5px;background:var(--sf2);font-size:10.5px;font-weight:700;color:var(--mut);border:1px solid var(--b)}
-.tag.pj{background:var(--acsf);color:var(--ac);border-color:var(--acsf)}
-svg.serie{display:block;width:100%;height:88px;background:var(--sf)}
-svg.serie rect{fill:var(--ac);opacity:.8}
-details{border-top:1px solid var(--b)}
-details summary{min-height:44px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:var(--ac);font-weight:600;cursor:pointer}
+.forn .n2{font-size:12.5px;color:var(--mut);margin-top:5px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+svg.serie{display:block;width:100%;height:92px;background:var(--sf)}
+svg.serie rect{fill:var(--mag)}
+
+/* seção que abre e fecha: título de seção em serifa, com a linha de apoio embaixo */
+details{border-top:1px solid var(--b2)}
+.cartao>details:first-child{border-top:0}
+details summary{position:relative;display:block;min-height:46px;padding:12px 32px 10px var(--gut);cursor:pointer;border-bottom:1px solid var(--b)}
 details summary::-webkit-details-marker{display:none}
-.nota{padding:10px 12px;font-size:12.5px;color:var(--mut);background:var(--sf)}
-.nota b{color:var(--ink)}
+details summary b{display:block;font-family:var(--ser);font-size:17.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+details summary .sm{display:block;font-size:12.5px;color:var(--mut);margin-top:3px}
+details summary::after{content:"";position:absolute;right:13px;top:22px;width:0;height:0;
+  border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--mut)}
+details[open]>summary::after{border-top:0;border-bottom:6px solid var(--mut)}
+@media(hover:hover){details summary:hover{background:var(--sf2)}}
+
+/* A nota de rodapé de uma seção: fio na margem esquerda, como observação de livro-caixa.
+   Ela é texto para ler, e não rótulo de tabela: o que diz o que um número não significa
+   não pode ser sistematicamente menor que o número. */
+.nota{padding:10px 0 10px 12px;margin:11px var(--gut);font-size:15px;line-height:1.5;color:var(--mut);
+  border-left:3px solid var(--b2);background:var(--sf);max-width:66ch}
+.nota b{color:var(--ink);font-weight:600}
 
 /* Folha (sheet). Decisao de desenho: no celular a folha sobe da base, que e o padrao do
    aparelho e deixa o polegar perto do conteudo; a partir de 720px ela abre centrada no alto.
-   A regra de abrir ancorado vale para os menus de filtro, nao para a folha de leitura. */
-.fundo{position:fixed;inset:0;background:rgba(6,10,16,.5);z-index:40}
+   A regra de abrir ancorado vale para os menus de filtro, nao para a folha de leitura.
+   O fio de acento no alto dela é o mesmo que abre a página. */
+.fundo{position:fixed;inset:0;background:rgba(20,17,12,.55);z-index:40}
 .folha{
-  position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--sf);
-  border-radius:16px 16px 0 0;max-height:82vh;display:flex;flex-direction:column;
-  box-shadow:0 -6px 24px rgba(0,0,0,.25);
+  position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--pap);
+  border-top:3px solid var(--ac);max-height:82vh;display:flex;flex-direction:column;
+  box-shadow:0 -8px 30px rgba(20,17,12,.3);
 }
 @media(min-width:720px){
-  .folha{left:50%;right:auto;bottom:auto;top:12vh;transform:translateX(-50%);width:520px;max-width:94vw;border-radius:14px;max-height:76vh}
+  .folha{left:50%;right:auto;bottom:auto;top:10vh;transform:translateX(-50%);width:540px;max-width:94vw;max-height:78vh}
 }
-.fcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border-bottom:1px solid var(--b)}
-.fcab h2{font-size:15px}
-.fcab button{width:44px;height:44px;border-radius:8px;color:var(--mut);font-size:16px;flex:none}
-.fcorpo{overflow-y:auto;padding:6px 0 14px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.opt{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 14px;text-align:left;font-size:14px}
+.fcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border-bottom:1px solid var(--b2)}
+.fcab h2{font-family:var(--ser);font-size:17.5px;font-weight:600;letter-spacing:-.01em}
+.fcab button{width:44px;height:44px;border-radius:var(--raio);color:var(--mut);font-size:15px;flex:none}
+.fcorpo{overflow-y:auto;padding:4px 0 16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.opt{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;min-height:44px;
+  padding:0 14px;text-align:left;font-size:15px;border-bottom:1px solid var(--b)}
+.opt:last-child{border-bottom:0}
 .opt:active{background:var(--sf2)}
-.opt .c{font-size:12px;color:var(--mut);white-space:nowrap}
-.opt[aria-pressed="true"]{color:var(--ac);font-weight:700;background:var(--acsf)}
-.filtro{margin:6px 12px 8px;width:calc(100% - 24px);height:40px;padding:0 10px;border:1px solid var(--b);border-radius:8px;background:var(--bg);color:var(--ink)}
-.fcorpo p{margin:0;padding:8px 14px;font-size:13.5px}
-.fcorpo p.rot{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding-bottom:0;padding-top:12px}
+@media(hover:hover){.opt:hover{background:var(--sf2)}}
+.opt .c{font-size:12.5px;color:var(--mut);white-space:nowrap}
+.opt[aria-pressed="true"]{color:var(--ac);font-weight:700;background:var(--acsf);box-shadow:inset 3px 0 0 var(--ac)}
+/* a lista que explica os sinais é o painel que existe para explicar: ela não trunca frase */
+.opt.longa{align-items:flex-start;padding-top:11px;padding-bottom:11px}
+.opt.longa>span:first-child{white-space:normal;line-height:1.45}
+.filtro{margin:8px 12px;width:calc(100% - 24px);height:42px;padding:0 10px;border:1px solid var(--b2);border-radius:var(--raio);background:var(--campo);color:var(--ink);font-size:15px}
+.fcorpo p{margin:0;padding:8px 14px;font-size:15px;line-height:1.5}
+.fcorpo p.rot{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--mut);padding-bottom:0;padding-top:15px}
 .fcorpo .selo{margin:0 14px}
-.tecla{display:flex;justify-content:space-between;gap:10px;padding:6px 14px;font-size:13px}
-.tecla kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;background:var(--sf2);border:1px solid var(--b);border-radius:5px;padding:1px 5px}
+.tecla{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;font-size:12.5px}
+.tecla kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:var(--sf2);border:1px solid var(--b);border-radius:var(--raio);padding:2px 6px}
 
 /* dropdown ancorado ao botao que o abriu (nao e folha que sobe da base) */
 .menu{
-  position:fixed;z-index:45;background:var(--sf);border:1px solid var(--b);border-radius:12px;
-  box-shadow:0 10px 30px rgba(6,10,16,.22);display:flex;flex-direction:column;overflow:hidden;
+  position:fixed;z-index:45;background:var(--pap);border:1px solid var(--b2);border-top:3px solid var(--ac);
+  box-shadow:0 12px 34px rgba(20,17,12,.24);display:flex;flex-direction:column;overflow:hidden;
 }
-.menu .mcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 14px;border-bottom:1px solid var(--b);flex:none}
-.menu .mcab h2{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
-.menu .mcab button{width:38px;height:38px;border-radius:8px;color:var(--mut);font-size:15px;flex:none}
-.menu .mcorpo{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 8px;flex:1 1 auto;min-height:0}
-.menu .rot{margin:0;padding:10px 14px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.menu .mcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 14px;border-bottom:1px solid var(--b2);flex:none}
+.menu .mcab h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--mut)}
+.menu .mcab button{width:38px;height:38px;border-radius:var(--raio);color:var(--mut);font-size:15px;flex:none}
+.menu .mcorpo{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 6px;flex:1 1 auto;min-height:0}
+.menu .rot{margin:0;padding:13px 14px 3px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--mut)}
 .menu .opt[aria-pressed="true"]{color:var(--ac);font-weight:700;background:var(--acsf)}
 
+/* as três seções, presas ao conteúdo pelo alto: a que está aberta leva o fio de acento */
 footer{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sf);border-top:1px solid var(--b);
-  padding:4px 8px;padding-bottom:calc(4px + env(safe-area-inset-bottom,0px));
+  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--pap);border-top:1px solid var(--b2);
+  padding:0 var(--gut);padding-bottom:env(safe-area-inset-bottom,0px);
 }
-.fwrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
-.legal{margin:0;font-size:10.5px;line-height:1.25;color:var(--mut);text-align:center}
+.fwrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:0}
+.abas{display:flex;gap:0}
+.abas button{flex:1;min-height:46px;font-size:12.5px;font-weight:600;color:var(--mut);
+  border-top:2px solid transparent;margin-top:-1px}
+.abas button[aria-current="page"]{color:var(--ac);border-top-color:var(--ac)}
+@media(hover:hover){.abas button:hover{color:var(--ink)}}
+.legal{margin:0;font-size:11px;line-height:1.35;color:var(--mut);text-align:center;padding:0 0 5px}
 .legal b{color:var(--ink);font-weight:600}
-.legalbt{font-size:inherit;color:var(--ac);font-weight:600;text-decoration:underline;min-height:26px;padding:0 2px}
+/* a porta da metodologia e do contato está em toda tela: a caixa continua com 26px de
+   desenho e a área de toque vai a 44px por um ::after, que não engorda o rodapé */
+.legalbt{position:relative;font-size:inherit;color:var(--ac);font-weight:600;text-decoration:underline;min-height:26px;padding:0 2px}
+.legalbt::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-4px;right:-4px}
 .legalbt[disabled]{color:var(--mut);text-decoration:none;cursor:default}
-.ajuda[disabled]{opacity:.45;cursor:default}
+.legalbt[disabled]::after{content:none}
 @media(min-width:720px){
-  .fwrap{flex-direction:row;align-items:center;gap:12px}
-  .abas{width:330px;flex:none}
-  .legal{flex:1;text-align:right;font-size:11px}
+  .fwrap{flex-direction:row;align-items:stretch;gap:16px}
+  .abas{width:340px;flex:none}
+  .legal{flex:1;text-align:right;font-size:12.5px;align-self:center;padding:6px 0}
 }
 .ocul{display:none}
 .ocultavisual{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.nota{padding:8px 12px;font-size:12px}
 </style>
 </head>
 <body>
 <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
-<header>
+<!-- A testeira diz o que isto é para quem abre o link sem contexto nenhum: o nome, o que a
+     página faz e, na terceira linha, que recorte esta tela mostra. A fonte e a data desceram
+     para o rodapé, que está em toda tela. Ela rola com a página; quem fica preso no alto é só
+     a barra de busca e filtros, que já nasce compacta. -->
+<header class="masthead">
+  <div class="mwrap">
+    <h1>Contas de campanha 2026</h1>
+    <p class="mlinha">O que cada candidatura declarou ao TSE que arrecadou e gastou, com o que vale conferir apontado ao lado.</p>
+    <p class="mrec"><span class="rot">Nesta tela</span><span id="mrec">carregando</span></p>
+  </div>
+</header>
+
+<header class="barra" role="search" aria-label="Busca e filtros">
   <div class="hwrap">
     <div class="linha1">
       <div class="busca">
@@ -457,7 +700,7 @@ function fedCurta(f){
 var META = null, UFD = null, IDX = null, ALA = null, FOR = null, COTA = null;
 var S = {
   view:'ranking', uf:'SP', cargo:'', partido:'', fed:'', ord:'contratado',
-  sinal:'', tipo:'', q:'', cand:'', grav:'', fam:'', auf:'', fo:'valor', limite:60
+  sinal:'', tipo:'', origem:'', q:'', cand:'', grav:'', fam:'', auf:'', aord:'grav', fo:'valor', limite:60
 };
 var ORDS = {contratado:'gasto contratado', indice:'índice de conferência', pago:'gasto pago',
             receita:'receita declarada', sinais:'quantidade de sinais a conferir'};
@@ -590,9 +833,10 @@ function indiceDe(r){ return temIndice(r) ? r[14] : 0; }
    abaixo de 20: quem comparasse barra com barra via distância onde havia sinal fraco.
    No lugar dela entra a escala escrita, que é o que faltava para o número não ser lido
    como nota dada à pessoa. A palavra da faixa continua no rótulo de acessibilidade. */
-function botaoIndice(v){
+function botaoIndice(v, emVigor){
   var fx = faixaDe(v);
-  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '" ' +
+  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '"' +
+    (emVigor ? ' data-ord="1"' : '') + ' ' +
     'aria-label="Índice de conferência ' + v + ' de 100' + (fx.t ? ', ' + esc(fx.t) : '') +
     '. Ver o que o índice é e o que ele não é">' +
     '<span class="n">' + v + '</span>' +
@@ -601,7 +845,7 @@ function botaoIndice(v){
 /* um erro por fonte: sucesso numa aba nao pode apagar a falha de outra */
 var erros = {uf:null, indice:null, alarmes:null, forn:null, cota:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
-var tiposAberto = null, ufEmVoo = '';
+var tiposAberto = null, origensAberto = null, ufEmVoo = '';
 
 function lerHash(){
   var h = location.hash.replace(/^#/,''), o = {};
@@ -619,9 +863,10 @@ function aplicarHash(){
   if(META && !unidadeValida(S.uf)) S.uf = ufPadrao();
   S.cargo = o.cargo || ''; S.partido = o.partido || ''; S.fed = o.fed || '';
   S.ord = ORDS[o.ord] ? o.ord : 'contratado';
-  S.sinal = o.sinal || ''; S.tipo = o.tipo || ''; S.q = o.q || '';
+  S.sinal = o.sinal || ''; S.tipo = o.tipo || ''; S.origem = o.origem || ''; S.q = o.q || '';
   S.cand = /^[0-9]{6,20}$/.test(o.cand || '') ? o.cand : '';
   S.grav = o.grav || ''; S.fam = o.fam || ''; S.auf = (o.auf || '').toUpperCase();
+  S.aord = ({grav:1, valor:1}[o.aord]) ? o.aord : 'grav';
   S.fo = ({valor:1,candidatos:1,cota:1}[o.fo]) ? o.fo : 'valor';
   S.view = S.cand ? 'cand'
         : (S.q ? 'busca'
@@ -634,7 +879,7 @@ function montarHash(){
   function add(k,v,padrao){ if(v && v !== padrao) p.push(k + '=' + e(v)); }
   if(S.view === 'alarmes'){
     /* o link diz 'sinais', que e a palavra da tela; 'alarmes' continua valendo na entrada */
-    p.push('sinais'); add('grav',S.grav); add('fam',S.fam); add('auf',S.auf);
+    p.push('sinais'); add('grav',S.grav); add('fam',S.fam); add('auf',S.auf); add('aord',S.aord,'grav');
     return p.join('&');
   }
   if(S.view === 'fornecedores'){
@@ -642,7 +887,7 @@ function montarHash(){
     return p.join('&');
   }
   add('uf',S.uf); add('cargo',S.cargo); add('partido',S.partido); add('fed',S.fed);
-  add('ord',S.ord,'contratado'); add('sinal',S.sinal); add('tipo',S.tipo);
+  add('ord',S.ord,'contratado'); add('sinal',S.sinal); add('tipo',S.tipo); add('origem',S.origem);
   if(S.view === 'busca') add('q',S.q);
   if(S.view === 'cand') add('cand',S.cand);
   return p.join('&');
@@ -683,9 +928,15 @@ function abrirFolha(titulo, corpo){
       '<button data-act="fecharfolha" aria-label="Fechar">✕</button></div>' +
       '<div class="fcorpo">' + corpo + '</div>' +
     '</div>';
+  /* Sem campo de filtro e sem opcao marcada, a folha e texto para ler: mandar o foco para
+     o primeiro botao do corpo abria a ressalva ja rolada para o meio de uma frase, e o
+     comeco dela, que e o texto obrigatorio da trava, ficava fora da tela. O recuo e o
+     botao de fechar, que e o primeiro na ordem do DOM. */
   var alvo = folha.querySelector('.filtro') || folha.querySelector('.fcorpo [aria-pressed="true"]') ||
-             folha.querySelector('.fcorpo button, .fcorpo a') || folha.querySelector('.fcab button');
+             folha.querySelector('.fcab button');
   if(alvo) alvo.focus();
+  var corpo = folha.querySelector('.fcorpo');
+  if(corpo) corpo.scrollTop = 0;
 }
 function fecharFolha(){
   if(!folhaAberta()) return;
@@ -763,15 +1014,26 @@ function posicionarMenu(){
     /* Decisão de desenho, e não falha de ancoragem: abaixo de 560px o dropdown preso ao chip
        ficaria com menos de 200px úteis e encostaria na borda, então ele vira painel de largura
        total logo abaixo da barra de filtros. Preso ao botão, de 560px para cima. */
-    var hd = document.querySelector('header');
+    var hd = document.querySelector('header.barra');
     topo = Math.round((hd ? hd.getBoundingClientRect().bottom : r.bottom) + 4);
     larg = vw - 16;
     cx.style.left = '8px';
   } else {
+    /* O menu respeita a mesma margem que o resto da pagina: ele nao pode parar a 24px da
+       borda da janela enquanto o conteudo para a 140px. Preferencia: alinhar pela esquerda
+       do chip; se estourar a margem direita do conteudo, alinhar pela direita do chip. */
     topo = Math.round(r.bottom + 6);
     larg = Math.max(240, Math.min(340, vw - 16));
+    var corpo = document.querySelector('main'), lim = vw - 8, ini = 8;
+    if(corpo){
+      var rc = corpo.getBoundingClientRect();
+      lim = Math.min(lim, Math.round(rc.right));
+      ini = Math.max(ini, Math.round(rc.left));
+    }
     var esq = Math.round(r.left);
-    if(esq + larg > vw - 8) esq = vw - 8 - larg;
+    if(esq + larg > lim) esq = Math.round(r.right) - larg;
+    if(esq + larg > lim) esq = lim - larg;
+    if(esq < ini) esq = ini;
     if(esq < 8) esq = 8;
     cx.style.left = esq + 'px';
   }
@@ -985,6 +1247,11 @@ function passa(r, ignorar){
     var ti = +S.tipo;
     if(!r[11].some(function(t){ return t[0] === ti; })) return false;
   }
+  /* fonte do dinheiro: fica quem declarou receita daquela origem, em qualquer valor */
+  if(S.origem !== '' && ignorar !== 'origem'){
+    var oi = +S.origem;
+    if(!origensDaLinha(r).some(function(o){ return o[0] === oi; })) return false;
+  }
   return true;
 }
 function valorTipo(r){
@@ -1013,13 +1280,19 @@ function chip(act, rotulo, valor, ligado){
   var txt = ligado && valor ? valor : rotulo;
   return '<button class="chip" data-act="' + act + '" data-on="' + (ligado ? 1 : 0) + '" aria-haspopup="true" ' +
     'aria-expanded="false" aria-label="' + esc(rotulo) + ': ' + esc(valor || 'todos') + '. Tocar para escolher">' +
-    '<span>' + esc(txt) + '</span><span class="seta" aria-hidden="true">▾</span></button>';
+    '<span>' + esc(txt) + '</span><span class="seta" aria-hidden="true"></span></button>';
 }
 function rotuloSinal(v){
   if(!v) return '';
   if(v === 'com') return 'com sinal';
   if(v.length === 1) return FAMS[v] || v;
   return curtoDe(v);
+}
+/* o vocabulario das fontes de financiamento vem do meta, nunca escrito aqui dentro */
+function origensDic(){ return (META && META.dic && META.dic.origem) || []; }
+function rotuloOrigem(v){
+  if(v === '' || v == null) return '';
+  return origensDic()[+v] || 'fonte não nomeada';
 }
 function renderChips(){
   var c = document.getElementById('chips'), h = '';
@@ -1029,11 +1302,20 @@ function renderChips(){
     h += chip('f-grav','Intensidade', S.grav ? 'força ' + S.grav + ' de 3' : 'todas', !!S.grav);
     h += chip('f-fam','Família', S.fam ? rotuloSinal(S.fam) : 'todas', !!S.fam);
     if(S.auf || S.grav || S.fam) h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
+  } else if(S.view === 'cand'){
+    /* Na ficha nenhum dos seis filtros filtra coisa alguma, e no celular eles empurravam o
+       nome da candidatura para baixo da primeira dobra. No lugar deles fica a volta, com
+       peso de verdade em vez dos 13px de antes. */
+    h += '<button class="voltarbt" data-act="voltar">‹ voltar ao ranking</button>';
   } else if(S.view === 'fornecedores'){
-    /* data-on é estilo; quem usa leitor de tela precisa do estado, como na barra de ordem */
-    [['valor','Quem recebeu'], ['candidatos','Quem atende mais'], ['cota','Cota']].forEach(function(o){
-      h += '<button class="chip" data-act="fo" data-v="' + o[0] + '" data-on="' + (S.fo===o[0]?1:0) +
-        '" aria-pressed="' + (S.fo===o[0]) + '">' + esc(o[1]) + '</button>';
+    /* O seletor de visão troca o conteúdo da tela, então ele é aba de texto e não caixa de
+       filtro: caixa com estado teal, nesta página, quer dizer filtro. A ordem dos
+       fornecedores saiu daqui e foi para a barra de ordenação, igual à das outras abas. */
+    var vabas = [[(S.fo === 'cota' ? 'valor' : S.fo), 'Fornecedores', S.fo !== 'cota'],
+                 ['cota', 'Cota de dinheiro público', S.fo === 'cota']];
+    vabas.forEach(function(o){
+      h += '<button class="vtab" data-act="fo" data-v="' + o[0] + '" aria-pressed="' + o[2] + '">' +
+        esc(o[1]) + '</button>';
     });
   } else {
     h += chip('f-uf','Unidade eleitoral', nomeUnidade(S.uf), true);
@@ -1041,8 +1323,18 @@ function renderChips(){
     h += chip('f-partido','Partido', S.partido, !!S.partido);
     h += chip('f-fed','Federação', S.fed ? fedCurta(S.fed) : '', !!S.fed);
     h += chip('f-sinal','Sinais', rotuloSinal(S.sinal), !!S.sinal);
-    if(S.tipo !== '') h += '<button class="chip" data-on="1" data-act="limpatipo">' + esc(META.dic.tipo[+S.tipo] || '') + ' ✕</button>';
-    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== 'contratado')
+    if(origensDic().length) h += chip('f-origem','Fonte do dinheiro', rotuloOrigem(S.origem), S.origem !== '');
+    /* O chip do tipo é montado como todos os outros, com o rótulo dentro de um span: sem o
+       span ele não herdava o corte com reticências, e com a largura travada entre 130 e
+       240px o nome do tipo quebrava em três linhas dentro do botão, esticando a fila
+       inteira de filtros e mudando a altura da barra presa. */
+    if(S.tipo !== ''){
+      var rt = META.dic.tipo[+S.tipo] || '';
+      h += '<button class="chip" data-on="1" data-act="limpatipo" title="' + esc(rt) +
+        '" aria-label="Tipo de gasto: ' + esc(rt) + '. Tocar para limpar"><span>' + esc(rt) +
+        '</span><span aria-hidden="true">✕</span></button>';
+    }
+    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.origem !== '' || S.ord !== 'contratado')
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
   c.innerHTML = h;
@@ -1059,7 +1351,7 @@ function renderChips(){
    ligados: no celular a frase legal do rodapé quebra em três linhas e ele passa de 84px
    para 111px. As duas alturas são medidas e o CSS reserva o espaço a partir delas. */
 function medirBarras(){
-  var hd = document.querySelector('header'), pe = document.getElementById('rodape');
+  var hd = document.querySelector('header.barra'), pe = document.getElementById('rodape');
   if(hd) document.documentElement.style.setProperty('--hh', hd.offsetHeight + 'px');
   if(pe) document.documentElement.style.setProperty('--fh', pe.offsetHeight + 'px');
 }
@@ -1076,6 +1368,9 @@ function painelErro(msg, acao){
 }
 function barras(itens, total, opts){
   opts = opts || {};
+  /* qual item esta marcado como em vigor: o painel de tipos e o de fontes usam o mesmo
+     desenho e o mesmo comportamento de tocar para filtrar, so muda o filtro que cada um liga */
+  var atual = ('atual' in opts) ? opts.atual : S.tipo;
   if(!itens.length) return '<p class="vazio">Nada declarado por aqui até agora.</p>';
   var max = itens[0][1] || 1;
   return '<ul class="blist">' + itens.map(function(it, i){
@@ -1085,7 +1380,7 @@ function barras(itens, total, opts){
     var corpo = opts.acao
       ? '<button class="t" data-act="' + opts.acao + '" data-v="' + esc(it[2]) + '" title="' + esc(moedaCheia(it[1])) + '">' + linha + '</button>'
       : '<div class="t" title="' + esc(moedaCheia(it[1])) + '">' + linha + '</div>';
-    var cur = (opts.acao && String(it[2]) === String(S.tipo)) ? ' aria-current="true"' : '';
+    var cur = (opts.acao && String(it[2]) === String(atual)) ? ' aria-current="true"' : '';
     return '<li' + cur + '>' + corpo + '<div class="bar"><i style="width:' + larg + '%"></i></div></li>';
   }).join('') + '</ul>';
 }
@@ -1094,7 +1389,7 @@ function barras(itens, total, opts){
 /* Uma frase em portugues antes dos numeros: quem chega precisa saber o que esta vendo. */
 function fraseDoRecorte(n, comGasto, ct, pg, pb){
   if(!n) return '';
-  var outroFiltro = !!(S.partido || S.fed || S.sinal || S.tipo !== '');
+  var outroFiltro = !!(S.partido || S.fed || S.sinal || S.tipo !== '' || S.origem !== '');
   var onde = esc(ondeUF(S.uf)), f;
   var verbo = (comGasto === 1 ? ' já declarou gasto' : ' já declararam gasto');
   /* no país inteiro a lista só traz quem declarou movimento: a frase diz isso em vez de esconder */
@@ -1139,8 +1434,11 @@ function blocoResumo(lista){
   h += '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(pg)) + '">' + moeda(pg) + '</div>' +
        '<div class="n">' + pct(pg, ct) + '% do contratado</div></div>';
   if(temLista){
-    h += '<div class="tile pub"><div class="r">Dinheiro público</div><div class="v num" title="' + esc(moedaCheia(pb)) + '">' + pct(pb, pg) + '%</div>' +
-         '<div class="n">' + moeda(pb) + ' do que foi pago</div></div>';
+    /* o mesmo fio de duas cores da linha do ranking, aqui somando o recorte inteiro */
+    h += '<div class="tile pub"><div class="r">Dinheiro público</div><div class="v num" title="' + esc(moedaCheia(pb)) + '">' + pct(pb, pg) + ' %</div>' +
+         '<div class="n">' + moeda(pb) + ' do que foi pago</div>' +
+         '<span class="fio" aria-hidden="true">' +
+         (pg > 0 ? '<i style="width:' + pct(pb, pg) + '%"></i>' : '') + '</span></div>';
   } else {
     h += '<div class="tile"><div class="r">Receita</div><div class="v num">' + moeda(rc) + '</div><div class="n">declarada</div></div>';
   }
@@ -1154,7 +1452,7 @@ function blocoResumo(lista){
     /* O arquivo do país só traz quem declarou movimento, e o que ficou de fora vai declarado na
        tela. O número que vem do pipeline é o do país inteiro, de todos os cargos: com filtro
        ligado ele falaria de um recorte que não é o da tela, então a nota espera a lista limpa. */
-    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '');
+    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.origem !== '');
     if(S.uf === 'BRASIL' && semFiltro && typeof UFD.sem_movimento === 'number' && UFD.sem_movimento > 0){
       h += '<div class="nota">A visão do país reúne <b>só quem declarou movimento</b>. Outras <b>' +
         inteiro(UFD.sem_movimento) + '</b> candidaturas não declararam receita nem despesa até a data desta ' +
@@ -1195,36 +1493,76 @@ function blocoTipos(lista){
   if(tiposAberto === null) tiposAberto = window.matchMedia('(min-width:960px)').matches;
   var vis = itens.slice(0, 8);
   var h = '<div class="cartao"><details id="dettipos"' + (tiposAberto ? ' open' : '') + '>' +
-    '<summary>Gasto por tipo · ' + itens.length + ' tipos · toque para filtrar</summary>' +
+    '<summary><b>Gasto por tipo</b><span class="sm">' + itens.length + ' tipos · toque para filtrar</span></summary>' +
     barras(vis, total, {acao:'tipo'});
   if(itens.length > 8){
-    h += '<div style="padding:0 12px 10px"><button class="bt" data-act="todostipos">Ver os ' + itens.length + ' tipos</button></div>';
+    h += '<div style="padding:0 12px 12px"><button class="bt" data-act="todostipos">Ver os ' + itens.length + ' tipos</button></div>';
   }
   return h + '</details></div>';
 }
-/* na visão do país a linha tem 16 campos e o 15 é a sigla; nas UFs ela tem 15 e não existe */
-function ufDaLinha(r){
-  return (r.length > 15 && r[15]) ? String(r[15]) : '';
+/* De onde veio o dinheiro: o irmão do "Gasto por tipo", do outro lado da conta. Soma a
+   receita declarada por fonte no conjunto que está filtrado, e cada linha liga o filtro.
+   O corte tem o mesmo nome da seção da ficha, porque é a mesma pergunta. */
+function blocoOrigens(lista){
+  var dic = origensDic();
+  if(!dic.length) return '';
+  var soma = {}, total = 0;
+  lista.forEach(function(r){
+    origensDaLinha(r).forEach(function(o){ soma[o[0]] = (soma[o[0]] || 0) + o[1]; total += o[1]; });
+  });
+  var itens = Object.keys(soma).map(function(k){ return [dic[+k] || 'fonte não nomeada', soma[k], k]; });
+  if(!itens.length) return '';
+  itens.sort(function(a,b){ return b[1] - a[1]; });
+  if(origensAberto === null) origensAberto = window.matchMedia('(min-width:960px)').matches;
+  return '<div class="cartao"><details id="detorigens"' + (origensAberto ? ' open' : '') + '>' +
+    '<summary><b>De onde veio o dinheiro</b><span class="sm">' + itens.length +
+    (itens.length === 1 ? ' fonte' : ' fontes') + ' · toque para filtrar</span></summary>' +
+    barras(itens, total, {acao:'origem', atual:S.origem}) +
+    '<div class="nota">É a <b>receita por fonte</b>, não o gasto. A soma daqui inclui o ' +
+    '<b>estimável em dinheiro</b> (bem ou serviço cedido, avaliado em reais), e é isso que ' +
+    'explica a diferença para o número de receita declarada do resumo, que deixa o estimável ' +
+    'de fora. Uma candidatura pode aparecer em mais de uma fonte, e filtrar por uma delas ' +
+    'deixa na lista quem declarou receita daquela origem, em qualquer valor.</div>' +
+    '</details></div>';
 }
-function linhaRanking(r, i, max){
+/* Na visão do país a linha tem 17 campos e o 16 é a sigla; nas UFs ela tem 16 e não existe.
+   O campo 15 passou a ser a origem do dinheiro, e ler a sigla dali punha o array inteiro
+   na linha, como texto ("0,310000000,1,1550000 · PL · 227"). */
+function ufDaLinha(r){
+  return (r.length > 16 && r[16]) ? String(r[16]) : '';
+}
+/* a receita declarada por fonte de financiamento, que é o campo novo desta rodada */
+function origensDaLinha(r){ return r[15] || []; }
+function linhaRanking(r, i){
   var sq = r[0], sinais = r[12].length;
   var porSinal = (S.ord === 'sinais' && S.tipo === '');
   var porIndice = (S.ord === 'indice' && S.tipo === '');
   var v = valorDe(r);
-  /* ordenado pelo índice, o valor da linha continua sendo dinheiro: o índice tem coluna própria */
-  var vm = porIndice ? r[6] : v;
-  var rot = porSinal ? inteiro(sinais) + (sinais === 1 ? ' sinal' : ' sinais') : moeda(vm);
-  /* A barra do pé da linha mede o valor que está escrito na linha. Ordenado pelo índice ela
-     não existe: uma barra larga sem rótulo, desenhada com o índice ao lado de um valor em
-     dinheiro, lê como termômetro da pessoa e ainda desmente o número da própria linha. */
-  var larg = (!porIndice && max > 0) ? Math.max(0.5, v / max * 100) : 0;
+  /* O slot de destaque da linha é do dinheiro em todas as ordenações. Ordenado por número
+     de sinais, ele exibia a contagem em caixa preta grossa ao lado do nome da pessoa, e o
+     dinheiro virava nota de rodapé: a lista lia como placar de sinais por candidatura, que
+     é a leitura que as travas proíbem construir. Ordenado pelo índice, o valor também
+     continua sendo dinheiro, e quem ganha peso é o selo do índice, na coluna dele. */
+  var vm = (porIndice || porSinal) ? r[6] : v;
+  var rot = moeda(vm);
+  /* O traço de magnitude saiu da linha do ranking nesta rodada. Com o fio do dinheiro
+     público logo acima dele, a linha ficava com dois traços quase da mesma cor, quase da
+     mesma largura e sem rótulo nenhum, medindo coisas diferentes: um a fatia pública do
+     que foi pago, o outro o tamanho desta candidatura na maior da lista. O tamanho já está
+     escrito em algarismo grande à direita, e a lista já vem ordenada por ele. O traço
+     continua onde ele é a única medida visual, que é a lista de fornecedores. */
   var ul = ufDaLinha(r);
   var ufrot = ul ? (ul === 'BR' ? 'Presidência' : ul) : '';
   var meta = [ufrot, META.dic.partido[r[3]] || '', r[2], cargoCurto(META.cargos[r[4]] || ''), fedCurta(META.dic.fed[r[5]] || '')]
              .filter(Boolean).join(' · ');
-  var pubTxt, pubLarg = 0;
-  if(r[7] > 0){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + '% público'; }
+  var pubTxt, pubLarg = 0, temPag = r[7] > 0;
+  if(temPag){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + ' % público'; }
   else { pubTxt = 'sem pagamento declarado'; }
+  /* a assinatura da página: o fio de duas cores do dinheiro público. Sem pagamento
+     declarado o fio fica só no trilho, e quem diz o que isso quer dizer é a palavra
+     escrita logo abaixo: não é a mesma coisa que 0 % público. */
+  var fio = '<span class="fio r-fio" aria-hidden="true">' +
+            (temPag ? '<i style="width:' + pubLarg + '%"></i>' : '') + '</span>';
   /* quem nao declarou nada nao tem o nome esmaecido: o estado ja esta escrito na linha,
      e apagar um nome numa lista de nomes le como categoria inferior */
   var ix = temIndice(r) ? indiceDe(r) : null;
@@ -1232,17 +1570,34 @@ function linhaRanking(r, i, max){
     '<a class="rowmain" href="#' + montarHashCand(sq) + '">' +
       '<span class="r-pos num">' + (i+1) + '</span>' +
       '<span class="r-nome">' + esc(r[1]) + '</span>' +
-      '<span class="r-val num" title="' + esc(porSinal ? '' : moedaCheia(vm)) + '">' + rot + '</span>' +
-      '<span class="r-meta">' + esc(meta) + '</span>' +
-      '<span class="r-pub">' + (r[7] > 0 ? '<span class="bar p" aria-hidden="true"><i style="width:' + pubLarg + '%"></i></span>' : '') +
-        esc(pubTxt) + ' · ' + inteiro(r[10]) + ' fornec.' +
-        /* ordenado por sinal, o dinheiro continua na linha: o sinal nao vira a medida da pessoa */
-        (porSinal ? ' · ' + moeda(r[6]) + ' contratado' : '') + '</span>' +
+      '<span class="r-val num" title="' + esc(moedaCheia(vm)) + '">' + rot + '</span>' +
+      '<span class="r-meta">' + esc(meta) + '</span>' + fio +
+      '<span class="r-pub">' + esc(pubTxt) + ' · ' + inteiro(r[10]) + (r[10] === 1 ? ' fornecedor' : ' fornecedores') +
+        /* ordenado por sinal, a contagem entra aqui, no peso da linha de apoio: ela nunca
+           ocupa a posição do dinheiro */
+        (porSinal ? ' · ' + inteiro(sinais) + (sinais === 1 ? ' sinal a conferir' : ' sinais a conferir') : '') + '</span>' +
+      (ix === null ? '' : '<span class="r-ixgap" aria-hidden="true"></span>') +
     '</a>' +
     (sinais ? '<span class="selos">' + selosDe(r[12]) + '</span>' : '') +
-    (ix === null ? '' : botaoIndice(ix)) +
-    (larg ? '<span class="prop" style="width:' + larg + '%"></span>' : '') +
+    (ix === null ? '' : botaoIndice(ix, porIndice)) +
   '</li>';
+}
+/* Um só desenho de ordenação para as três abas: o segmentado com o rótulo "ORDENAR POR".
+   Antes cada tela tinha inventado a sua (segmentado no ranking, texto solto nos sinais,
+   texto com seta no dinheiro), e quem aprendia a ordenar numa não reconhecia o controle
+   nas outras. `segs` é uma lista de [valor, rótulo curto, rótulo por extenso]. */
+function barraOrd(id, segs, atual, act, extraBt, nota){
+  var h = '<div class="ordwrap"><span class="ordrot" id="rot' + id + '">Ordenar por</span>' +
+    '<div class="ord" role="group" aria-labelledby="rot' + id + '">';
+  h += segs.map(function(sg){
+    return '<button data-act="' + act + '" data-v="' + esc(sg[0]) + '" aria-pressed="' +
+      (String(atual) === String(sg[0])) + '" aria-label="Ordenar por ' + esc(sg[2] || sg[1]) + '">' +
+      esc(sg[1]) + '</button>';
+  }).join('');
+  if(extraBt) h += extraBt;
+  h += '</div>';
+  if(nota) h += '<span class="ordnota">' + nota + '</span>';
+  return h + '</div>';
 }
 /* a ordem deixa de morar num menu escondido e fica sempre a vista */
 function barraOrdem(){
@@ -1252,23 +1607,17 @@ function barraOrdem(){
      contrário: marcava como pressionado um critério que não estava valendo, e quem usa leitor
      de tela só ouvia isso. O critério em vigor ganha o próprio segmento. */
   var porTipo = (S.tipo !== '');
-  var h = '<div class="ordwrap"><span class="ordrot" id="rotord">Ordenar por</span>' +
-    '<div class="ord" role="group" aria-labelledby="rotord">';
-  h += segs.map(function(s){
-    return '<button data-act="ord" data-v="' + s[0] + '" aria-pressed="' + (!porTipo && S.ord === s[0]) + '" ' +
-      'aria-label="Ordenar por ' + esc(ORDS[s[0]] || s[1]) + '">' + esc(s[1]) + '</button>';
-  }).join('');
-  if(porTipo){
-    h += '<button data-act="limpatipo" aria-pressed="true" aria-label="Em vigor: ordem pelo gasto no ' +
+  var extra = porTipo
+    ? '<button data-act="limpatipo" aria-pressed="true" aria-label="Em vigor: ordem pelo gasto no ' +
       'tipo escolhido. Tocar para limpar o tipo e voltar a ordenar por ' + esc(ORDS[S.ord] || '') +
-      '">Gasto neste tipo</button>';
-  }
-  h += '</div>';
-  if(porTipo){
-    h += '<span class="ordnota">Com um tipo de gasto escolhido, a lista é ordenada pelo gasto nesse tipo. ' +
-      'Limpe o tipo para voltar a ordenar por <b>' + esc(ORDS[S.ord] || '') + '</b>.</span>';
-  }
-  return h + '</div>';
+      '">Gasto neste tipo</button>'
+    : '';
+  var nota = porTipo
+    ? 'Com um tipo de gasto escolhido, a lista é ordenada pelo gasto nesse tipo. ' +
+      'Limpe o tipo para voltar a ordenar por <b>' + esc(ORDS[S.ord] || '') + '</b>.'
+    : '';
+  return barraOrd('ord', segs.map(function(sg){ return [sg[0], sg[1], ORDS[sg[0]] || sg[1]]; }),
+                  porTipo ? '' : S.ord, 'ord', extra, nota);
 }
 function montarHashCand(sq){
   var guarda = S.cand, v = S.view;
@@ -1300,21 +1649,22 @@ function viewRanking(){
     return;
   }
   var lista = filtradas();
-  var max = lista.length ? valorDe(lista[0]) : 0;
-  var vis = lista.slice(0, S.limite);
+    var vis = lista.slice(0, S.limite);
   var porIndice = (S.ord === 'indice' && S.tipo === '');
   var porSinal = (S.ord === 'sinais' && S.tipo === '') || S.sinal !== '';
   /* a coluna do índice é desenhada em toda linha que traz o número, em qualquer ordem:
      a ressalva segue a coluna, não o critério de ordenação */
   var temColunaIx = vis.some(function(r){ return temIndice(r); });
   var h = '<div class="wrap"><div class="lado">' +
-    (lista.length ? blocoResumo(lista) + blocoTipos(lista) : '') + '</div><div class="lista">';
-  if(avisoDic) h += '<div class="cartao" style="margin-bottom:10px"><div class="nota">' + esc(avisoDic) + '</div></div>';
+    (lista.length ? blocoResumo(lista) + blocoTipos(lista) + blocoOrigens(lista) : '') + '</div><div class="lista">';
+  if(avisoDic) h += '<div class="cartao"><div class="nota">' + esc(avisoDic) + '</div></div>';
   if((porSinal || porIndice || temColunaIx) && lista.length){
-    h += '<div class="cartao" style="margin-bottom:10px">' +
+    h += '<div class="cartao">' +
       (porIndice ? NOTA_INDICE : (temColunaIx ? NOTA_INDICE_CURTA : '')) +
       ((porSinal || porIndice) ? NOTA_SINAL : '') + '</div>';
   }
+  recorteTela = descreverRecorte() + ' · ' + inteiro(lista.length) +
+                (lista.length === 1 ? ' candidatura' : ' candidaturas');
   h += '<div class="cartao"><div class="status"><span role="status">' + inteiro(lista.length) + ' candidatura' +
        (lista.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(S.uf)) + '</span>' +
        /* o botao e, ao mesmo tempo, o rotulo da coluna de indice, que fica logo abaixo dele */
@@ -1322,7 +1672,7 @@ function viewRanking(){
   if(!lista.length){
     h += '<div class="vazio">Nenhuma candidatura com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
-    h += '<ul class="l">' + vis.map(function(r,i){ return linhaRanking(r,i,max); }).join('') + '</ul>';
+    h += '<ul class="l">' + vis.map(function(r,i){ return linhaRanking(r,i); }).join('') + '</ul>';
     if(lista.length > S.limite){
       h += '<button class="mais" data-act="mais">Ver mais ' + Math.min(60, lista.length - S.limite) +
            ' · faltam ' + inteiro(lista.length - S.limite) + '</button>';
@@ -1350,6 +1700,8 @@ function viewBusca(){
     if(pre.length > 300) break;
   }
   var res = pre.concat(meio, numero).slice(0, 80);
+  recorteTela = 'Busca por "' + S.q + '" · ' + inteiro(res.length) + (res.length === 80 ? '+' : '') +
+                (res.length === 1 ? ' resultado' : ' resultados') + ' em todo o país';
   var h = '<div class="cartao"><p class="status" role="status"><span>' + inteiro(res.length) +
     (res.length === 80 ? '+' : '') + ' resultado' + (res.length === 1 ? '' : 's') + ' para "' + esc(S.q) + '"</span>' +
     '<span>busca em todo o país</span></p>';
@@ -1361,9 +1713,9 @@ function viewBusca(){
          nomes para a mesma coisa na mesma linha */
       var meta = [META.dic.partido[c[4]] || '', c[5], cargoCurto(META.cargos[c[3]] || '')].filter(Boolean).join(' · ');
       return '<li class="row"><a class="rowmain" href="#uf=' + esc(c[2]) + '&cand=' + esc(c[0]) + '">' +
-        '<span class="r-pos" aria-hidden="true">›</span>' +
+        '<span class="r-pos seta" aria-hidden="true">›</span>' +
         '<span class="r-nome">' + esc(c[1]) + '</span>' +
-        '<span class="r-val" style="font-size:12px;color:var(--mut);font-weight:600">' + esc(siglaUnidade(c[2])) + '</span>' +
+        '<span class="r-val sigla">' + esc(siglaUnidade(c[2])) + '</span>' +
         '<span class="r-meta">' + esc(meta) + '</span>' +
         '<span class="r-pub">' + (c[6] ? 'tem movimento declarado' : 'sem receita nem despesa declarada') + '</span></a></li>';
     }).join('') + '</ul>';
@@ -1409,26 +1761,44 @@ function viewAlarmes(){
     }
     return true;
   });
+  /* a ordem é escolha de quem lê, e o controle é o mesmo das outras duas abas */
+  if(S.aord === 'valor'){
+    l = l.slice().sort(function(x,y){
+      var d = (y[7] || 0) - (x[7] || 0);
+      return d !== 0 ? d : (y[1] || 0) - (x[1] || 0);
+    });
+  }
   var vis = l.slice(0, S.limite);
   var filtrado = !!(S.grav || S.auf || S.fam);
+  recorteTela = 'Sinais · ' + (S.auf ? nomeUnidade(S.auf) : 'Brasil inteiro') + ' · ' +
+                inteiro(l.length) + (l.length === 1 ? ' sinal' : ' sinais');
   var h = '<div class="cartao">' + NOTA_SINAL + '</div>';
-  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' +
+  h += '<div class="cartao"><p class="status" role="status"><span>' +
     inteiro(l.length) + (l.length === 1 ? ' sinal' : ' sinais') + (filtrado ? ' com estes filtros' : '') +
-    '</span><span>mais intensos primeiro</span></p>' + notaCorte(filtrado);
+    '</span></p>' +
+    barraOrd('aord', [['grav','Intensidade','intensidade do sinal'],
+                      ['valor','Valor envolvido','valor envolvido no sinal']], S.aord, 'aord', '', '') +
+    notaCorte(filtrado);
   if(!l.length){
     h += '<div class="vazio">Nenhum sinal com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
-    h += vis.map(function(a){
+    /* A aba deixou de ser outra página: ela ganha o numeral em serifa da lista, a mesma
+       coluna de leitura do ranking (antes a linha corria 142 caracteres) e o nome da
+       candidatura como primeiro elemento do bloco, em vez de quarto. */
+    h += vis.map(function(a, i){
       /* o menu desta mesma tela lista 'Presidência': a linha não pode chamar a unidade de 'BR' */
       var meta = [META.dic.partido[a[5]] || '', cargoCurto(META.cargos[a[6]] || ''), nomeUnidade(a[2])].filter(Boolean).join(' · ');
-      return '<div class="sinal">' +
-        '<div class="top"><span class="selo" data-g="' + a[1] + '">' + esc(nomeDe(a[0])) + '</span>' +
-        pontos(a[1]) + '<span class="grav">· ' + esc(FAMS[a[0].charAt(0)] || '') + '</span></div>' +
-        '<a class="nomegrande" style="color:inherit;text-decoration:none" href="#uf=' + esc(a[2]) + '&cand=' + esc(a[3]) + '">' +
-          esc(a[4]) + ' <span style="font-weight:400;color:var(--mut);font-size:12px">' + esc(meta) + ' ›</span></a>' +
-        '<div class="tx">' + esc(a[8]) + '</div>' +
-        (a[7] ? '<div class="grav" style="margin-top:3px">valor envolvido: ' + moeda(a[7]) + '</div>' : '') +
-        '<button class="nao" data-act="aviso" data-cod="' + esc(a[0]) + '">o que isso não significa ›</button>' +
+      return '<div class="sinal slin">' +
+        '<span class="s-pos num" aria-hidden="true">' + (i+1) + '</span>' +
+        '<div class="s-corpo">' +
+          '<a class="nomegrande" style="color:inherit;text-decoration:none" href="#uf=' + esc(a[2]) + '&cand=' + esc(a[3]) + '">' +
+            esc(a[4]) + ' <span class="s-meta">' + esc(meta) + ' ›</span></a>' +
+          '<div class="top"><span class="selo" data-g="' + a[1] + '">' + esc(nomeDe(a[0])) + '</span>' +
+          pontos(a[1]) + '<span class="grav">· ' + esc(FAMS[a[0].charAt(0)] || '') + '</span></div>' +
+          '<div class="tx">' + esc(a[8]) + '</div>' +
+          '<button class="nao" data-act="aviso" data-cod="' + esc(a[0]) + '">o que isso não significa ›</button>' +
+        '</div>' +
+        (a[7] ? '<div class="s-lado">valor envolvido<br><b class="num">' + moeda(a[7]) + '</b></div>' : '') +
       '</div>';
     }).join('');
     if(l.length > S.limite){
@@ -1447,24 +1817,31 @@ function viewFornecedores(){
   if(!FOR){ m.innerHTML = esqueleto(6); carregarForn(); return; }
   var l = S.fo === 'candidatos' ? FOR.por_candidatos : FOR.por_valor;
   var vis = l.slice(0, S.limite);
+  recorteTela = 'Fornecedores · Brasil inteiro · ' + inteiro(l.length) +
+                (l.length === 1 ? ' fornecedor' : ' fornecedores');
   var max = S.fo === 'candidatos' ? (l[0] ? l[0][4] : 1) : (l[0] ? l[0][2] : 1);
   var h = '<div class="cartao"><div class="nota">Um fornecedor grande atender milhares de campanhas é <b>normal</b>, ' +
     'principalmente plataforma de anúncio e gráfica. A maior parte dos fornecedores do país é <b>pessoa física</b>, ' +
     'com o documento já mascarado na origem.</div></div>';
-  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' + inteiro(l.length) +
-    (l.length === 1 ? ' fornecedor' : ' fornecedores') + '</span>' +
-    '<span>' + (S.fo === 'candidatos' ? 'por campanhas atendidas ↓' : 'por valor recebido ↓') + '</span></p><ul class="l">';
+  h += '<div class="cartao"><p class="status" role="status"><span>' + inteiro(l.length) +
+    (l.length === 1 ? ' fornecedor' : ' fornecedores') + '</span></p>' +
+    barraOrd('fo', [['valor','Valor recebido','valor recebido'],
+                    ['candidatos','Campanhas atendidas','número de campanhas atendidas']],
+             S.fo, 'fo', '', '') + '<ul class="l">';
   h += vis.map(function(f, i){
     var v = S.fo === 'candidatos' ? f[4] : f[2];
     var larg = max > 0 ? Math.max(0.5, v / max * 100) : 0;
+    /* A barra de proporção mora dentro da linha, recuada à esquerda e mais estreita que
+       ela. Desenhada na largura inteira, na altura do filete separador e na mesma cor, a
+       linha de 100 % era idêntica a um separador e as outras pareciam filetes quebrados. */
     return '<li class="row"><div class="rowmain" style="cursor:default">' +
       '<span class="r-pos num">' + (i+1) + '</span>' +
       '<span class="r-nome">' + esc(f[1] || 'sem nome') + '</span>' +
-      '<span class="r-val num" title="' + esc(moedaCheia(f[2])) + '">' + (S.fo === 'candidatos' ? inteiro(f[4]) + ' camp.' : moeda(f[2])) + '</span>' +
-      '<span class="r-meta">' + esc(f[0]) + ' <span class="tag' + (f[5] ? ' pj' : '') + '">' + (f[5] ? 'empresa' : 'pessoa física') + '</span></span>' +
-      '<span class="r-pub">' + inteiro(f[3]) + ' lançamento' + (f[3] === 1 ? '' : 's') + ' · ' + inteiro(f[4]) + ' campanha' + (f[4] === 1 ? '' : 's') +
-        (S.fo === 'candidatos' ? ' · ' + moeda(f[2]) : '') + '</span>' +
-      '</div><span class="prop" style="width:' + larg + '%"></span></li>';
+      '<span class="r-val num" title="' + esc(moedaCheia(f[2])) + '">' + moeda(f[2]) + '</span>' +
+      '<span class="r-meta">' + esc(f[0]) + ' · ' + (f[5] ? 'empresa' : 'pessoa física') + '</span>' +
+      '<span class="magn" aria-hidden="true"><span class="bar"><i style="width:' + larg + '%"></i></span></span>' +
+      '<span class="r-pub">' + inteiro(f[3]) + ' lançamento' + (f[3] === 1 ? '' : 's') + ' · ' + inteiro(f[4]) + ' campanha' + (f[4] === 1 ? '' : 's') + '</span>' +
+      '</div></li>';
   }).join('');
   h += '</ul>';
   if(l.length > S.limite){
@@ -1472,7 +1849,7 @@ function viewFornecedores(){
          ' · faltam ' + inteiro(l.length - S.limite) + '</button>';
   }
   h += '</div>';
-  h += '<div class="cartao" style="margin-top:10px"><div class="cab"><h2>Doadores</h2></div>' +
+  h += '<div class="cartao"><div class="cab"><h2>Doadores</h2></div>' +
     '<div class="nota">Quem doou aparece na <b>ficha de cada candidatura</b>, com o valor e a origem do recurso. ' +
     'Para achar quem mais arrecadou, ordene o ranking por receita declarada.</div>' +
     '<div style="padding:0 12px 12px"><button class="bt pri" data-act="porreceita">Ver o ranking por receita</button></div></div>';
@@ -1484,7 +1861,9 @@ function viewCota(){
   if(!COTA){ m.innerHTML = esqueleto(4); carregarCota(); return; }
   var h = '<div class="cartao"><div class="nota">A lei reserva no mínimo <b>30 % do dinheiro público</b> de campanha para candidaturas de mulheres. ' +
     'A conta abaixo é do que foi declarado <b>até agora</b>, e a regra é aferida no fim da campanha.</div></div>';
-  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' + inteiro(COTA.n) + ' recorte' +
+  recorteTela = 'Cota de dinheiro público · ' + inteiro(COTA.n) +
+                (COTA.n === 1 ? ' recorte de partido e UF' : ' recortes de partido e UF');
+  h += '<div class="cartao"><p class="status" role="status"><span>' + inteiro(COTA.n) + ' recorte' +
     (COTA.n === 1 ? '' : 's') + ' de partido e UF</span><span>fatia declarada</span></p>';
   if(!COTA.p.length){
     h += '<div class="vazio">Nada a mostrar aqui por enquanto.</div>';
@@ -1498,7 +1877,8 @@ function viewCota(){
           '<span class="k">Fatia para candidatas</span><span class="v num">' + p.fatia_mulheres + '%</span>' +
           '<span class="k">Fatia para candidaturas negras</span><span class="v num">' + p.fatia_negros + '%</span>' +
         '</div>' +
-        '<div class="bar p" aria-hidden="true"><i style="width:' + Math.max(1, Math.min(100, p.fatia_mulheres)) + '%"></i></div>' +
+        '<div class="bar" aria-hidden="true"><i style="width:' + Math.max(0, Math.min(100, p.fatia_mulheres)) + '%"></i></div>' +
+        '<div class="grav" style="margin-top:4px">a barra acima mede a fatia declarada para candidatas</div>' +
         '<div class="tx" style="margin-top:6px">' + esc(p.texto) + '</div>' +
         '<button class="nao" data-act="aviso" data-cod="B4">o que isso não significa ›</button>' +
       '</div>';
@@ -1532,15 +1912,37 @@ function blocoPares(f){
   if(p.vezes_a_mediana) fr += ', ou seja, <b>' + nm(p.vezes_a_mediana) + ' vezes a mediana</b>';
   fr += '.';
   if(p.fatia_do_grupo) fr += ' Esta candidatura responde por <b>' + nm(p.fatia_do_grupo) + ' %</b> de tudo que o grupo contratou.';
-  /* regua: mediana e p90 ancoram a escala, o ponto marca onde esta a candidatura */
+  /* Régua: mediana e p90 ancoram a escala, o losango marca onde está a candidatura.
+     Cada rótulo fica ancorado sob a sua própria marca. Antes eles eram duas pontas de uma
+     linha justificada, e o rótulo do p90 caía 75px à direita, exatamente sob o ponto da
+     candidatura: quem lia atribuía o valor do p90 à candidatura. Quando dois rótulos ficam
+     perto, o segundo desce uma linha em vez de sobrepor. O topo da escala vai escrito, e
+     a marca da candidatura é losango, não círculo com anel, que é forma de controle
+     deslizante e convidava ao arrasto. */
   var teto = Math.max(p.p90 || 0, p.mediana, f.contratado) || 1;
   var pos = function(v){ return Math.max(0, Math.min(100, v / teto * 100)); };
+  var marcas = [{v:p.mediana, r:'mediana', eu:false}];
+  if(p.p90) marcas.push({v:p.p90, r:'p90', eu:false});
+  marcas.push({v:f.contratado, r:'esta candidatura', eu:true});
+  marcas.forEach(function(m){ m.p = pos(m.v); });
+  var linhas = [];
+  marcas.slice().sort(function(a,b){ return a.p - b.p; }).forEach(function(m){
+    var i = 0;
+    while(linhas[i] != null && (m.p - linhas[i]) < 30) i++;
+    linhas[i] = m.p; m.lin = i;
+  });
   var regua = '<div class="rv" aria-hidden="true"><div class="eixo"></div>' +
-    '<div class="mc" style="left:' + pos(p.mediana) + '%"></div>' +
-    (p.p90 ? '<div class="mc" style="left:' + pos(p.p90) + '%"></div>' : '') +
-    '<div class="eu" style="left:calc(' + pos(f.contratado) + '% - 6px)"></div></div>' +
-    '<div class="leg"><span>mediana ' + moeda(p.mediana) + '</span>' +
-    (p.p90 ? '<span>p90 ' + moeda(p.p90) + '</span>' : '') + '</div>';
+    marcas.map(function(m){
+      return m.eu ? '<div class="eu" style="left:' + m.p + '%"></div>'
+                  : '<div class="mc" style="left:' + m.p + '%"></div>';
+    }).join('') + '</div>';
+  regua += '<div class="rleg" style="height:' + (linhas.length * 18 + 8) + 'px">' +
+    marcas.map(function(m){
+      var lado = m.p < 14 ? 'left:0' : (m.p > 86 ? 'right:0' : 'left:' + m.p + '%;transform:translateX(-50%)');
+      return '<span class="rl" style="' + lado + ';top:' + (m.lin * 18 + 5) + 'px">' +
+        esc(m.r) + ' <b>' + moeda(m.v) + '</b></span>';
+    }).join('') + '</div>';
+  regua += '<div class="rext"><span>R$ 0</span><span>topo da escala <b class="num">' + moeda(teto) + '</b></span></div>';
   return '<div class="pares"><div class="fr">' + fr + '</div>' + regua +
     '<div class="rs">A comparação é só entre quem disputa o mesmo cargo no mesmo estado e já declarou gasto. ' +
     'Gastar mais ou menos que o grupo não é irregularidade: é contexto para ler o número, e vale conferir na fonte.</div></div>';
@@ -1572,8 +1974,9 @@ function viewCand(){
   /* a unidade sai pelo nome: código é endereço, e a mesma unidade não pode ter um nome no
      chip da tela e outro no subtítulo da ficha */
   var ident = [f.partido, f.nr, f.cargo, nomeUnidade(f.uf)].filter(Boolean).join(' · ');
-  var h = '<button class="voltar" data-act="voltar">‹ voltar ao ranking</button>';
-  h += '<div class="cartao"><div class="fhead">' +
+  recorteTela = 'Ficha · ' + f.nome + ' · ' + nomeUnidade(f.uf);
+  /* a volta mora na barra de cima, no lugar dos filtros que não filtram nada na ficha */
+  var h = '<div class="cartao"><div class="fhead">' +
     '<h1>' + esc(f.nome) + '</h1>' +
     '<div class="sub">' + esc(ident) + (f.fed ? ' · ' + esc(fedCurta(f.fed)) : '') + '</div>' +
     '<div class="sub">' + esc([f.genero, f.cor_raca].filter(Boolean).join(' · ').toLowerCase()) +
@@ -1595,10 +1998,10 @@ function viewCand(){
       '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(f.alarmes.length) + '</div><div class="n">para conferir</div></div>' +
       '</div>';
     if(f.pago > 0){
-      h += '<div class="dest"><div class="g num">' + pubPct + '% público</div>' +
+      h += '<div class="dest"><div class="g num">' + pubPct + ' % público</div>' +
         '<div class="d">' + moeda(f.pago_publico) + ' dos ' + moeda(f.pago) + ' já pagos saíram de fundo eleitoral ou fundo partidário. ' +
         'Receita pública declarada: ' + moeda(f.receita_publica) + '.</div>' +
-        '<div class="bar p" style="margin-top:8px" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
+        '<div class="fio" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
     }
     h += blocoIndiceFicha(f);
     h += blocoPares(f);
@@ -1606,11 +2009,11 @@ function viewCand(){
   h += '<div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">' +
     '<button class="bt" data-act="copiar">Copiar o link desta ficha</button></div></div>';
 
-  h += '<div class="fgrid" style="margin-top:10px">';
+  h += '<div class="fgrid">';
   if(f.alarmes.length){
     /* a ficha é a tela que nomeia terceiro por extenso dentro do texto do sinal, e a mais
        compartilhada: a ressalva fica à vista, como na aba de sinais, não só a um toque */
-    h += '<div class="cartao full"><div class="cab"><h2>Sinais para conferir</h2><span style="font-size:11px;color:var(--mut)">' + f.alarmes.length + '</span></div>' +
+    h += '<div class="cartao full"><div class="cab"><h2>Sinais para conferir</h2><span class="cont">' + f.alarmes.length + '</span></div>' +
       NOTA_SINAL +
       f.alarmes.map(function(a){
         return '<div class="sinal"><div class="top"><span class="selo" data-g="' + a.grav + '">' + esc(nomeDe(a.cod)) + '</span>' +
@@ -1625,24 +2028,40 @@ function viewCand(){
   if(f.tipos.length){
     h += '<div class="cartao"><div class="cab"><h2>Em que gastou</h2></div>' + barras(f.tipos, f.contratado) + '</div>';
   }
-  if(f.origens.length || f.fontes.length){
-    h += '<div class="cartao"><div class="cab"><h2>De onde veio o dinheiro</h2></div>' +
-      (f.origens.length ? barras(f.origens, f.receita) : '') +
-      (f.fontes.length ? '<div class="cab" style="border-top:1px solid var(--b)"><h2>Fonte do recurso pago</h2></div>' + barras(f.fontes, f.pago) : '') +
-      '</div>';
+  /* Eram duas seções empilhadas com títulos quase iguais, tratamento idêntico e assuntos
+     diferentes: uma é a receita por fonte, a outra é a despesa paga por origem do recurso.
+     Elas passam a ter nome próprio, uma linha que diz qual é a diferença, e ficam separadas
+     no fluxo, para a coluna da direita não terminar 200px antes da esquerda.
+     O denominador da primeira é receita mais estimável, porque a soma por fonte inclui o
+     estimável em dinheiro e a receita declarada não: dividir uma pela outra imprimia 103 %. */
+  if(f.origens.length){
+    var baseRec = (f.receita || 0) + (f.estimavel || 0);
+    h += '<div class="cartao"><div class="cab"><h2>De onde veio a receita</h2></div>' +
+      '<p class="subcab">O que entrou na campanha, por fonte declarada. Inclui o estimável em ' +
+      'dinheiro, por isso a soma passa da receita declarada do quadro acima.</p>' +
+      barras(f.origens, baseRec) + '</div>';
+  }
+  if(f.fontes.length){
+    h += '<div class="cartao"><div class="cab"><h2>Com que dinheiro pagou</h2></div>' +
+      '<p class="subcab">O que saiu da campanha, por origem do recurso que quitou a despesa. ' +
+      'É a outra ponta da conta, e não a mesma coisa que a seção da receita.</p>' +
+      barras(f.fontes, f.pago) + '</div>';
   }
   if(f.forn.length){
     h += '<div class="cartao full"><div class="cab"><h2>Quem recebeu</h2>' +
-      '<span style="font-size:11px;color:var(--mut)">' + inteiro(f.n_forn) + ' fornecedores no total</span></div>' +
+      '<span class="cont">' + inteiro(f.n_forn) + ' fornecedores no total</span></div>' +
       f.forn.map(function(x){
         var selos = (x[6] || []).map(function(c){
           return '<button class="selo" data-act="aviso" data-cod="' + esc(c) + '" aria-label="' + esc(curtoDe(c)) +
             ', ver o que significa e o que não significa"><span>' + esc(curtoDe(c)) + '</span></button>';
         }).join(' ');
+        /* a pílula de tipo saiu: o documento ao lado já diferencia empresa de pessoa física,
+           e ela aparecia duas vezes na mesma linha, em dois estilos, quando havia sinal do
+           mesmo nome, o que lia como erro de renderização */
         return '<div class="forn"><div class="n1"><span class="nm">' + esc(x[1] || 'sem nome') + '</span>' +
           '<b class="num" title="' + esc(moedaCheia(x[2])) + '">' + moeda(x[2]) + '</b></div>' +
-          '<div class="n2"><span class="tag' + (x[4] ? ' pj' : '') + '">' + (x[4] ? 'empresa' : 'pessoa física') + '</span>' +
-          '<span>' + esc(x[0]) + '</span><span>' + inteiro(x[3]) + ' lançamento' + (x[3] === 1 ? '' : 's') + '</span>' +
+          '<div class="n2"><span>' + esc(x[0]) + ' · ' + (x[4] ? 'empresa' : 'pessoa física') + '</span>' +
+          '<span>' + inteiro(x[3]) + ' lançamento' + (x[3] === 1 ? '' : 's') + '</span>' +
           (x[5] ? '<span>' + esc(x[5]) + '</span>' : '') + (selos ? '<span>' + selos + '</span>' : '') + '</div></div>';
       }).join('') +
       (f.n_forn > f.forn.length ? '<div class="nota">Mostrando os ' + f.forn.length + ' maiores de ' + inteiro(f.n_forn) + '.</div>' : '') +
@@ -1683,12 +2102,13 @@ function guardarFicha(sq, d){
 /* Confere uma vez se os dicionarios do meta cobrem os ids do arquivo da UF. Fora de
    sincronia, o partido some da linha e o filtro nunca casa: melhor dizer isso na tela. */
 function conferirDicionarios(d){
-  var maior = {partido:-1, fed:-1, tipo:-1, alarme:-1};
+  var maior = {partido:-1, fed:-1, tipo:-1, alarme:-1, origem:-1};
   d.c.forEach(function(r){
     if(r[3] > maior.partido) maior.partido = r[3];
     if(r[5] > maior.fed) maior.fed = r[5];
     r[11].forEach(function(t){ if(t[0] > maior.tipo) maior.tipo = t[0]; });
     r[12].forEach(function(a){ if(a[0] > maior.alarme) maior.alarme = a[0]; });
+    origensDaLinha(r).forEach(function(o){ if(o[0] > maior.origem) maior.origem = o[0]; });
   });
   var faltam = [];
   Object.keys(maior).forEach(function(k){
@@ -1773,8 +2193,12 @@ function carregarFicha(){
 }
 
 /* ---------- render ---------- */
+/* A testeira diz o que o site é; esta linha diz o que a tela é. Cada visão a preenche,
+   e o recuo é a descrição genérica do recorte. */
+var recorteTela = '';
 function render(){
   if(!META) return;
+  recorteTela = '';
   renderChips();
   /* o botao que ancora o dropdown acabou de ser refeito: o menu nao pode ficar solto */
   if(menuBt && !document.body.contains(menuBt)) fecharMenu(true);
@@ -1787,10 +2211,14 @@ function render(){
   else viewRanking();
   var det = document.getElementById('dettipos');
   if(det) det.addEventListener('toggle', function(){ tiposAberto = det.open; });
+  var deto = document.getElementById('detorigens');
+  if(deto) deto.addEventListener('toggle', function(){ origensAberto = deto.open; });
   var q = document.getElementById('q');
   if((document.activeElement !== q || primeiroRender) && q.value !== S.q) q.value = S.q;
   primeiroRender = false;
   document.getElementById('limpaq').classList.toggle('ocul', !q.value);
+  var mr = document.getElementById('mrec');
+  if(mr) mr.textContent = recorteTela || descreverRecorte();
   if(chave !== ultimaChave){ window.scrollTo(0,0); ultimaChave = chave; }
 }
 
@@ -1806,6 +2234,7 @@ document.addEventListener('click', function(e){
   if(a === 'oindice'){ e.preventDefault(); abrirIndice(); return; }
   if(a === 'ajuda'){ abrirAjuda(); return; }
   if(a === 'ord'){ fecharMenu(true); ir({ord:t.getAttribute('data-v')}); return; }
+  if(a === 'aord'){ fecharMenu(true); ir({aord:t.getAttribute('data-v')}); return; }
   if(a === 'opt'){
     var k = t.getAttribute('data-k'), v = t.getAttribute('data-v'), p = {};
     fecharFolha(); fecharMenu(true);
@@ -1823,11 +2252,14 @@ document.addEventListener('click', function(e){
   if(a === 'fo'){ ir({view:'fornecedores', fo:t.getAttribute('data-v')}); return; }
   if(a === 'mais'){ S.limite += 60; render(); focarNovaLinha(); return; }
   if(a === 'limpar'){
-    ir(S.view === 'alarmes' ? {grav:'', fam:'', auf:''} : {cargo:'', partido:'', fed:'', sinal:'', tipo:'', ord:'contratado'});
+    ir(S.view === 'alarmes' ? {grav:'', fam:'', auf:'', aord:'grav'}
+       : {cargo:'', partido:'', fed:'', sinal:'', tipo:'', origem:'', ord:'contratado'});
     return;
   }
   if(a === 'limpatipo'){ ir({tipo:''}); return; }
   if(a === 'tipo'){ var nt = t.getAttribute('data-v'); ir({tipo: String(nt) === String(S.tipo) ? '' : nt}); return; }
+  /* tocar na fonte que ja esta em vigor desliga o filtro, como no painel de tipos */
+  if(a === 'origem'){ var no = t.getAttribute('data-v'); ir({origem: String(no) === String(S.origem) ? '' : no}); return; }
   if(a === 'todostipos'){ abrirTodosTipos(); return; }
   if(a === 'porreceita'){ ir({view:'ranking', ord:'receita', fo:'valor'}); return; }
   if(a === 'voltar'){ if(history.length > 1) history.back(); else ir({view:'ranking', cand:'', q:''}); return; }
@@ -1875,6 +2307,7 @@ function descreverRecorte(){
     if(S.fed) p.push(fedCurta(S.fed));
     if(S.sinal) p.push('sinal ' + rotuloSinal(S.sinal));
     if(S.tipo !== '') p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
+    if(S.origem !== '') p.push('fonte: ' + String(rotuloOrigem(S.origem)).toLowerCase());
     if(S.view === 'busca') p.push('busca por "' + S.q + '"');
   }
   return p.filter(Boolean).join(' · ');
@@ -1948,6 +2381,24 @@ function abrirFiltro(qual, bt){
     isx.push({sep:'Por sinal'});
     META.dic.alarme.forEach(function(c){ isx.push({v:c, r:nomeDe(c), c: cs[c] ? inteiro(cs[c]) : '0'}); });
     abrir('Sinais', opcoes('sinal', isx, S.sinal));
+  } else if(qual === 'origem'){
+    /* a conta é de candidaturas, não de reais: cada candidatura conta uma vez por fonte,
+       mesmo que tenha vários lançamentos daquela origem */
+    var cro = {};
+    if(UFD) UFD.c.forEach(function(r){
+      if(!passa(r,'origem')) return;
+      var visto = {};
+      origensDaLinha(r).forEach(function(o){
+        if(visto[o[0]]) return;
+        visto[o[0]] = 1; cro[o[0]] = (cro[o[0]] || 0) + 1;
+      });
+    });
+    var io = [{v:'', r:'Todas as fontes', c: UFD ? inteiro(UFD.c.length) : ''}];
+    origensDic().forEach(function(nome, i){
+      if(UFD && !cro[i]) return;
+      io.push({v:String(i), r:nome, c: cro[i] ? inteiro(cro[i]) : '0'});
+    });
+    abrir('Fonte do dinheiro', opcoes('origem', io, S.origem));
   } else if(qual === 'grav'){
     abrir('Intensidade do sinal', opcoes('grav', [
       {v:'', r:'Todas'}, {v:'3', r:'3 de 3'}, {v:'2', r:'2 de 3'}, {v:'1', r:'1 de 3'}
@@ -1973,8 +2424,9 @@ function abrirFiltro(qual, bt){
 function resumoCod(cod){
   var s = sinalDe(cod);
   if(!s) return 'explicação não disponível nesta versão dos dados';
-  var t = (s.significa || s.nome || '').trim();
-  return t.length > 64 ? t.slice(0,62) + '…' : t;
+  /* o texto vai inteiro: o corte caía justamente na parte da frase que desfaz o mal
+     entendido, e a folha já rola por dentro, então encurtar não economizava nada */
+  return (s.significa || s.nome || '').trim();
 }
 function abrirTodosTipos(){
   var lista = filtradas(), soma = {}, total = 0;
@@ -1992,11 +2444,21 @@ function abrirAjuda(){
     'Ele aponta o que <b>vale conferir</b>. Não é acusação, não é irregularidade, não é conclusão sobre ninguém. ' +
     'Cada sinal traz junto o que ele <b>não</b> significa.</p>' +
     '<p class="rot">Os ' + cods.length + ' sinais</p>';
+  /* agrupados por família, com a descrição inteira: é mais fácil de ler que uma lista
+     corrida de dezesseis, e é o que substitui o corte das frases */
+  var porFam = {}, ordemFam = [];
   cods.forEach(function(cod){
-    c += '<button class="opt" data-act="aviso" data-cod="' + esc(cod) + '"><span><b>' + esc(nomeDe(cod)) + '</b> · ' +
-      esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
+    var f = FAMS[cod.charAt(0)] || 'outros';
+    if(!porFam[f]){ porFam[f] = []; ordemFam.push(f); }
+    porFam[f].push(cod);
   });
-  c += '<p class="rot">Famílias</p><p>' + Object.keys(FAMS).map(function(f){ return FAMS[f]; }).join(' · ') + '</p>';
+  ordemFam.forEach(function(f){
+    c += '<p class="rot">Família: ' + esc(f) + '</p>';
+    porFam[f].forEach(function(cod){
+      c += '<button class="opt longa" data-act="aviso" data-cod="' + esc(cod) + '"><span><b>' +
+        esc(nomeDe(cod)) + '</b> · ' + esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
+    });
+  });
   c += '<p class="rot">O índice de conferência</p>' +
     '<p>Ao lado de cada candidatura aparece um número de 0 a 100 que ordena o que vale conferir primeiro. ' +
     'Ele soma os sinais levantados, e <b>não é medida de irregularidade</b>.</p>' +
@@ -2006,7 +2468,7 @@ function abrirAjuda(){
     '<div class="tecla"><span>Navegar na lista</span><span><kbd>j</kbd> <kbd>k</kbd></span></div>' +
     '<div class="tecla"><span>Abrir o que está em foco</span><span><kbd>Enter</kbd></span></div>' +
     '<div class="tecla"><span>Ranking, sinais, dinheiro</span><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>' +
-    '<div class="tecla"><span>Filtros</span><span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>f</kbd> <kbd>s</kbd></span></div>' +
+    '<div class="tecla"><span>Filtros</span><span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>f</kbd> <kbd>s</kbd> <kbd>d</kbd></span></div>' +
     '<div class="tecla"><span>Ir para a ordenação</span><span><kbd>o</kbd></span></div>' +
     '<div class="tecla"><span>Voltar, fechar</span><span><kbd>Esc</kbd></span></div>' +
     '<div class="tecla"><span>Esta ajuda</span><span><kbd>?</kbd></span></div>';
@@ -2083,6 +2545,7 @@ document.addEventListener('keydown', function(e){
     if(k === 'p'){ abrirFiltro('partido'); return; }
     if(k === 'f'){ abrirFiltro('fed'); return; }
     if(k === 's'){ abrirFiltro('sinal'); return; }
+    if(k === 'd'){ abrirFiltro('origem'); return; }
     /* a ordem virou controle sempre a vista: a tecla leva o foco ate ele */
     if(k === 'o'){
       var b = document.querySelector('.ord button');
@@ -2100,7 +2563,8 @@ function iniciar(){
   get('meta.json').then(function(d){
     META = d;
     if(!unidadeValida(S.uf)) S.uf = ufPadrao();
-    document.getElementById('dtger').textContent = dataBR(META.tse.gerado || META.gerado_em) || 'sem data';
+    var dt = dataBR(META.tse.gerado || META.gerado_em) || 'sem data';
+    document.getElementById('dtger').textContent = dt;
     document.getElementById('btajuda').disabled = false;
     document.getElementById('btajuda2').disabled = false;
     /* Adiantar o fetch só vale para a tela que usa o arquivo da unidade. Todo link de ficha
