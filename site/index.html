@@ -9,7 +9,7 @@
 <style>
 :root{
   --bg:#f3f5f8; --sf:#ffffff; --sf2:#e9edf3; --ink:#0f1720; --mut:#576374; --b:#d9dfe7;
-  --ac:#17538c; --acsf:#e6eefa;
+  --ac:#17538c; --acsf:#e6eefa; --acink:#ffffff;
   --am:#845400; --amsf:#fbf0d9; --amb:#e4cb98;
   --sl:#47586c; --slsf:#e7ecf2; --slb:#cdd7e1;
   --pub:#1a6b66; --pubsf:#dfeeed;
@@ -19,7 +19,7 @@
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0d1116; --sf:#151b22; --sf2:#1e262f; --ink:#e7edf4; --mut:#9dabbb; --b:#2a333d;
-    --ac:#7fb4ef; --acsf:#16273a;
+    --ac:#7fb4ef; --acsf:#16273a; --acink:#0d1116;
     --am:#e6b165; --amsf:#302512; --amb:#54411d;
     --sl:#a6b6c8; --slsf:#1c242d; --slb:#333e4a;
     --pub:#5cbcb2; --pubsf:#132a29;
@@ -61,7 +61,7 @@ header{position:sticky;top:0;z-index:30;background:var(--sf);border-bottom:1px s
 .ajuda{width:44px;height:44px;border:1px solid var(--b);border-radius:var(--raio);color:var(--mut);flex:none;font-size:17px}
 .abas{display:flex;gap:4px;background:var(--sf2);padding:2px;border-radius:var(--raio)}
 .abas button{flex:1;min-height:44px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--mut)}
-.abas button[aria-selected="true"]{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.abas button[aria-current="page"]{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .chip{
   display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 9px;
@@ -98,7 +98,9 @@ main{max-width:1180px;margin:0 auto;padding:10px}
 .tile .v{font-size:17px;font-weight:700;margin-top:1px;white-space:nowrap}
 .tile .n{font-size:11px;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
 .tile.pub .v{color:var(--pub)}
-.tile.sin .v{color:var(--am)}
+.tile.sin .v{color:var(--ink)}
+.abre{padding:9px 12px;font-size:13px;line-height:1.35;border-bottom:1px solid var(--b)}
+.abre b{font-weight:700}
 
 .bar{height:6px;background:var(--sf2);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
@@ -115,23 +117,27 @@ ul.l{list-style:none;margin:0;padding:0}
 }
 .rowmain:active{background:var(--sf2)}
 @media(hover:hover){.rowmain:hover{background:var(--sf2)}}
+/* o cartao recorta o que passa da borda: o anel de foco desenha por dentro */
+.rowmain:focus-visible,.mais:focus-visible{outline-offset:-3px;border-radius:0}
 .r-pos{grid-area:pos;font-size:11px;color:var(--mut);padding-top:3px}
 .r-nome{grid-area:nome;font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .r-val{grid-area:val;font-weight:700;font-size:14.5px;white-space:nowrap}
 .r-meta{grid-area:meta;font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .r-pub{grid-area:pub;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut);margin-top:2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .r-pub .bar{width:44px;flex:none}
-.row[data-selos="1"] .r-pub{padding-right:72px}
 .nomegrande{display:block;font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
-.selos{position:absolute;right:10px;bottom:7px;display:flex;gap:3px}
+/* os selos ficam na propria linha, fora do link: ninguem mira num alvo por cima de outro */
+.selos{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:0 12px 9px;margin-top:-3px}
+.row[data-selos] .rowmain{padding-bottom:3px}
 .selo{
-  min-width:28px;height:22px;padding:0 5px;border-radius:6px;font-size:11px;font-weight:700;
+  position:relative;min-width:30px;height:24px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:700;
   background:var(--slsf);color:var(--sl);border:1px solid var(--slb);
 }
+/* area de toque de 44px sem engordar o desenho */
+.selos .selo::after{content:"";position:absolute;top:-10px;bottom:-10px;left:-3px;right:-3px}
 .selo[data-g="2"]{background:var(--amsf);color:var(--am);border-color:var(--amb)}
 .selo[data-g="3"]{background:var(--am);color:var(--sf);border-color:var(--am)}
 .prop{position:absolute;left:0;bottom:0;height:3px;background:var(--ac);opacity:.35;pointer-events:none;border-radius:0 2px 2px 0}
-.row[data-nada="1"] .r-nome{color:var(--mut);font-weight:600}
 
 .status{margin:0;padding:0 12px;min-height:44px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -139,10 +145,10 @@ ul.l{list-style:none;margin:0;padding:0}
 .vazio{padding:26px 16px;text-align:center;color:var(--mut);font-size:13.5px}
 .vazio .bt{margin-top:12px}
 .bt{
-  display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;
+  display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;
   border:1px solid var(--b);border-radius:var(--raio);background:var(--sf);font-size:13.5px;font-weight:600;
 }
-.bt.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.bt.pri{background:var(--ac);color:var(--acink);border-color:var(--ac)}
 .mais{display:block;width:100%;min-height:46px;font-size:13.5px;font-weight:600;color:var(--ac);border-top:1px solid var(--b)}
 .mais:active{background:var(--sf2)}
 
@@ -161,11 +167,11 @@ ul.l{list-style:none;margin:0;padding:0}
 .blist .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;min-width:0}
 .blist .t span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .blist .t b{font-weight:700;white-space:nowrap}
-.blist button.t{width:100%;text-align:left;min-height:38px}
+.blist button.t{width:100%;text-align:left;min-height:44px}
 .blist li[aria-current="true"] .t{color:var(--ac)}
 
 /* ficha */
-.voltar{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 10px 0 6px;font-size:13.5px;font-weight:600;color:var(--ac);margin-bottom:6px}
+.voltar{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px 0 6px;font-size:13.5px;font-weight:600;color:var(--ac);margin-bottom:6px}
 .fhead{padding:12px}
 .fhead h1{font-size:19px;line-height:1.2}
 .fhead .sub{font-size:13px;color:var(--mut);margin-top:4px}
@@ -174,11 +180,22 @@ ul.l{list-style:none;margin:0;padding:0}
 .dest{padding:12px;background:var(--pubsf);border-top:1px solid var(--b)}
 .dest .g{font-size:26px;font-weight:800;color:var(--pub);line-height:1.1}
 .dest .d{font-size:12.5px;color:var(--mut);margin-top:3px}
+
+/* comparacao com quem disputa o mesmo cargo na mesma UF */
+.pares{padding:10px 12px;border-top:1px solid var(--b)}
+.pares .fr{font-size:13px;color:var(--ink)}
+.pares .fr b{font-weight:700}
+.pares .rv{position:relative;height:30px;margin:12px 0 4px}
+.pares .eixo{position:absolute;left:0;right:0;top:13px;height:4px;background:var(--sf2);border-radius:2px}
+.pares .mc{position:absolute;top:6px;width:2px;height:18px;background:var(--mut);opacity:.7}
+.pares .eu{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;background:var(--ac);border:2px solid var(--sf);box-shadow:0 0 0 1px var(--ac)}
+.pares .leg{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mut)}
+.pares .rs{font-size:11.5px;color:var(--mut);margin-top:6px}
 .sinal{padding:10px 12px;border-bottom:1px solid var(--b)}
 .sinal:last-child{border-bottom:0}
 .sinal .top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
 .sinal .tx{font-size:13px;color:var(--ink)}
-.sinal .nao{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--ac);min-height:32px;text-align:left}
+.sinal .nao{margin-top:10px;font-size:12.5px;font-weight:600;color:var(--ac);min-height:44px;text-align:left}
 .grav{font-size:11px;color:var(--mut)}
 .pontos i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sf2);margin-right:2px;border:1px solid var(--slb)}
 .pontos i.on{background:var(--am);border-color:var(--am)}
@@ -196,7 +213,7 @@ ul.l{list-style:none;margin:0;padding:0}
 svg.serie{display:block;width:100%;height:88px;background:var(--sf)}
 svg.serie rect{fill:var(--ac);opacity:.8}
 details{border-top:1px solid var(--b)}
-details summary{min-height:40px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:var(--ac);font-weight:600;cursor:pointer}
+details summary{min-height:44px;display:flex;align-items:center;padding:0 12px;font-size:12.5px;color:var(--ac);font-weight:600;cursor:pointer}
 details summary::-webkit-details-marker{display:none}
 .nota{padding:10px 12px;font-size:12.5px;color:var(--mut);background:var(--sf)}
 .nota b{color:var(--ink)}
@@ -213,8 +230,8 @@ details summary::-webkit-details-marker{display:none}
 }
 .fcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border-bottom:1px solid var(--b)}
 .fcab h2{font-size:15px}
-.fcab button{width:40px;height:40px;border-radius:8px;color:var(--mut);font-size:16px;flex:none}
-.fcorpo{overflow-y:auto;padding:6px 0 14px}
+.fcab button{width:44px;height:44px;border-radius:8px;color:var(--mut);font-size:16px;flex:none}
+.fcorpo{overflow-y:auto;padding:6px 0 14px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 .opt{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 14px;text-align:left;font-size:14px}
 .opt:active{background:var(--sf2)}
 .opt .c{font-size:12px;color:var(--mut);white-space:nowrap}
@@ -233,6 +250,9 @@ footer{
 .fwrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
 .legal{margin:0;font-size:10.5px;line-height:1.25;color:var(--mut);text-align:center}
 .legal b{color:var(--ink);font-weight:600}
+.legalbt{font-size:inherit;color:var(--ac);font-weight:600;text-decoration:underline;min-height:26px;padding:0 2px}
+.legalbt[disabled]{color:var(--mut);text-decoration:none;cursor:default}
+.ajuda[disabled]{opacity:.45;cursor:default}
 @media(min-width:720px){
   .fwrap{flex-direction:row;align-items:center;gap:12px}
   .abas{width:330px;flex:none}
@@ -256,24 +276,27 @@ footer{
                placeholder="Buscar nome ou número" aria-label="Buscar candidatura por nome ou número">
         <button class="limpaq ocul" id="limpaq" data-act="limpaq" aria-label="Limpar a busca">✕</button>
       </div>
-      <button class="ajuda" data-act="ajuda" aria-label="Ajuda, legenda dos sinais e atalhos de teclado">?</button>
+      <button class="ajuda" id="btajuda" data-act="ajuda" disabled
+              aria-label="Ajuda, legenda dos sinais, contato e atalhos de teclado">?</button>
     </div>
     <div class="chips" id="chips"></div>
   </div>
 </header>
 
-<main id="conteudo" tabindex="-1"></main>
-
+<!-- o rodape vem antes do conteudo no DOM, e o CSS o fixa embaixo: quem navega por
+     teclado alcanca as secoes sem atravessar a lista inteira -->
 <footer id="rodape">
   <div class="fwrap">
-    <nav class="abas" role="tablist" aria-label="Seções do painel">
-      <button role="tab" id="ab-ranking" data-act="aba" data-v="ranking" aria-selected="true">Ranking</button>
-      <button role="tab" id="ab-alarmes" data-act="aba" data-v="alarmes" aria-selected="false">Sinais</button>
-      <button role="tab" id="ab-fornecedores" data-act="aba" data-v="fornecedores" aria-selected="false">Dinheiro</button>
+    <nav class="abas" aria-label="Seções do painel">
+      <button id="ab-ranking" data-act="aba" data-v="ranking" aria-current="page">Ranking</button>
+      <button id="ab-alarmes" data-act="aba" data-v="alarmes">Sinais</button>
+      <button id="ab-fornecedores" data-act="aba" data-v="fornecedores">Dinheiro</button>
     </nav>
-    <p class="legal">Fonte: TSE, dados abertos da prestação de contas 2026 · dados de <b id="dtger">carregando</b> · sinal automático, não é conclusão sobre ninguém</p>
+    <p class="legal">Fonte: TSE, dados abertos da prestação de contas 2026 · dados de <b id="dtger">carregando</b> · sinal automático, não é conclusão sobre ninguém · <button class="legalbt" id="btajuda2" data-act="ajuda" disabled>contato e metodologia</button></p>
   </div>
 </footer>
+
+<main id="conteudo" tabindex="-1"></main>
 
 <div id="folha"></div>
 
@@ -283,16 +306,27 @@ footer{
 
 /* ---------- utilidades ---------- */
 var D = './dados/';
+var REPO = 'https://github.com/guipfranco/contas2026';
 var cache = Object.create(null);
 
 function get(caminho){
   if(cache[caminho]) return cache[caminho];
   var p = fetch(D + caminho, {cache:'no-cache'}).then(function(r){
-    if(!r.ok) throw new Error('HTTP ' + r.status);
+    if(!r.ok){
+      var e = new Error('HTTP ' + r.status);
+      e.status = r.status;   /* 404 nao e queda de rede, e dado que nao existe */
+      throw e;
+    }
     return r.json();
   })['catch'](function(e){ delete cache[caminho]; throw e; });
   cache[caminho] = p;
   return p;
+}
+/* guarda so o arquivo da UF em uso: navegar por muitos estados nao pode encher a memoria do aparelho */
+function limparCacheUF(manter){
+  Object.keys(cache).forEach(function(k){
+    if(k.indexOf('uf/') === 0 && k !== 'uf/' + manter + '.json') delete cache[k];
+  });
 }
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -338,10 +372,29 @@ var S = {
   view:'ranking', uf:'SP', cargo:'', partido:'', fed:'', ord:'contratado',
   sinal:'', tipo:'', q:'', cand:'', grav:'', fam:'', auf:'', fo:'valor', limite:60
 };
-var ORDS = {contratado:'gasto contratado', pago:'gasto pago', receita:'receita declarada', sinais:'quantidade de sinais'};
+var ORDS = {contratado:'gasto contratado', pago:'gasto pago', receita:'receita declarada',
+            sinais:'quantidade de sinais a conferir'};
 var COLS = {contratado:6, pago:7, receita:8, sinais:12};
 var FAMS = {A:'fornecedor', B:'doador', C:'candidato', D:'ritmo'};
-var erroAtual = null, pendente = false, ultimaChave = '', primeiroRender = true;
+/* a mesma ressalva em toda tela onde o sinal vira a metrica principal */
+var NOTA_SINAL = '<div class="nota">Cada sinal é um <b>padrão automático</b> que vale conferir no dado ' +
+  'declarado, nunca uma acusação. Toque em <b>o que isso não significa</b> antes de tirar conclusão. ' +
+  'Quem presta serviço a uma campanha não faz parte dela: o fornecedor citado no texto de um sinal é ' +
+  '<b>terceiro</b>, e tem o mesmo direito de pedir correção.</div>';
+var UFNOME = {
+  AC:'no Acre', AL:'em Alagoas', AM:'no Amazonas', AP:'no Amapá', BA:'na Bahia',
+  CE:'no Ceará', DF:'no Distrito Federal', ES:'no Espírito Santo', GO:'em Goiás',
+  MA:'no Maranhão', MG:'em Minas Gerais', MS:'no Mato Grosso do Sul', MT:'no Mato Grosso',
+  PA:'no Pará', PB:'na Paraíba', PE:'em Pernambuco', PI:'no Piauí', PR:'no Paraná',
+  RJ:'no Rio de Janeiro', RN:'no Rio Grande do Norte', RO:'em Rondônia', RR:'em Roraima',
+  RS:'no Rio Grande do Sul', SC:'em Santa Catarina', SE:'em Sergipe', SP:'em São Paulo',
+  TO:'no Tocantins'
+};
+function ondeUF(uf){ return UFNOME[uf] || ('em ' + uf); }
+/* um erro por fonte: sucesso numa aba nao pode apagar a falha de outra */
+var erros = {uf:null, indice:null, alarmes:null, forn:null, cota:null, cand:null};
+var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
+var tiposAberto = null, ufEmVoo = '';
 
 function lerHash(){
   var h = location.hash.replace(/^#/,''), o = {};
@@ -359,12 +412,13 @@ function aplicarHash(){
   if(META && !META.ufs[S.uf]) S.uf = Object.keys(META.ufs)[0];
   S.cargo = o.cargo || ''; S.partido = o.partido || ''; S.fed = o.fed || '';
   S.ord = ORDS[o.ord] ? o.ord : 'contratado';
-  S.sinal = o.sinal || ''; S.tipo = o.tipo || ''; S.q = o.q || ''; S.cand = o.cand || '';
+  S.sinal = o.sinal || ''; S.tipo = o.tipo || ''; S.q = o.q || '';
+  S.cand = /^[0-9]{6,20}$/.test(o.cand || '') ? o.cand : '';
   S.grav = o.grav || ''; S.fam = o.fam || ''; S.auf = (o.auf || '').toUpperCase();
   S.fo = ({valor:1,candidatos:1,cota:1}[o.fo]) ? o.fo : 'valor';
   S.view = S.cand ? 'cand'
         : (S.q ? 'busca'
-        : ('alarmes' in o ? 'alarmes'
+        : (('sinais' in o || 'alarmes' in o) ? 'alarmes'
         : ('fornecedores' in o ? 'fornecedores' : 'ranking')));
   S.limite = 60;
 }
@@ -372,7 +426,8 @@ function montarHash(){
   var p = [], e = encodeURIComponent;
   function add(k,v,padrao){ if(v && v !== padrao) p.push(k + '=' + e(v)); }
   if(S.view === 'alarmes'){
-    p.push('alarmes'); add('grav',S.grav); add('fam',S.fam); add('auf',S.auf);
+    /* o link diz 'sinais', que e a palavra da tela; 'alarmes' continua valendo na entrada */
+    p.push('sinais'); add('grav',S.grav); add('fam',S.fam); add('auf',S.auf);
     return p.join('&');
   }
   if(S.view === 'fornecedores'){
@@ -415,7 +470,7 @@ function abrirFolha(titulo, corpo){
   folha.innerHTML =
     '<div class="fundo" data-act="fecharfolha"></div>' +
     '<div class="folha" role="dialog" aria-modal="true" aria-labelledby="ftit">' +
-      '<div class="fcab"><h2 id="ftit">' + titulo + '</h2>' +
+      '<div class="fcab"><h2 id="ftit">' + esc(titulo) + '</h2>' +
       '<button data-act="fecharfolha" aria-label="Fechar">✕</button></div>' +
       '<div class="fcorpo">' + corpo + '</div>' +
     '</div>';
@@ -455,24 +510,44 @@ function opcoes(chave, itens, atual){
   }).join('');
   return h;
 }
-function avisoDe(cod){
-  if(!META) return '';
-  var i = META.dic.alarme.indexOf(cod);
-  return i >= 0 && META.avisos[i] ? META.avisos[i] : '';
+/* O catalogo casa PELO CODIGO, nunca por posicao numa lista: aviso trocado seria
+   a ressalva de um sinal ao lado do texto de outro, e a ressalva e a peca que
+   impede o sinal de virar acusacao. Formato novo: META.sinais[cod]. Formato
+   antigo (lista de frases): so vale se a frase comecar pelo proprio codigo. */
+var MARCA_NAO = /O que N[ÃA]O significa:\s*/i;
+function sinalDe(cod){
+  if(!META || !cod) return null;
+  var s = META.sinais && META.sinais[cod];
+  if(s && s.significa){
+    return {significa:s.significa, nao:s.nao_significa || '', nome:s.nome || '',
+            familia:s.familia || FAMS[cod.charAt(0)] || ''};
+  }
+  var lista = (META.dic && META.dic.alarme) || [], avisos = META.avisos || [];
+  var i = lista.indexOf(cod);
+  var txt = (i >= 0 && avisos[i]) ? String(avisos[i]) : '';
+  if(txt.indexOf(cod + ':') !== 0) return null;      /* fora de sincronia: nao chuta */
+  txt = txt.slice(cod.length + 1);
+  var m = txt.match(MARCA_NAO), nao = '';
+  if(m){ nao = txt.slice(m.index + m[0].length); txt = txt.slice(0, m.index); }
+  return {significa:txt.trim(), nao:nao.trim(), nome:'', familia:FAMS[cod.charAt(0)] || ''};
 }
 function abrirAviso(cod){
-  var txt = avisoDe(cod), corpo = '';
-  var lim = txt.indexOf('O que NAO significa:');
-  var apon = txt, nao = '';
-  if(lim >= 0){ apon = txt.slice(0, lim); nao = txt.slice(lim + 20); }
-  apon = apon.replace(/^[A-D]\d:\s*/,'');
-  var fam = FAMS[cod.charAt(0)] || '';
-  corpo += '<p class="rot">O que o sinal aponta</p><p>' + esc(apon.trim()) + '</p>';
-  if(nao) corpo += '<p class="rot">O que isso não significa</p><p>' + esc(nao.trim()) + '</p>';
-  corpo += '<p class="rot">Família</p><p>' + esc(fam) + '</p>';
+  var s = sinalDe(cod), corpo = '';
+  if(!s){
+    corpo = '<p>A explicação deste sinal não veio nesta versão dos dados, então ela não pode ser ' +
+      'mostrada aqui. Sem a explicação, o sinal não sustenta conclusão nenhuma: trate como aviso de que ' +
+      'vale conferir a prestação de contas na fonte, no TSE.</p>';
+    abrirFolha('Sinal ' + cod, corpo);
+    return;
+  }
+  corpo += '<p class="rot">O que o sinal aponta</p><p>' + esc(s.significa) + '</p>';
+  corpo += '<p class="rot">O que isso não significa</p><p>' +
+    (s.nao ? esc(s.nao) : 'A ressalva deste sinal não veio nesta versão dos dados. Um sinal sozinho não conclui nada.') + '</p>';
+  corpo += '<p class="rot">Família</p><p>' + esc(s.familia) + '</p>';
   corpo += '<p class="rot">Lembrete</p><p>O sinal é automático, calculado a partir do que foi declarado ao TSE. ' +
-           'Ele serve para conferir, não conclui nada sobre ninguém.</p>';
-  abrirFolha('Sinal ' + esc(cod), corpo);
+           'Ele serve para conferir, não conclui nada sobre ninguém. Quem é apontado pode pedir correção: ' +
+           'veja <b>contato e metodologia</b> na ajuda.</p>';
+  abrirFolha('Sinal ' + cod + (s.nome ? ' · ' + s.nome : ''), corpo);
 }
 
 /* ---------- selos de sinal ---------- */
@@ -485,16 +560,20 @@ function selosDe(lista){
   });
   ordem.sort(function(a,b){ return m[b].g - m[a].g; });
   return ordem.slice(0,3).map(function(cod){
-    var o = m[cod];
-    return '<button class="selo" data-g="' + o.g + '" data-act="aviso" data-cod="' + cod + '" ' +
-      'aria-label="Sinal ' + cod + ', intensidade ' + o.g + ' de 3' + (o.n>1 ? ', ' + o.n + ' ocorrências' : '') +
-      '. Ver o que significa e o que não significa">' + cod + (o.n > 1 ? '·' + o.n : '') + '</button>';
+    var o = m[cod], c = esc(cod);
+    return '<button class="selo" data-g="' + o.g + '" data-act="aviso" data-cod="' + c + '" ' +
+      'aria-label="Sinal ' + c + ', intensidade ' + o.g + ' de 3' + (o.n>1 ? ', ' + o.n + ' ocorrências' : '') +
+      '. Ver o que significa e o que não significa">' + c + (o.n > 1 ? '·' + o.n : '') + '</button>';
   }).join('');
 }
 function pontos(g){
+  var n = (typeof g === 'number' && g >= 1 && g <= 3) ? Math.round(g) : 0;
+  if(!n) return '<span class="grav">intensidade não informada</span>';
   var h = '';
-  for(var i=1;i<=3;i++) h += '<i class="' + (i <= g ? 'on' : '') + '"></i>';
-  return '<span class="pontos" aria-hidden="true">' + h + '</span><span class="grav">intensidade ' + g + ' de 3</span>';
+  for(var i=1;i<=3;i++) h += '<i class="' + (i <= n ? 'on' : '') + '"></i>';
+  var rot = (META && META.gravidades && META.gravidades[n]) ? ' · ' + META.gravidades[n] : '';
+  return '<span class="pontos" aria-hidden="true">' + h + '</span><span class="grav">intensidade ' +
+         n + ' de 3' + esc(rot) + '</span>';
 }
 
 /* ---------- filtros sobre a UF ---------- */
@@ -572,7 +651,9 @@ function renderChips(){
   document.querySelectorAll('.abas button').forEach(function(b){
     var v = b.getAttribute('data-v');
     var ativo = (v === S.view) || (v === 'ranking' && (S.view === 'busca' || S.view === 'cand'));
-    b.setAttribute('aria-selected', ativo ? 'true' : 'false');
+    /* aria-current e o que a navegacao realmente entrega; role=tab prometia painel que nao existe */
+    if(ativo) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
   });
   var hh = document.querySelector('header').offsetHeight;
   document.documentElement.style.setProperty('--hh', hh + 'px');
@@ -605,20 +686,45 @@ function barras(itens, total, opts){
 }
 
 /* ---------- visão: ranking ---------- */
+/* Uma frase em portugues antes dos numeros: quem chega precisa saber o que esta vendo. */
+function fraseDoRecorte(n, comGasto, ct, pg, pb){
+  if(!n) return '';
+  var outroFiltro = !!(S.partido || S.fed || S.sinal || S.tipo !== '');
+  var onde = esc(ondeUF(S.uf)), f;
+  var verbo = (comGasto === 1 ? ' já declarou gasto' : ' já declararam gasto');
+  if(S.cargo){
+    f = 'Entre as <b>' + inteiro(n) + '</b> candidatura' + (n === 1 ? '' : 's') + ' a ' +
+      esc(cargoCurto(META.cargos[S.cargo] || '')) + ' ' + onde + (outroFiltro ? ' neste recorte' : '') +
+      ', <b>' + inteiro(comGasto) + '</b>' + verbo;
+  } else {
+    f = (outroFiltro ? 'Neste recorte ' + onde : onde.charAt(0).toUpperCase() + onde.slice(1)) +
+      ', <b>' + inteiro(comGasto) + '</b> ' + (n === 1 ? 'da' : 'das') + ' <b>' + inteiro(n) +
+      '</b> candidatura' + (n === 1 ? '' : 's') + verbo;
+  }
+  f += ', somando <b>' + moeda(ct) + '</b> contratados';
+  if(pb == null) f += '. Os números por candidatura estão carregando.';
+  else f += pg > 0 ? ', e <b>' + pct(pb, pg) + ' %</b> do que já foi pago saiu de dinheiro público.'
+                   : ', e nada foi declarado como pago até agora.';
+  return '<div class="abre">' + f + '</div>';
+}
 function blocoResumo(lista){
   var u = META.ufs[S.uf] || {};
   var temLista = !!UFD;
   var n = temLista ? lista.length : (u.n || 0);
-  var ct = 0, pg = 0, pb = 0, rc = 0, sn = 0, semMov = 0;
+  var ct = 0, pg = 0, pb = 0, rc = 0, sn = 0, semMov = 0, comGasto = 0;
   if(temLista){
     lista.forEach(function(r){
       ct += r[6]; pg += r[7]; rc += r[8]; pb += r[9]; sn += r[12].length;
       if(r[6] === 0 && r[8] === 0) semMov++;
+      if(r[6] > 0) comGasto++;
     });
   } else {
     ct = u.contratado || 0; pg = u.pago || 0; rc = u.receita || 0; sn = u.alarmes || 0;
+    comGasto = u.com_gasto || 0; pb = null;
   }
-  var h = '<div class="cartao"><h2 class="ocultavisual">Resumo do recorte em ' + esc(S.uf) + '</h2><div class="tiles">';
+  var h = '<div class="cartao"><h2 class="ocultavisual">Resumo do recorte em ' + esc(S.uf) + '</h2>';
+  h += fraseDoRecorte(n, comGasto, ct, pg, pb);
+  h += '<div class="tiles">';
   h += '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(ct)) + '">' + moeda(ct) + '</div>' +
        '<div class="n">' + inteiro(n) + ' candidatura' + (n === 1 ? '' : 's') + '</div></div>';
   h += '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(pg)) + '">' + moeda(pg) + '</div>' +
@@ -636,8 +742,20 @@ function blocoResumo(lista){
     h += '<div class="nota">Receita <b>' + moeda(rc) + '</b>' +
          (semMov ? ' · <b>' + inteiro(semMov) + '</b> sem nada declarado' : '') +
          ' · última despesa em <b>' + esc(dataBR(META.tse.data_max_despesa) || 'sem data') + '</b></div>';
+    h += notaPares();
   }
   return h + '</div>';
+}
+/* A regua do grupo: so existe com um cargo escolhido, porque somar cargos diferentes
+   inventaria um agregado que ninguem calculou. */
+function notaPares(){
+  if(!S.cargo) return '';
+  var u = META.ufs[S.uf] || {}, p = (u.pares || {})[S.cargo];
+  if(!p || !p.n) return '';
+  return '<div class="nota">Entre as <b>' + inteiro(p.n) + '</b> candidaturas a ' +
+    esc(cargoCurto(META.cargos[S.cargo] || '')) + ' ' + esc(ondeUF(S.uf)) + ' que declararam gasto, ' +
+    'a mediana contratada é <b>' + moeda(p.mediana) + '</b> e o p90 é <b>' + moeda(p.p90) + '</b>. ' +
+    'Metade do grupo está abaixo da mediana, e só uma em cada dez passa do p90.</div>';
 }
 function blocoTipos(lista){
   var soma = {}, total = 0;
@@ -646,9 +764,11 @@ function blocoTipos(lista){
   });
   var itens = Object.keys(soma).map(function(k){ return [META.dic.tipo[+k] || 'sem tipo', soma[k], k]; });
   itens.sort(function(a,b){ return b[1] - a[1]; });
-  var aberto = window.matchMedia('(min-width:960px)').matches;
+  /* o estado vive em S: filtrar por tipo redesenha a tela, e o painel nao pode
+     fechar sozinho o que a pessoa acabou de abrir */
+  if(tiposAberto === null) tiposAberto = window.matchMedia('(min-width:960px)').matches;
   var vis = itens.slice(0, 8);
-  var h = '<div class="cartao"><details' + (aberto ? ' open' : '') + '>' +
+  var h = '<div class="cartao"><details id="dettipos"' + (tiposAberto ? ' open' : '') + '>' +
     '<summary>Gasto por tipo · ' + itens.length + ' tipos · toque para filtrar</summary>' +
     barras(vis, total, {acao:'tipo'});
   if(itens.length > 8){
@@ -658,23 +778,27 @@ function blocoTipos(lista){
 }
 function linhaRanking(r, i, max){
   var sq = r[0], sinais = r[12].length;
+  var porSinal = (S.ord === 'sinais' && S.tipo === '');
   var v = valorDe(r);
-  var rot = S.tipo !== '' ? moeda(v) : (S.ord === 'sinais' ? sinais + ' sinal' + (sinais === 1 ? '' : 'is') : moeda(v));
+  var rot = porSinal ? inteiro(sinais) + (sinais === 1 ? ' sinal' : ' sinais') : moeda(v);
   var larg = max > 0 ? Math.max(0.5, v / max * 100) : 0;
   var meta = [META.dic.partido[r[3]] || '', r[2], cargoCurto(META.cargos[r[4]] || ''), fedCurta(META.dic.fed[r[5]] || '')]
              .filter(Boolean).join(' · ');
   var pubTxt, pubLarg = 0;
   if(r[7] > 0){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + '% público'; }
   else { pubTxt = 'sem pagamento declarado'; }
-  var nada = (r[6] === 0 && r[8] === 0) ? 1 : 0;
-  return '<li class="row" data-selos="' + (sinais ? 1 : 0) + '" data-nada="' + nada + '">' +
+  /* quem nao declarou nada nao tem o nome esmaecido: o estado ja esta escrito na linha,
+     e apagar um nome numa lista de nomes le como categoria inferior */
+  return '<li class="row"' + (sinais ? ' data-selos="' + Math.min(3, sinais) + '"' : '') + '>' +
     '<a class="rowmain" href="#' + montarHashCand(sq) + '">' +
       '<span class="r-pos num">' + (i+1) + '</span>' +
       '<span class="r-nome">' + esc(r[1]) + '</span>' +
-      '<span class="r-val num" title="' + esc(S.ord === 'sinais' && S.tipo === '' ? '' : moedaCheia(v)) + '">' + rot + '</span>' +
+      '<span class="r-val num" title="' + esc(porSinal ? '' : moedaCheia(v)) + '">' + rot + '</span>' +
       '<span class="r-meta">' + esc(meta) + '</span>' +
       '<span class="r-pub">' + (r[7] > 0 ? '<span class="bar p" aria-hidden="true"><i style="width:' + pubLarg + '%"></i></span>' : '') +
-        esc(pubTxt) + ' · ' + inteiro(r[10]) + ' fornec.' + '</span>' +
+        esc(pubTxt) + ' · ' + inteiro(r[10]) + ' fornec.' +
+        /* ordenado por sinal, o dinheiro continua na linha: o sinal nao vira a medida da pessoa */
+        (porSinal ? ' · ' + moeda(r[6]) + ' contratado' : '') + '</span>' +
     '</a>' +
     (sinais ? '<span class="selos">' + selosDe(r[12]) + '</span>' : '') +
     '<span class="prop" style="width:' + larg + '%"></span>' +
@@ -689,15 +813,21 @@ function montarHashCand(sq){
 }
 function viewRanking(){
   var m = document.getElementById('conteudo');
-  if(erroAtual === 'uf'){ m.innerHTML = painelErro('Não foi possível carregar as candidaturas de ' + S.uf + '. Verifique a conexão.', 'retryuf'); return; }
-  if(!UFD){
+  if(erros.uf){ m.innerHTML = painelErro('Não foi possível carregar as candidaturas de ' + S.uf + '. Verifique a conexão.', 'retryuf'); return; }
+  /* UFD nulo sem nada em voo ficava preso no esqueleto para sempre */
+  if(!UFD || UFD.uf !== S.uf){
+    if(ufEmVoo !== S.uf) carregarUF();
     m.innerHTML = '<div class="wrap"><div class="lado">' + blocoResumo([]) + '</div><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var lista = filtradas();
   var max = lista.length ? valorDe(lista[0]) : 0;
   var vis = lista.slice(0, S.limite);
-  var h = '<div class="wrap"><div class="lado">' + blocoResumo(lista) + blocoTipos(lista) + '</div><div class="lista">';
+  var porSinal = (S.ord === 'sinais' && S.tipo === '') || S.sinal !== '';
+  var h = '<div class="wrap"><div class="lado">' +
+    (lista.length ? blocoResumo(lista) + blocoTipos(lista) : '') + '</div><div class="lista">';
+  if(avisoDic) h += '<div class="cartao" style="margin-bottom:10px"><div class="nota">' + esc(avisoDic) + '</div></div>';
+  if(porSinal && lista.length) h += '<div class="cartao" style="margin-bottom:10px">' + NOTA_SINAL + '</div>';
   h += '<div class="cartao"><div class="status"><span role="status">' + inteiro(lista.length) + ' candidatura' +
        (lista.length === 1 ? '' : 's') + ' em ' + esc(S.uf) + '</span>' +
        '<button class="ordbt" data-act="f-ord" aria-haspopup="dialog">' +
@@ -718,7 +848,7 @@ function viewRanking(){
 /* ---------- visão: busca ---------- */
 function viewBusca(){
   var m = document.getElementById('conteudo');
-  if(erroAtual === 'indice'){ m.innerHTML = painelErro('Não foi possível carregar o índice de nomes.', 'retryidx'); return; }
+  if(erros.indice){ m.innerHTML = painelErro('Não foi possível carregar o índice de nomes.', 'retryidx'); return; }
   if(!IDX){ m.innerHTML = esqueleto(5); return; }
   var t = norm(S.q), so = t.replace(/\D/g,'');
   var pre = [], meio = [], numero = [];
@@ -739,7 +869,7 @@ function viewBusca(){
   } else {
     h += '<ul class="l">' + res.map(function(c){
       var meta = [META.dic.partido[c[4]] || '', c[5], cargoCurto(META.cargos[c[3]] || ''), c[2]].filter(Boolean).join(' · ');
-      return '<li class="row" data-nada="' + (c[6] ? 0 : 1) + '"><a class="rowmain" href="#uf=' + esc(c[2]) + '&cand=' + esc(c[0]) + '">' +
+      return '<li class="row"><a class="rowmain" href="#uf=' + esc(c[2]) + '&cand=' + esc(c[0]) + '">' +
         '<span class="r-pos" aria-hidden="true">›</span>' +
         '<span class="r-nome">' + esc(c[1]) + '</span>' +
         '<span class="r-val" style="font-size:12px;color:var(--mut);font-weight:600">' + esc(c[2]) + '</span>' +
@@ -751,9 +881,33 @@ function viewBusca(){
 }
 
 /* ---------- visão: sinais ---------- */
+/* A lista e cortada em dois lugares (tamanho do arquivo e codigo que so vale na ficha).
+   Esconder o corte faria a lista parecer o conjunto inteiro, que e o contrario do que
+   este painel existe para fazer. */
+function notaCorte(filtrado){
+  if(!ALA) return '';
+  var n = ALA.a.length;
+  var total = (typeof ALA.total === 'number') ? ALA.total : n;
+  var cortados = (typeof ALA.cortados === 'number') ? ALA.cortados : Math.max(0, total - n);
+  var p = [];
+  if(cortados > 0){
+    p.push('Esta lista mostra os <b>' + inteiro(n) + '</b> sinais de maior intensidade e maior valor, de <b>' +
+      inteiro(total) + '</b>. Os outros <b>' + inteiro(cortados) + '</b> ficaram fora por limite de tamanho ' +
+      'do arquivo e continuam na ficha de cada candidatura.');
+  }
+  var soma = 0;
+  for(var uf in META.ufs) soma += (META.ufs[uf].alarmes || 0);
+  var fora = soma - total;
+  if(fora > 0){
+    p.push('Outros <b>' + inteiro(fora) + '</b> sinais não entram nesta lista nacional e aparecem apenas na ' +
+      'ficha da candidatura, ao lado do resto dos números dela.');
+  }
+  if(filtrado) p.push('A contagem acima é a do filtro que está ligado, não a do total.');
+  return p.length ? '<div class="nota">' + p.join(' ') + '</div>' : '';
+}
 function viewAlarmes(){
   var m = document.getElementById('conteudo');
-  if(erroAtual === 'alarmes'){ m.innerHTML = painelErro('Não foi possível carregar a lista de sinais.', 'retryala'); return; }
+  if(erros.alarmes){ m.innerHTML = painelErro('Não foi possível carregar a lista de sinais.', 'retryala'); return; }
   if(!ALA){ m.innerHTML = esqueleto(6); carregarAlarmes(); return; }
   var l = ALA.a.filter(function(a){
     if(S.grav && String(a[1]) !== S.grav) return false;
@@ -765,10 +919,11 @@ function viewAlarmes(){
     return true;
   });
   var vis = l.slice(0, S.limite);
-  var h = '<div class="cartao"><div class="nota">Cada linha é um <b>sinal automático</b>: um padrão que vale conferir no dado declarado, ' +
-    'nunca uma acusação. Toque em <b>o que isso não significa</b> antes de tirar conclusão.</div></div>';
-  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' + inteiro(l.length) + ' sinal' +
-    (l.length === 1 ? '' : 'is') + '</span><span>mais intensos primeiro</span></p>';
+  var filtrado = !!(S.grav || S.auf || S.fam);
+  var h = '<div class="cartao">' + NOTA_SINAL + '</div>';
+  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' +
+    inteiro(l.length) + (l.length === 1 ? ' sinal' : ' sinais') + (filtrado ? ' com estes filtros' : '') +
+    '</span><span>mais intensos primeiro</span></p>' + notaCorte(filtrado);
   if(!l.length){
     h += '<div class="vazio">Nenhum sinal com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
@@ -795,7 +950,7 @@ function viewAlarmes(){
 /* ---------- visão: dinheiro ---------- */
 function viewFornecedores(){
   var m = document.getElementById('conteudo');
-  if(erroAtual === 'forn'){ m.innerHTML = painelErro('Não foi possível carregar a lista de fornecedores.', 'retryfor'); return; }
+  if(erros.forn){ m.innerHTML = painelErro('Não foi possível carregar a lista de fornecedores.', 'retryfor'); return; }
   if(S.fo === 'cota') return viewCota();
   if(!FOR){ m.innerHTML = esqueleto(6); carregarForn(); return; }
   var l = S.fo === 'candidatos' ? FOR.por_candidatos : FOR.por_valor;
@@ -804,7 +959,8 @@ function viewFornecedores(){
   var h = '<div class="cartao"><div class="nota">Um fornecedor grande atender milhares de campanhas é <b>normal</b>, ' +
     'principalmente plataforma de anúncio e gráfica. A maior parte dos fornecedores do país é <b>pessoa física</b>, ' +
     'com o documento já mascarado na origem.</div></div>';
-  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' + inteiro(l.length) + ' fornecedores</span>' +
+  h += '<div class="cartao" style="margin-top:10px"><p class="status" role="status"><span>' + inteiro(l.length) +
+    (l.length === 1 ? ' fornecedor' : ' fornecedores') + '</span>' +
     '<span>' + (S.fo === 'candidatos' ? 'por campanhas atendidas ↓' : 'por valor recebido ↓') + '</span></p><ul class="l">';
   h += vis.map(function(f, i){
     var v = S.fo === 'candidatos' ? f[4] : f[2];
@@ -832,7 +988,7 @@ function viewFornecedores(){
 }
 function viewCota(){
   var m = document.getElementById('conteudo');
-  if(erroAtual === 'cota'){ m.innerHTML = painelErro('Não foi possível carregar os dados de cota.', 'retrycota'); return; }
+  if(erros.cota){ m.innerHTML = painelErro('Não foi possível carregar os dados de cota.', 'retrycota'); return; }
   if(!COTA){ m.innerHTML = esqueleto(4); carregarCota(); return; }
   var h = '<div class="cartao"><div class="nota">A lei reserva no mínimo <b>30 % do dinheiro público</b> de campanha para candidaturas de mulheres. ' +
     'A conta abaixo é do que foi declarado <b>até agora</b>, e a regra é aferida no fim da campanha.</div></div>';
@@ -869,14 +1025,46 @@ function serieSVG(serie){
     return '<rect x="' + (i * (pw + gap)) + '" y="' + (78 - alt) + '" width="' + pw + '" height="' + alt + '"></rect>';
   }).join('');
   return '<svg class="serie" viewBox="0 0 ' + largura + ' 80" preserveAspectRatio="none" role="img" ' +
-    'aria-label="Gasto declarado por dia, de ' + dataBR(serie[0][0]) + ' a ' + dataBR(serie[n-1][0]) + '">' +
+    'aria-label="Gasto declarado por dia, de ' + esc(dataBR(serie[0][0])) + ' a ' + esc(dataBR(serie[n-1][0])) + '">' +
     barras + '</svg>';
+}
+/* A comparacao com quem disputa o mesmo cargo na mesma UF. E o unico numero da ficha
+   que responde 'isso e muito?'. Sem o bloco pares no JSON, a secao nao aparece. */
+function blocoPares(f){
+  var p = f.pares;
+  if(!p || !p.grupo_n || !p.mediana) return '';
+  var cargo = String(f.cargo || 'mesmo cargo').toLowerCase();
+  var fr = '<b>' + esc(f.nome) + '</b> contratou <b>' + moeda(f.contratado) + '</b>. ' +
+    'Entre as <b>' + inteiro(p.grupo_n) + '</b> candidaturas a ' + esc(cargo) + ' ' + esc(ondeUF(f.uf)) +
+    ' que declararam gasto, a mediana é <b>' + moeda(p.mediana) + '</b>';
+  if(p.vezes_a_mediana) fr += ', ou seja, <b>' + nm(p.vezes_a_mediana) + ' vezes a mediana</b>';
+  fr += '.';
+  if(p.fatia_do_grupo) fr += ' Esta candidatura responde por <b>' + nm(p.fatia_do_grupo) + ' %</b> de tudo que o grupo contratou.';
+  /* regua: mediana e p90 ancoram a escala, o ponto marca onde esta a candidatura */
+  var teto = Math.max(p.p90 || 0, p.mediana, f.contratado) || 1;
+  var pos = function(v){ return Math.max(0, Math.min(100, v / teto * 100)); };
+  var regua = '<div class="rv" aria-hidden="true"><div class="eixo"></div>' +
+    '<div class="mc" style="left:' + pos(p.mediana) + '%"></div>' +
+    (p.p90 ? '<div class="mc" style="left:' + pos(p.p90) + '%"></div>' : '') +
+    '<div class="eu" style="left:calc(' + pos(f.contratado) + '% - 6px)"></div></div>' +
+    '<div class="leg"><span>mediana ' + moeda(p.mediana) + '</span>' +
+    (p.p90 ? '<span>p90 ' + moeda(p.p90) + '</span>' : '') + '</div>';
+  return '<div class="pares"><div class="fr">' + fr + '</div>' + regua +
+    '<div class="rs">A comparação é só entre quem disputa o mesmo cargo no mesmo estado e já declarou gasto. ' +
+    'Gastar mais ou menos que o grupo não é irregularidade: é contexto para ler o número, e vale conferir na fonte.</div></div>';
 }
 function viewCand(){
   var m = document.getElementById('conteudo');
   var f = cacheFicha[S.cand];
-  if(erroAtual === 'cand'){ m.innerHTML = painelErro('Não foi possível carregar a ficha desta candidatura.', 'retrycand'); return; }
+  /* 404 nao e conexao ruim: e ficha que ainda nao foi publicada, e tentar de novo nao resolve */
+  if(erros.cand === 404){
+    m.innerHTML = '<div class="cartao"><div class="erro"><p>Esta candidatura ainda não tem ficha publicada nesta ' +
+      'versão dos dados.</p><button class="bt pri" data-act="voltar">Voltar ao ranking</button></div></div>';
+    return;
+  }
+  if(erros.cand){ m.innerHTML = painelErro('Não foi possível carregar a ficha desta candidatura. Verifique a conexão.', 'retrycand'); return; }
   if(!f){ m.innerHTML = esqueleto(6); carregarFicha(); return; }
+  var nada = !f.contratado && !f.pago && !f.receita;
   var pubPct = pct(f.pago_publico, f.pago);
   var ident = [f.partido, f.nr, f.cargo, f.uf].filter(Boolean).join(' · ');
   var h = '<button class="voltar" data-act="voltar">‹ voltar ao ranking</button>';
@@ -886,16 +1074,28 @@ function viewCand(){
     '<div class="sub">' + esc([f.genero, f.cor_raca].filter(Boolean).join(' · ').toLowerCase()) +
       (f.prestacao ? ' · prestação ' + esc(String(f.prestacao).toLowerCase()) : '') + '</div>' +
     '</div>';
-  h += '<div class="tiles">' +
-    '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(f.contratado)) + '">' + moeda(f.contratado) + '</div><div class="n">' + inteiro(f.n_despesas) + ' despesas</div></div>' +
-    '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(f.pago)) + '">' + moeda(f.pago) + '</div><div class="n">' + pct(f.pago, f.contratado) + '% do contratado</div></div>' +
-    '<div class="tile"><div class="r">Receita</div><div class="v num" title="' + esc(moedaCheia(f.receita)) + '">' + moeda(f.receita) + '</div><div class="n">' + (f.estimavel ? moeda(f.estimavel) + ' estimável' : 'sem estimável') + '</div></div>' +
-    '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(f.alarmes.length) + '</div><div class="n">para conferir</div></div>' +
-    '</div>';
-  h += '<div class="dest"><div class="g num">' + pubPct + '% público</div>' +
-    '<div class="d">' + moeda(f.pago_publico) + ' dos ' + moeda(f.pago) + ' já pagos saíram de fundo eleitoral ou fundo partidário. ' +
-    'Receita pública declarada: ' + moeda(f.receita_publica) + '.</div>' +
-    '<div class="bar p" style="margin-top:8px" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
+  /* quatro tiles de R$ 0 e um '0% público' de 26px nao sao dado: sao ruido com cara de conclusao */
+  if(nada){
+    h += '<div class="nota">Esta candidatura <b>não declarou receita nem despesa</b> até a data desta base. ' +
+      'A prestação de contas é entregue aos poucos, e quem não movimenta dinheiro presta contas ao final, ' +
+      'sem nada a declarar. Por isso não há valores para mostrar aqui.</div>';
+    h += '<div class="tiles"><div class="tile sin"><div class="r">Sinais</div><div class="v num">' +
+      inteiro(f.alarmes.length) + '</div><div class="n">para conferir</div></div></div>';
+  } else {
+    h += '<div class="tiles">' +
+      '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(f.contratado)) + '">' + moeda(f.contratado) + '</div><div class="n">' + inteiro(f.n_despesas) + (f.n_despesas === 1 ? ' despesa' : ' despesas') + '</div></div>' +
+      '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(f.pago)) + '">' + moeda(f.pago) + '</div><div class="n">' + pct(f.pago, f.contratado) + '% do contratado</div></div>' +
+      '<div class="tile"><div class="r">Receita</div><div class="v num" title="' + esc(moedaCheia(f.receita)) + '">' + moeda(f.receita) + '</div><div class="n">' + (f.estimavel ? moeda(f.estimavel) + ' estimável' : 'sem estimável') + '</div></div>' +
+      '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(f.alarmes.length) + '</div><div class="n">para conferir</div></div>' +
+      '</div>';
+    if(f.pago > 0){
+      h += '<div class="dest"><div class="g num">' + pubPct + '% público</div>' +
+        '<div class="d">' + moeda(f.pago_publico) + ' dos ' + moeda(f.pago) + ' já pagos saíram de fundo eleitoral ou fundo partidário. ' +
+        'Receita pública declarada: ' + moeda(f.receita_publica) + '.</div>' +
+        '<div class="bar p" style="margin-top:8px" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
+    }
+    h += blocoPares(f);
+  }
   h += '<div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">' +
     '<button class="bt" data-act="copiar">Copiar o link desta ficha</button></div></div>';
 
@@ -961,73 +1161,102 @@ function viewCand(){
 }
 
 /* ---------- carregadores ---------- */
-var cacheFicha = Object.create(null);
+var cacheFicha = Object.create(null), ordemFicha = [];
+function guardarFicha(sq, d){
+  cacheFicha[sq] = d; ordemFicha.push(sq);
+  while(ordemFicha.length > 40){
+    var velho = ordemFicha.shift();
+    if(ordemFicha.indexOf(velho) < 0){ delete cacheFicha[velho]; delete cache['cand/' + velho + '.json']; }
+  }
+}
+/* Confere uma vez se os dicionarios do meta cobrem os ids do arquivo da UF. Fora de
+   sincronia, o partido some da linha e o filtro nunca casa: melhor dizer isso na tela. */
+function conferirDicionarios(d){
+  var maior = {partido:-1, fed:-1, tipo:-1, alarme:-1};
+  d.c.forEach(function(r){
+    if(r[3] > maior.partido) maior.partido = r[3];
+    if(r[5] > maior.fed) maior.fed = r[5];
+    r[11].forEach(function(t){ if(t[0] > maior.tipo) maior.tipo = t[0]; });
+    r[12].forEach(function(a){ if(a[0] > maior.alarme) maior.alarme = a[0]; });
+  });
+  var faltam = [];
+  Object.keys(maior).forEach(function(k){
+    var dic = (META.dic && META.dic[k]) || [];
+    if(maior[k] >= dic.length) faltam.push(k);
+  });
+  avisoDic = faltam.length
+    ? 'Os arquivos de dados estão fora de sincronia (' + faltam.join(', ') + '). Alguns rótulos podem ' +
+      'aparecer em branco e alguns filtros podem não encontrar tudo. Os valores em dinheiro não são afetados.'
+    : '';
+}
 function carregarUF(){
   var uf = S.uf;
-  UFD = null; erroAtual = null;
+  UFD = null; erros.uf = null; ufEmVoo = uf;
+  limparCacheUF(uf);
   get('uf/' + uf + '.json').then(function(d){
+    if(ufEmVoo === uf) ufEmVoo = '';
     if(S.uf !== uf) return;
-    UFD = d; render();
+    UFD = d; conferirDicionarios(d); render();
   })['catch'](function(){
+    if(ufEmVoo === uf) ufEmVoo = '';
     if(S.uf !== uf) return;
-    erroAtual = 'uf'; render();
+    erros.uf = 1; render();
   });
 }
 function carregarIndice(){
   if(IDX || carregarIndice.ocupado) return;
   carregarIndice.ocupado = true;
   get('indice.json').then(function(d){
-    IDX = d; carregarIndice.ocupado = false;
-    if(erroAtual === 'indice') erroAtual = null;
+    IDX = d; carregarIndice.ocupado = false; erros.indice = null;
     if(S.view === 'busca') render();
   })['catch'](function(){
     carregarIndice.ocupado = false;
-    if(S.view === 'busca'){ erroAtual = 'indice'; render(); }
+    if(S.view === 'busca'){ erros.indice = 1; render(); }
   });
 }
 function carregarAlarmes(){
   if(ALA || carregarAlarmes.ocupado) return;
   carregarAlarmes.ocupado = true;
   get('alarmes.json').then(function(d){
-    ALA = d; carregarAlarmes.ocupado = false; erroAtual = null;
+    ALA = d; carregarAlarmes.ocupado = false; erros.alarmes = null;
     if(S.view === 'alarmes') render();
   })['catch'](function(){
     carregarAlarmes.ocupado = false;
-    if(S.view === 'alarmes'){ erroAtual = 'alarmes'; render(); }
+    if(S.view === 'alarmes'){ erros.alarmes = 1; render(); }
   });
 }
 function carregarForn(){
   if(FOR || carregarForn.ocupado) return;
   carregarForn.ocupado = true;
   get('fornecedores.json').then(function(d){
-    FOR = d; carregarForn.ocupado = false; erroAtual = null;
+    FOR = d; carregarForn.ocupado = false; erros.forn = null;
     if(S.view === 'fornecedores') render();
   })['catch'](function(){
     carregarForn.ocupado = false;
-    if(S.view === 'fornecedores'){ erroAtual = 'forn'; render(); }
+    if(S.view === 'fornecedores'){ erros.forn = 1; render(); }
   });
 }
 function carregarCota(){
   if(COTA || carregarCota.ocupado) return;
   carregarCota.ocupado = true;
   get('cota.json').then(function(d){
-    COTA = d; carregarCota.ocupado = false; erroAtual = null;
+    COTA = d; carregarCota.ocupado = false; erros.cota = null;
     if(S.view === 'fornecedores') render();
   })['catch'](function(){
     carregarCota.ocupado = false;
-    if(S.view === 'fornecedores'){ erroAtual = 'cota'; render(); }
+    if(S.view === 'fornecedores'){ erros.cota = 1; render(); }
   });
 }
 function carregarFicha(){
   var sq = S.cand;
-  if(carregarFicha.ocupado === sq) return;
+  if(!sq || carregarFicha.ocupado === sq) return;
   carregarFicha.ocupado = sq;
   get('cand/' + sq + '.json').then(function(d){
-    cacheFicha[sq] = d; carregarFicha.ocupado = null;
-    if(S.cand === sq){ erroAtual = null; render(); }
-  })['catch'](function(){
+    guardarFicha(sq, d); carregarFicha.ocupado = null;
+    if(S.cand === sq){ erros.cand = null; render(); }
+  })['catch'](function(e){
     carregarFicha.ocupado = null;
-    if(S.cand === sq){ erroAtual = 'cand'; render(); }
+    if(S.cand === sq){ erros.cand = (e && e.status === 404) ? 404 : 1; render(); }
   });
 }
 
@@ -1042,6 +1271,8 @@ function render(){
   else if(S.view === 'alarmes') viewAlarmes();
   else if(S.view === 'fornecedores') viewFornecedores();
   else viewRanking();
+  var det = document.getElementById('dettipos');
+  if(det) det.addEventListener('toggle', function(){ tiposAberto = det.open; });
   var q = document.getElementById('q');
   if((document.activeElement !== q || primeiroRender) && q.value !== S.q) q.value = S.q;
   primeiroRender = false;
@@ -1061,7 +1292,8 @@ document.addEventListener('click', function(e){
     var k = t.getAttribute('data-k'), v = t.getAttribute('data-v'), p = {};
     fecharFolha();
     if(S.view === 'cand' || S.view === 'busca'){ p.view = 'ranking'; p.cand = ''; p.q = ''; }
-    if(k === 'uf' && v !== S.uf){ p.uf = v; ir(p); carregarUF(); return; }
+    /* trocar de UF aqui nao precisa de caso especial: o render confere se o arquivo
+       carregado e o da UF pedida, venha ela do clique ou do hash */
     p[k] = v; ir(p); return;
   }
   if(a === 'aba'){
@@ -1084,12 +1316,12 @@ document.addEventListener('click', function(e){
   if(a === 'limpaq'){ document.getElementById('q').value = ''; ir({q:'', view:'ranking'}); document.getElementById('q').focus(); return; }
   if(a === 'copiar'){ copiarLink(t); return; }
   if(a === 'retry'){ render(); return; }
-  if(a === 'retryuf'){ erroAtual = null; carregarUF(); render(); return; }
-  if(a === 'retryidx'){ erroAtual = null; carregarIndice(); render(); return; }
-  if(a === 'retryala'){ erroAtual = null; ALA = null; carregarAlarmes(); render(); return; }
-  if(a === 'retryfor'){ erroAtual = null; FOR = null; carregarForn(); render(); return; }
-  if(a === 'retrycota'){ erroAtual = null; COTA = null; carregarCota(); render(); return; }
-  if(a === 'retrycand'){ erroAtual = null; carregarFicha(); render(); return; }
+  if(a === 'retryuf'){ erros.uf = null; carregarUF(); render(); return; }
+  if(a === 'retryidx'){ erros.indice = null; carregarIndice(); render(); return; }
+  if(a === 'retryala'){ erros.alarmes = null; ALA = null; carregarAlarmes(); render(); return; }
+  if(a === 'retryfor'){ erros.forn = null; FOR = null; carregarForn(); render(); return; }
+  if(a === 'retrycota'){ erros.cota = null; COTA = null; carregarCota(); render(); return; }
+  if(a === 'retrycand'){ erros.cand = null; carregarFicha(); render(); return; }
   if(a.indexOf('f-') === 0){ abrirFiltro(a.slice(2)); return; }
 });
 function focarNovaLinha(){
@@ -1098,11 +1330,13 @@ function focarNovaLinha(){
   if(alvo && alvo.focus) alvo.focus();
 }
 function copiarLink(bt){
-  var url = location.href, ok = function(){ bt.textContent = 'Link copiado'; setTimeout(function(){ bt.textContent = 'Copiar o link desta ficha'; }, 1800); };
+  var url = location.href, antes = bt.textContent;
+  var ok = function(){ bt.textContent = 'Link copiado'; setTimeout(function(){ bt.textContent = antes; }, 1800); };
+  var mostrar = function(){ abrirFolha('Link desta tela', '<p>' + esc(url) + '</p>'); };
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(ok)['catch'](function(){ abrirFolha('Link desta ficha','<p>' + esc(url) + '</p>'); });
+    navigator.clipboard.writeText(url).then(ok)['catch'](mostrar);
   } else {
-    abrirFolha('Link desta ficha','<p>' + esc(url) + '</p>');
+    mostrar();
   }
 }
 
@@ -1114,6 +1348,7 @@ function contarPor(fn, ignorar){
   return m;
 }
 function abrirFiltro(qual){
+  if(!META) return;   /* o botao existe desde o primeiro instante; o dicionario nao */
   if(qual === 'uf'){
     var itens = Object.keys(META.ufs).sort().map(function(u){
       var o = META.ufs[u];
@@ -1170,10 +1405,9 @@ function abrirFiltro(qual){
   }
 }
 function resumoCod(cod){
-  var t = avisoDe(cod).replace(/^[A-D]\d:\s*/,'');
-  var i = t.indexOf('O que NAO significa:');
-  if(i >= 0) t = t.slice(0, i);
-  t = t.trim();
+  var s = sinalDe(cod);
+  if(!s) return 'explicação não disponível nesta versão dos dados';
+  var t = (s.nome || s.significa).trim();
   return t.length > 64 ? t.slice(0,62) + '…' : t;
 }
 function abrirTodosTipos(){
@@ -1185,13 +1419,15 @@ function abrirTodosTipos(){
     '<div style="padding:0 2px">' + barras(itens, total, {acao:'tipo'}) + '</div>');
 }
 function abrirAjuda(){
+  if(!META) return;   /* sem dicionario nao ha ajuda a montar, e o clique nao pode quebrar em silencio */
+  var cods = (META.dic && META.dic.alarme) || [];
   var c = '<p class="rot">O que é um sinal</p>' +
     '<p>Um sinal é um padrão calculado por máquina em cima do que a campanha declarou ao TSE. ' +
     'Ele aponta o que <b>vale conferir</b>. Não é acusação, não é irregularidade, não é conclusão sobre ninguém. ' +
     'Cada sinal traz junto o que ele <b>não</b> significa.</p>' +
-    '<p class="rot">Os 15 sinais</p>';
-  META.dic.alarme.forEach(function(cod){
-    c += '<button class="opt" data-act="aviso" data-cod="' + cod + '"><span><b>' + cod + '</b> · ' + esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
+    '<p class="rot">Os ' + cods.length + ' sinais</p>';
+  cods.forEach(function(cod){
+    c += '<button class="opt" data-act="aviso" data-cod="' + esc(cod) + '"><span><b>' + esc(cod) + '</b> · ' + esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
   });
   c += '<p class="rot">Famílias</p><p>' + Object.keys(FAMS).map(function(f){ return f + ' ' + FAMS[f]; }).join(' · ') + '</p>';
   c += '<p class="rot">Atalhos de teclado</p>' +
@@ -1206,6 +1442,16 @@ function abrirAjuda(){
     'gerados em ' + esc(dataBR(META.tse.gerado || META.gerado_em)) + '. ' +
     'Última despesa declarada na base: ' + esc(dataBR(META.tse.data_max_despesa) || 'sem data') + '. ' +
     'Documentos de pessoa física já chegam mascarados e não são reconstruídos aqui.</p>';
+  c += '<p class="rot">Contestar ou corrigir</p>' +
+    '<p>Quem aparece aqui, candidatura ou fornecedor, pode pedir correção. O caminho é abrir um registro ' +
+    'público no repositório do projeto, em <a href="' + REPO + '/issues" rel="noopener" target="_blank">' +
+    esc(REPO.replace('https://github.com/','github.com/')) + '/issues</a>. ' +
+    'Correção aceita é publicada junto com o dado corrigido, e o registro do pedido fica aberto à vista.</p>' +
+    '<p>O cálculo de cada sinal (a regra, o limiar e a janela de dados) está no mesmo repositório, em ' +
+    '<b>pipeline/alarmes/</b>, e o código que monta esta tela está em <b>site/index.html</b>. ' +
+    'Nada aqui é feito à mão: o que estiver errado no dado de origem pode ser conferido na fonte, no TSE.</p>' +
+    '<p class="rot">Esta tela</p><p style="word-break:break-all">' + esc(location.href) + '</p>' +
+    '<p><button class="bt" data-act="copiar">Copiar o link desta tela</button></p>';
   abrirFolha('Como ler este painel', c);
 }
 
@@ -1281,9 +1527,10 @@ function iniciar(){
     META = d;
     if(!META.ufs[S.uf]) S.uf = Object.keys(META.ufs)[0];
     document.getElementById('dtger').textContent = dataBR(META.tse.gerado || META.gerado_em) || 'sem data';
+    document.getElementById('btajuda').disabled = false;
+    document.getElementById('btajuda2').disabled = false;
+    carregarUF();          /* o render ja cobre isso, mas comecar o fetch aqui adianta a primeira tela */
     render();
-    if(S.view !== 'fornecedores' && S.view !== 'alarmes') carregarUF();
-    else { carregarUF(); }
     if(S.view === 'busca') carregarIndice();
   })['catch'](function(){
     document.getElementById('conteudo').innerHTML =

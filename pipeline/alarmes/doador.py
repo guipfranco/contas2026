@@ -143,7 +143,7 @@ def b4_cota(nac):
             'texto': f'Candidatas do {partido} em {uf} receberam {fatia} % do '
                      f'dinheiro público declarado até agora ({moeda(mulheres)} '
                      f'de {moeda(total)}). A Constituição, no artigo 17, '
-                     f'parágrafo 8, garante no mínimo 30 %, e a conta e '
+                     f'parágrafo 8, garante no mínimo 30 %, e a conta é '
                      f'fechada ao fim da campanha.',
         })
     saida.sort(key=lambda x: (x['fatia_mulheres'], -x['total']))
