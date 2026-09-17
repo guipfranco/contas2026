@@ -123,15 +123,22 @@ def documento(s):
     return s if len(s) in (11, 14) else ''
 
 
-def num_documento(s):
+def num_documento(s, doc_fornecedor=''):
     """Numero da nota, normalizado para comparar entre candidatos.
 
-    O TSE aceita texto livre aqui. 'S/N', 'RECIBO' e afins nao identificam
-    nada, entao nao servem para cruzar; so numero com tres digitos ou mais.
+    O TSE aceita texto livre aqui, e quem preenche poe de tudo. Tres coisas
+    ficam de fora, todas descobertas olhando o que o cruzamento devolveu:
+
+    - 'S/N', 'RECIBO' e afins nao identificam nada.
+    - O proprio CNPJ do fornecedor, que aparece no lugar do numero da nota e
+      cruzava com todo mundo daquele fornecedor.
+    - Sequencia de dez digitos ou mais, que e id de sistema, nao nota fiscal.
     """
     s = limpo(s).upper()
     so_num = ''.join(c for c in s if c.isdigit()).lstrip('0')
-    if len(so_num) < 3:
+    if not (3 <= len(so_num) <= 9):
+        return ''
+    if doc_fornecedor and so_num == doc_fornecedor.lstrip('0'):
         return ''
     return so_num
 
@@ -220,7 +227,8 @@ def despesas(z, uf=None):
             cargo_forn=limpo(r['DS_CARGO_FORNECEDOR']),
             part_forn=limpo(r['SG_PARTIDO_FORNECEDOR']),
             tipo_doc=limpo(r['DS_TIPO_DOCUMENTO']),
-            num_doc=num_documento(r['NR_DOCUMENTO']),
+            num_doc=num_documento(r['NR_DOCUMENTO'],
+                                  documento(r['NR_CPF_CNPJ_FORNECEDOR'])),
             tipo=limpo(r['DS_ORIGEM_DESPESA']), dt=data(r['DT_DESPESA']),
             valor=valor(r['VR_DESPESA_CONTRATADA']),
             descricao=limpo(r['DS_DESPESA']))

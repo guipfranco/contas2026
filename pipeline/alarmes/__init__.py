@@ -47,6 +47,10 @@ CATALOGO = {
            'Uma pessoa física, não uma empresa, recebeu um valor alto.',
            'Cabo eleitoral, motorista e prestador autônomo são contratados '
            'assim, legalmente.'),
+    'A7': ('fornecedor', 'documento não confere',
+           'O CPF ou CNPJ do fornecedor tem dígito verificador inválido.',
+           'Quase sempre é erro de digitação na prestação de contas, não '
+           'fornecedor inventado.'),
     'D1': ('ritmo', 'fornecedor novo hoje',
            'Este fornecedor aparece pela primeira vez na base hoje.',
            'Prestação de contas é entregue aos poucos; aparecer hoje é normal.'),
@@ -58,8 +62,10 @@ CATALOGO = {
            'de mais de um candidato.',
            'Rateio de material conjunto é legal e produz exatamente isso.'),
     'C1': ('candidato', 'perto do limite de gastos',
-           'O gasto declarado se aproxima do limite legal do cargo.',
-           'O limite vale para o total da campanha, e a conta ainda não fechou.'),
+           'O gasto declarado se aproxima do limite do cargo fixado pela '
+           'Portaria TSE 449, de 20 de julho de 2026.',
+           'Honorários de advogado e de contador ficam fora do limite (Lei '
+           '9.504/1997, artigo 18-A), e a conta só fecha na prestação final.'),
     'C2': ('candidato', 'nada declarado',
            'A candidatura não tem receita nem despesa declarada até agora.',
            'Quem não movimentou dinheiro presta contas ao final, sem nada a '
@@ -70,13 +76,18 @@ CATALOGO = {
     'B2': ('doador', 'doações iguais no mesmo dia',
            'Várias pessoas diferentes doaram o mesmo valor no mesmo dia.',
            'Campanha de arrecadação com valor sugerido produz esse padrão.'),
-    'B3': ('doador', 'recursos próprios altos',
-           'A parcela bancada pelo próprio candidato é alta.',
-           'O limite legal é sobre o rendimento do candidato, que não é público.'),
+    'B3': ('doador', 'recursos próprios acima do limite',
+           'O candidato bancou com dinheiro próprio mais do que os 10 % do teto '
+           'de gastos do cargo que a lei permite (Lei 9.504/1997, artigo 23, '
+           'parágrafo 2º-A).',
+           'A conta só fecha na prestação final, e valor estimável entra na '
+           'soma de forma que ainda se discute.'),
     'B4': ('doador', 'fundo para candidatas abaixo de 30 %',
            'A fatia do dinheiro público que chegou a candidatas do partido '
-           'está abaixo do mínimo legal.',
-           'A regra é aferida no fim da campanha, não no meio.'),
+           'está abaixo dos 30 % garantidos pela Constituição, artigo 17, '
+           'parágrafo 8º (Emenda 117 de 2022).',
+           'A regra é do partido, nunca de um candidato, e é aferida no fim da '
+           'campanha, não no meio.'),
 }
 
 GRAVIDADE = {1: 'vale olhar', 2: 'vale conferir', 3: 'confira primeiro'}

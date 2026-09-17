@@ -175,7 +175,7 @@ class TestAlarmes(unittest.TestCase):
 
     def _forn(self, doc, valor, nome='FORNECEDOR X', tipo='PESSOA JURIDICA',
               cnae='', sq_forn=''):
-        self.a.por_forn[doc] = [valor, 1, nome, tipo, cnae, sq_forn]
+        self.a.por_forn[doc] = [valor, 1, nome, tipo, cnae, sq_forn, '', valor]
         self.a.contratado += valor
 
     def test_a1_dispara_no_limiar_e_cala_logo_acima(self):
@@ -193,13 +193,19 @@ class TestAlarmes(unittest.TestCase):
         self.assertEqual(al_forn.avaliar(self.a, self.ctx), [])
 
     def test_a2_so_quando_nao_esta_ativa(self):
-        self._forn('11111111000191', 900000)
-        self.ctx.receita = {'11111111000191': {'situacao_cadastral': 'Baixada'}}
+        self._forn('11222333000181', 900000)
+        self.ctx.receita = {'11222333000181': {'situacao_cadastral': 'Baixada'}}
         xs = al_forn.avaliar(self.a, self.ctx)
         self.assertEqual([x.codigo for x in xs], ['A2'])
-        self.assertEqual(xs[0].grav, 3)
-        self.ctx.receita = {'11111111000191': {'situacao_cadastral': 'Ativa'}}
+        self.assertEqual(xs[0].grav, 2, 'R$ 9 mil nao e o topo da fila')
+        self.ctx.receita = {'11222333000181': {'situacao_cadastral': 'Ativa'}}
         self.assertEqual(al_forn.avaliar(self.a, self.ctx), [])
+
+    def test_a2_grave_so_com_valor_alto(self):
+        self._forn('11222333000181', 6000000)
+        self.ctx.receita = {'11222333000181': {'situacao_cadastral': 'Inapta'}}
+        xs = al_forn.avaliar(self.a, self.ctx)
+        self.assertEqual(xs[0].grav, 3)
 
     def test_a3_fornecedor_e_o_proprio_candidato(self):
         self._forn('22222222000191', 1000000, sq_forn='999')
@@ -222,25 +228,83 @@ class TestAlarmes(unittest.TestCase):
                           if x.codigo == 'A5'], [])
 
     def test_a6_plural_certo(self):
-        self.a.por_forn['1' * 11] = [6000000, 1, 'JOAO', 'PESSOA FISICA', '', '']
+        self.a.por_forn['11144477735'] = [12000000, 1, 'JOAO', 'PESSOA FISICA',
+                                          '', '', '', 12000000]
         x = al_forn.avaliar(self.a, self.ctx)[0]
+        self.assertEqual(x.codigo, 'A6')
         self.assertIn('em 1 lancamento,', x.texto)
-        self.a.por_forn['1' * 11][1] = 3
+        self.a.por_forn['11144477735'][1] = 3
         x = al_forn.avaliar(self.a, self.ctx)[0]
         self.assertIn('em 3 lancamentos,', x.texto)
 
+    def test_a6_ignora_o_ordinario(self):
+        """R$ 60 mil a uma pessoa fisica e o comum, nao um sinal.
+
+        Sao 374 mil CPF prestando servico nesta eleicao. O limiar antigo, de
+        R$ 50 mil, gerava 630 sinais com mediana de R$ 60 mil: apontava o
+        normal.
+        """
+        self.a.por_forn['11144477735'] = [6000000, 1, 'JOAO', 'PESSOA FISICA',
+                                          '', '', '', 6000000]
+        self.assertEqual([x for x in al_forn.avaliar(self.a, self.ctx)
+                          if x.codigo == 'A6'], [])
+
+    def test_a3_nao_dispara_em_repasse_entre_campanhas(self):
+        """Candidato repassando dinheiro a outro nao e 'fornecedor'."""
+        self.a.por_forn['11222333000181'] = [
+            100000000, 1, 'ELEICAO 2026 FULANO', 'PESSOA JURIDICA', '', '888',
+            'Doacoes financeiras a outros candidatos/partidos', 100000000]
+        self.assertEqual([x for x in al_forn.avaliar(self.a, self.ctx)
+                          if x.codigo == 'A3'], [])
+
+    def test_a7_pega_digito_verificador_quebrado(self):
+        self._forn('13347016000118', 500000)
+        xs = [x for x in al_forn.avaliar(self.a, self.ctx) if x.codigo == 'A7']
+        self.assertEqual(len(xs), 1)
+        self.assertIn('digito verificador', xs[0].texto)
+
+    def test_a7_nao_reclama_de_documento_valido(self):
+        self._forn('13347016000117', 500000)
+        self.assertEqual([x for x in al_forn.avaliar(self.a, self.ctx)
+                          if x.codigo == 'A7'], [])
+
     def test_b1_ignora_doacao_de_cnpj(self):
         """Partido que repassa e tambem fornece material nao e sinal."""
-        self.a.por_doador['3' * 14] = [2000000, 1, 'PARTIDO X', 'Recursos de partido']
-        self.a.por_forn['3' * 14] = [2000000, 1, 'PARTIDO X', 'PESSOA JURIDICA', '', '']
+        self.a.por_doador['3' * 14] = [5000000, 1, 'PARTIDO X', 'Recursos de partido']
+        self.a.por_forn['3' * 14] = [5000000, 1, 'PARTIDO X', 'PESSOA JURIDICA',
+                                     '', '', '', 5000000]
         self.assertEqual([x for x in al_doa.avaliar(self.a, self.ctx)
                           if x.codigo == 'B1'], [])
 
     def test_b1_dispara_para_pessoa_fisica(self):
-        self.a.por_doador['4' * 11] = [2000000, 1, 'MARIA', 'Recursos de pessoas fisicas']
-        self.a.por_forn['4' * 11] = [2000000, 1, 'MARIA', 'PESSOA FISICA', '', '']
+        self.a.por_doador['11144477735'] = [3000000, 1, 'MARIA',
+                                            'Recursos de pessoas fisicas']
+        self.a.por_forn['11144477735'] = [3000000, 1, 'MARIA', 'PESSOA FISICA',
+                                          '', '', '', 3000000]
         xs = [x for x in al_doa.avaliar(self.a, self.ctx) if x.codigo == 'B1']
         self.assertEqual(len(xs), 1)
+
+    def test_b3_usa_10_por_cento_do_teto_do_cargo(self):
+        """A base legal e o teto do cargo, nao o rendimento do candidato.
+
+        Lei 9.504/1997, art. 23, paragrafo 2-A. Os 10 % do rendimento bruto
+        sao o limite de doacao de TERCEIRO, e a confusao entre os dois estava
+        no desenho original deste alarme.
+        """
+        self.ctx.tetos = {('BR', '6'): 317657253}      # deputado federal 2026
+        self.a.por_origem['Recursos proprios'] = 40000000   # R$ 400 mil
+        self.a.receita = 100000000
+        xs = [x for x in al_doa.avaliar(self.a, self.ctx) if x.codigo == 'B3']
+        self.assertEqual(len(xs), 1)
+        self.assertEqual(xs[0].grav, 3)
+        self.assertIn('10 %', xs[0].texto)
+
+    def test_b3_cala_dentro_do_limite(self):
+        self.ctx.tetos = {('BR', '6'): 317657253}
+        self.a.por_origem['Recursos proprios'] = 30000000   # R$ 300 mil
+        self.a.receita = 100000000
+        self.assertEqual([x for x in al_doa.avaliar(self.a, self.ctx)
+                          if x.codigo == 'B3'], [])
 
     def test_c1_usa_o_teto_da_uf_e_do_cargo(self):
         self.a.contratado = 10000000

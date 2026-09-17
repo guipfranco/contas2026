@@ -132,17 +132,25 @@ def escrever_indice(aggs, dics, destino):
     return grava(os.path.join(destino, 'indice.json'), {'c': linhas})
 
 
+# C2 (nada declarado) e fato de ficha, nao item de fila: sao milhares de
+# candidaturas sem movimento, e listar todas empurra para baixo o que importa.
+FORA_DA_LISTA_NACIONAL = ('C2',)
+
+
 def escrever_alarmes(alarmes, aggs_por_sq, dics, destino, limite=LIMITE_ALARMES):
     dpart = dics['partido']
     linhas = []
-    for x in sorted(alarmes, key=lambda x: (-x.grav, -x.valor))[:limite]:
+    elegiveis = [x for x in alarmes if x.codigo not in FORA_DA_LISTA_NACIONAL]
+    cortados = len(elegiveis) - min(len(elegiveis), limite)
+    for x in sorted(elegiveis, key=lambda x: (-x.grav, -x.valor))[:limite]:
         a = aggs_por_sq.get(x.sq)
         if not a:
             continue
         linhas.append([x.codigo, x.grav, a.uf, a.sq, a.nome,
                        dpart.id(a.partido), a.cargo, x.valor, x.texto])
     return grava(os.path.join(destino, 'alarmes.json'),
-                 {'n': len(linhas), 'a': linhas})
+                 {'n': len(linhas), 'total': len(elegiveis), 'cortados': cortados,
+                  'a': linhas})
 
 
 def escrever_fornecedores(nac, destino, topo=400):
