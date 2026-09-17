@@ -524,11 +524,21 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIn('RR', meta['ufs'])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
-            self.assertTrue(all(len(l) == 15 for l in uf['c']))
+            self.assertTrue(all(len(l) == 16 for l in uf['c']))
+            # a origem da receita vem na linha, para o filtro por fonte de
+            # financiamento funcionar sem baixar a ficha de cada candidatura
+            self.assertIn('origem', meta['dic'])
+            com_origem = [l for l in uf['c'] if l[15]]
+            self.assertGreater(len(com_origem), 100)
+            n_orig = len(meta['dic']['origem'])
+            for l in com_origem:
+                for oid, v in l[15]:
+                    self.assertTrue(0 <= oid < n_orig)
+                    self.assertGreater(v, 0)
             br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
                                 encoding='utf-8'))
-            self.assertTrue(all(len(l) == 16 for l in br['c']))
-            self.assertTrue(all(l[15] == 'RR' for l in br['c']))
+            self.assertTrue(all(len(l) == 17 for l in br['c']))
+            self.assertTrue(all(l[16] == 'RR' for l in br['c']))
             self.assertEqual(sum(l[6] for l in br['c']), 6909092605)
             self.assertIn('RR', meta['nome_uf'])
             self.assertEqual(meta['nome_uf']['BR'] if 'BR' in meta['nome_uf']

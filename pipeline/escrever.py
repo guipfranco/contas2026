@@ -62,6 +62,7 @@ def grava(caminho, obj):
 def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
     """Uma linha por candidato da UF, para o ranking."""
     dtipo, dpart, dfed, dalarme = dics['tipo'], dics['partido'], dics['fed'], dics['alarme']
+    dorigem = dics['origem']
     linhas = []
     for a in sorted(aggs, key=lambda x: -x.contratado):
         al = alarmes_por_sq.get(a.sq, ())
@@ -69,7 +70,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             # candidato sem nenhum movimento: cabecalho enxuto, para a busca
             linhas.append([a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo,
                            dfed.id(a.fed),
-                           0, 0, 0, 0, 0, [], [], 0, 0])
+                           0, 0, 0, 0, 0, [], [], 0, 0, []])
             continue
         tipos = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
         linhas.append([
@@ -80,6 +81,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             [[dalarme.id(x.codigo), x.grav] for x in al],
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
+            [[dorigem.id(o), v] for o, v in a.por_origem.most_common() if v],
         ])
     return grava(os.path.join(destino, 'uf', f'{uf}.json'),
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
@@ -137,7 +139,7 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
     baixar os 28.
     """
     dpart, dfed, dalarme = dics['partido'], dics['fed'], dics['alarme']
-    dtipo = dics['tipo']
+    dtipo, dorigem = dics['tipo'], dics['origem']
     linhas = []
     for a in sorted(aggs, key=lambda x: -x.contratado):
         # A visao nacional e sobre dinheiro. Quem nao declarou nada continua
@@ -154,6 +156,7 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
             [[dalarme.id(x.codigo), x.grav] for x in al],
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
+            [[dorigem.id(o), v] for o, v in a.por_origem.most_common() if v],
             a.uf,
         ])
     sem_movimento = sum(1 for a in aggs if not a.movimento)

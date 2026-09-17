@@ -189,7 +189,8 @@ def main(argv=None):
     passo(t0, f'{len(refs)} grupos de comparacao (UF x cargo)')
 
     print('5. escrever')
-    dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+    dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme',
+                                 'origem')}
     for cod in sorted(CATALOGO):
         dics['alarme'].id(cod)
     os.makedirs(a.site, exist_ok=True)

@@ -35,7 +35,7 @@ def validar(pasta):
 
     meta = _le(os.path.join(pasta, 'meta.json'))
     dic = meta.get('dic', {})
-    for chave in ('tipo', 'partido', 'fed', 'alarme'):
+    for chave in ('tipo', 'partido', 'fed', 'alarme', 'origem'):
         if chave not in dic:
             erros.append(f'meta.dic sem "{chave}"')
     if not meta.get('ufs'):
@@ -46,8 +46,9 @@ def validar(pasta):
     if c.get('contratado', 0) < 0:
         erros.append('total contratado negativo')
 
-    n_tipo, n_part, n_fed, n_al = (len(dic.get(k, [])) for k in
-                                   ('tipo', 'partido', 'fed', 'alarme'))
+    n_tipo, n_part, n_fed, n_al, n_orig = (len(dic.get(k, [])) for k in
+                                           ('tipo', 'partido', 'fed', 'alarme',
+                                            'origem'))
     total_linhas = 0
     for uf in sorted(meta.get('ufs', {})):
         caminho = os.path.join(pasta, 'uf', f'{uf}.json')
@@ -64,8 +65,8 @@ def validar(pasta):
                          f'{meta["ufs"][uf]["n"]}')
         soma = 0
         for l in linhas:
-            if len(l) != 15:
-                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 15')
+            if len(l) != 16:
+                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 16')
                 break
             if not (0 <= l[3] < n_part):
                 erros.append(f'uf/{uf}.json: id de partido {l[3]} fora do dicionario')
@@ -80,6 +81,11 @@ def validar(pasta):
             for aid, grav in l[12]:
                 if not (0 <= aid < n_al) or grav not in (1, 2, 3):
                     erros.append(f'uf/{uf}.json: alarme {aid}/{grav} invalido')
+                    break
+            for oid, v in l[15]:
+                if not (0 <= oid < n_orig):
+                    erros.append(f'uf/{uf}.json: id de origem {oid} fora do '
+                                 f'dicionario')
                     break
             soma += l[6]
         if soma != meta['ufs'][uf]['contratado']:
@@ -101,12 +107,12 @@ def validar(pasta):
         br = _le(caminho).get('c', [])
         ufs_conhecidas = set(meta.get('ufs', {}))
         for l in br[:500]:
-            if len(l) != 16:
+            if len(l) != 17:
                 erros.append(f'uf/BRASIL.json: linha com {len(l)} campos, '
-                             f'esperado 16')
+                             f'esperado 17')
                 break
-            if l[15] not in ufs_conhecidas:
-                erros.append(f'uf/BRASIL.json: UF {l[15]!r} fora de meta.ufs')
+            if l[16] not in ufs_conhecidas:
+                erros.append(f'uf/BRASIL.json: UF {l[16]!r} fora de meta.ufs')
                 break
         com_movimento = sum(v['com_gasto'] for v in meta.get('ufs', {}).values())
         if len(br) < com_movimento:
