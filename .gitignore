@@ -1,0 +1,8 @@
+tmp/
+site/dados/
+estado/
+*.zip
+*.parcial
+__pycache__/
+*.pyc
+.DS_Store

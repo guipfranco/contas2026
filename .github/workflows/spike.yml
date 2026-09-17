@@ -1,0 +1,20 @@
+name: spike do TSE
+
+# M0: descobre se o runner do GitHub consegue baixar do CDN do TSE.
+# Da maquina local, todo cliente automatico leva 403 (Akamai). Se aqui passar,
+# o pipeline diario baixa direto; se nao, entra o plano B (espelho por Release).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sondar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: sondar o CDN
+        run: python -m pipeline.baixar --spike
