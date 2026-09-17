@@ -1142,7 +1142,7 @@ function viewCand(){
       f.doadores.map(function(x){
         return '<div class="forn"><div class="n1"><span class="nm">' + esc(x[1] || 'sem nome') + '</span>' +
           '<b class="num" title="' + esc(moedaCheia(x[2])) + '">' + moeda(x[2]) + '</b></div>' +
-          '<div class="n2"><span>' + esc(x[0]) + '</span><span>' + inteiro(x[3]) + ' doação' + (x[3] === 1 ? '' : 'ões') + '</span>' +
+          '<div class="n2"><span>' + esc(x[0]) + '</span><span>' + inteiro(x[3]) + (x[3] === 1 ? ' doação' : ' doações') + '</span>' +
           (x[4] ? '<span>' + esc(x[4]) + '</span>' : '') + '</div></div>';
       }).join('') + '</div>';
   }
