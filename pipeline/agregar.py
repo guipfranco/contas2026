@@ -84,6 +84,11 @@ class Nacional:
         self.data_max = ''
         self.n_despesas = self.n_receitas = self.n_pagas = 0
         self.total_contratado = self.total_pago = self.total_receita = 0
+        # Ha declaracao com data no futuro: em RR, 5 despesas, uma delas em
+        # 10/10, depois do pleito. E erro de digitacao de quem declarou. O
+        # painel conta quantas sao e nao deixa isso virar "dados ate 10/10".
+        self.datas_no_futuro = 0
+        self.hoje = ''
 
     def fecha(self):
         for doc, cands in self._forn_cands.items():
@@ -147,7 +152,9 @@ def agregar_despesas(fluxo, aggs, nac):
                 a.primeira = d.dt
             if d.dt > a.ultima:
                 a.ultima = d.dt
-            if d.dt > nac.data_max:
+            if nac.hoje and d.dt > nac.hoje:
+                nac.datas_no_futuro += 1
+            elif d.dt > nac.data_max:
                 nac.data_max = d.dt
         nome_forn = d.forn_rfb or d.forn
         if d.doc:

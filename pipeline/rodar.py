@@ -110,9 +110,11 @@ def main(argv=None):
 
     print('2. somar')
     aggs, nac = {}, A.Nacional()
+    nac.hoje = hoje
     A.agregar_despesas(C.despesas(zc, uma_uf), aggs, nac)
     passo(t0, f'{nac.n_despesas:,} despesas, {len(aggs):,} candidatos, '
-              f'{len(nac.fornecedores):,} fornecedores')
+              f'{len(nac.fornecedores):,} fornecedores, '
+              f'{nac.datas_no_futuro} com data no futuro')
 
     prestador_para_sq = {}
     for sq, ag in aggs.items():
@@ -223,6 +225,7 @@ def main(argv=None):
         'sinais': len(todos), 'candidatos_com_sinal': len(por_sq),
         'fichas': n_ficha,
         'cnpj_com_receita': len(dados_receita),
+        'despesas_com_data_no_futuro': nac.datas_no_futuro,
     }
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
