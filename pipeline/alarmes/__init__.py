@@ -25,7 +25,9 @@ import collections
 Alarme = collections.namedtuple(
     'Alarme', 'codigo grav sq doc valor texto', defaults=('', 0, ''))
 
-# codigo -> (familia, nome curto, o que significa, o que NAO significa)
+# codigo -> (familia, nome, o que significa, o que NAO significa)
+# O codigo e endereco interno: ele nao aparece na tela. Quem le ve o
+# rotulo curto de CURTO e o nome por extenso.
 CATALOGO = {
     'A1': ('fornecedor', 'CNPJ recém-aberto',
            'A empresa foi aberta pouco antes de começar a receber da campanha.',
@@ -88,6 +90,26 @@ CATALOGO = {
            'parágrafo 8º (Emenda 117 de 2022).',
            'A regra é do partido, nunca de um candidato, e é aferida no fim da '
            'campanha, não no meio.'),
+}
+
+# O que vai no selo da lista, onde cabem poucos caracteres.
+CURTO = {
+    'A1': 'CNPJ novo',
+    'A2': 'CNPJ inativo',
+    'A3': 'fornecedor candidato',
+    'A4': 'atividade destoa',
+    'A5': 'gasto concentrado',
+    'A6': 'pessoa física',
+    'A7': 'documento não fecha',
+    'B1': 'doador fornecedor',
+    'B2': 'doações iguais',
+    'B3': 'recursos próprios',
+    'B4': 'cota de gênero',
+    'C1': 'perto do teto',
+    'C2': 'nada declarado',
+    'D1': 'fornecedor novo',
+    'D2': 'salto no gasto',
+    'D3': 'nota repetida',
 }
 
 GRAVIDADE = {1: 'vale olhar', 2: 'vale conferir', 3: 'confira primeiro'}
@@ -160,3 +182,54 @@ def confere_redacao(alarmes):
         if not any(c.isdigit() for c in x.texto):
             ruins.append((x.codigo, 'sem número', x.texto))
     return ruins
+
+
+# ------------------------------------------------- indice de conferencia
+
+# Peso por intensidade. Nao e medida de ilegalidade: e quanto aquele sinal
+# pesa na fila de quem vai conferir.
+PESO = {1: 4, 2: 12, 3: 30}
+
+# Quantos sinais entram na conta. Sem esse corte, uma campanha com 500
+# fornecedores acumularia pontos por volume, e volume nao e sinal.
+QUANTOS_SOMAM = 6
+
+# Sinais que nao entram no indice, e por que.
+FORA_DO_INDICE = {
+    'C2': 'ausencia de declaracao nao e algo a conferir na conta, e a falta dela',
+    'D1': 'fornecedor aparecer hoje e o normal de uma prestacao entregue aos poucos',
+}
+
+FAIXAS = ((50, 'confira primeiro'), (20, 'vale conferir'),
+          (1, 'pouco a conferir'), (0, 'nada apontado'))
+
+
+def indice(contratado, alarmes):
+    """0 a 100: quanto ha para conferir nesta prestacao de contas.
+
+    **O que ele e:** uma soma dos sinais que o painel levantou, pesada por
+    duas coisas: a intensidade de cada um e quanto do dinheiro daquela
+    campanha ele alcanca. Um sinal sobre R$ 5 mil numa campanha de R$ 10
+    milhoes pesa pouco; o mesmo sinal sobre metade do gasto pesa muito.
+
+    **O que ele nao e:** medida de irregularidade. Nenhum dos sinais afirma
+    ilicito, varios apontam padrao inteiramente legal, e o indice nao sabe
+    nada que os sinais ja nao digam. Ele serve para ordenar uma fila de
+    conferencia, e o numero so quer dizer alguma coisa ao lado dos sinais que
+    o compoem.
+    """
+    pesos = []
+    for x in alarmes:
+        if x.codigo in FORA_DO_INDICE:
+            continue
+        alcance = min(1.0, x.valor / contratado) if contratado else 1.0
+        pesos.append(PESO.get(x.grav, 1) * (0.3 + 0.7 * alcance))
+    pesos.sort(reverse=True)
+    return min(100, round(sum(pesos[:QUANTOS_SOMAM])))
+
+
+def faixa(n):
+    for corte, nome in FAIXAS:
+        if n >= corte:
+            return nome
+    return FAIXAS[-1][1]

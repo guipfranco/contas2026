@@ -19,7 +19,8 @@ completo num arquivo facil de varrer e outra coisa.
 import json
 import os
 
-from .agregar import CARGOS
+from .agregar import CARGOS, NOME_UF
+from .alarmes import faixa, indice
 from .carregar import mascara
 
 TOPO_FORN_RANKING = 3      # no ranking, so o suficiente para dar cara
@@ -68,7 +69,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             # candidato sem nenhum movimento: cabecalho enxuto, para a busca
             linhas.append([a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo,
                            dfed.id(a.fed),
-                           0, 0, 0, 0, 0, [], [], 0])
+                           0, 0, 0, 0, 0, [], [], 0, 0])
             continue
         tipos = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
         linhas.append([
@@ -78,6 +79,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             len(a.por_forn), tipos,
             [[dalarme.id(x.codigo), x.grav] for x in al],
             1 if (a.genero or '').upper().startswith('F') else 0,
+            indice(a.contratado, al),
         ])
     return grava(os.path.join(destino, 'uf', f'{uf}.json'),
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
@@ -114,6 +116,8 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None)
         'doadores': [[mascara(d), (e[2] or 'Não informado')[:48], e[0], e[1], e[3]]
                      for d, e in doadores],
         'serie': sorted(a.por_dia.items()),
+        'indice': indice(a.contratado, alarmes),
+        'faixa': faixa(indice(a.contratado, alarmes)),
         'alarmes': [{'cod': x.codigo, 'grav': x.grav, 'texto': x.texto}
                     for x in sorted(alarmes, key=lambda x: (-x.grav, -x.valor))],
     }
@@ -122,6 +126,40 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None)
     if extra:
         ficha.update(extra)
     return grava(os.path.join(destino, 'cand', f'{a.sq}.json'), ficha)
+
+
+def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
+    """O pais inteiro num arquivo so.
+
+    Ele existe porque a pergunta "quem gastou mais no Brasil" nao se responde
+    somando 28 arquivos no celular. Sao as mesmas linhas das UFs, com a UF
+    acrescentada no fim de cada uma, para o front saber de onde veio sem
+    baixar os 28.
+    """
+    dpart, dfed, dalarme = dics['partido'], dics['fed'], dics['alarme']
+    dtipo = dics['tipo']
+    linhas = []
+    for a in sorted(aggs, key=lambda x: -x.contratado):
+        # A visao nacional e sobre dinheiro. Quem nao declarou nada continua
+        # achavel pela busca e pela propria UF, mas nao entra num ranking de
+        # 20 mil linhas onde so ocuparia espaco.
+        if not a.movimento:
+            continue
+        al = alarmes_por_sq.get(a.sq, ())
+        linhas.append([
+            a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo, dfed.id(a.fed),
+            a.contratado, a.pago, a.receita, a.pago_publico,
+            len(a.por_forn),
+            [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v],
+            [[dalarme.id(x.codigo), x.grav] for x in al],
+            1 if (a.genero or '').upper().startswith('F') else 0,
+            indice(a.contratado, al),
+            a.uf,
+        ])
+    sem_movimento = sum(1 for a in aggs if not a.movimento)
+    return grava(os.path.join(destino, 'uf', 'BRASIL.json'),
+                 {'uf': 'BRASIL', 'n': len(linhas),
+                  'sem_movimento': sem_movimento, 'c': linhas})
 
 
 def escrever_indice(aggs, dics, destino):
@@ -177,11 +215,13 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
     sinal pelo indice: bastava acrescentar um codigo no meio para a tela passar
     a mostrar a ressalva errada ao lado do sinal errado.
     """
+    from .alarmes import CURTO, FAIXAS, FORA_DO_INDICE, PESO, QUANTOS_SOMAM
     sinais = {}
     for cod, (familia, nome, significa, nao_significa) in (catalogo or {}).items():
         sinais[cod] = {
-            'familia': familia, 'nome': nome,
+            'familia': familia, 'nome': nome, 'curto': CURTO.get(cod, nome),
             'significa': significa, 'nao_significa': nao_significa,
+            'no_indice': cod not in FORA_DO_INDICE,
         }
     return grava(os.path.join(destino, 'meta.json'), {
         'gerado_em': gerado,
@@ -189,9 +229,26 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
         'contagens': contagens,
         'ufs': ufs,
         'cargos': {k: CARGOS[k] for k in cargos},
+        'nome_uf': {u: NOME_UF.get(u, u) for u in list(ufs) + ['BRASIL']},
         'dic': {k: d.lista for k, d in dics.items()},
         'sinais': sinais,
         'gravidades': gravidades or {},
+        'indice': {
+            'nome': 'índice de conferência',
+            'o_que_e': 'Soma dos sinais levantados, pesada pela intensidade de '
+                       'cada um e por quanto do dinheiro daquela campanha ele '
+                       'alcança. Vai de 0 a 100 e serve para ordenar uma fila '
+                       'de conferência.',
+            'o_que_nao_e': 'Não é medida de irregularidade. Nenhum sinal afirma '
+                           'ilícito, vários apontam padrão inteiramente legal, e '
+                           'o índice não sabe nada que os sinais já não digam. '
+                           'O número só quer dizer alguma coisa ao lado dos '
+                           'sinais que o compõem.',
+            'peso': {str(k): v for k, v in PESO.items()},
+            'quantos_somam': QUANTOS_SOMAM,
+            'fora': FORA_DO_INDICE,
+            'faixas': [[c, n] for c, n in FAIXAS],
+        },
         # mantido enquanto o front antigo existir; o que vale e `sinais`
         'avisos': [f'{c}: {v["significa"]} O que NAO significa: '
                    f'{v["nao_significa"]}' for c, v in sorted(sinais.items())],

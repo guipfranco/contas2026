@@ -220,6 +220,8 @@ def main(argv=None):
         n_ficha += 1
     passo(t0, f'{n_ficha:,} fichas, {bytes_ficha / 1e6:.1f} MB')
 
+    b_br = E.escrever_brasil(list(aggs.values()), por_sq, dics, a.site)
+    passo(t0, f'Brasil inteiro: {b_br / 1e6:.2f} MB')
     b_ind = E.escrever_indice(list(aggs.values()), dics, a.site)
     b_al = E.escrever_alarmes(todos, aggs, dics, a.site)
     b_forn = E.escrever_fornecedores(nac, a.site)

@@ -381,6 +381,55 @@ class TestAlarmes(unittest.TestCase):
                           if x.codigo == 'D2'], [])
 
 
+class TestIndiceDeConferencia(unittest.TestCase):
+    """O indice ordena a fila de quem vai conferir. Nao mede ilegalidade."""
+
+    def _al(self, grav, valor, cod='A1'):
+        from pipeline.alarmes import Alarme
+        return Alarme(cod, grav, '1', 'x', valor, 'texto com 1 numero')
+
+    def test_sem_sinal_e_zero(self):
+        from pipeline.alarmes import faixa, indice
+        self.assertEqual(indice(100000000, []), 0)
+        self.assertEqual(faixa(0), 'nada apontado')
+
+    def test_pesa_por_quanto_do_dinheiro_o_sinal_alcanca(self):
+        """O mesmo sinal vale mais quando toca a maior parte da campanha."""
+        from pipeline.alarmes import indice
+        grande = indice(100000000, [self._al(3, 1000)])
+        metade = indice(100000000, [self._al(3, 50000000)])
+        tudo = indice(100000000, [self._al(3, 100000000)])
+        self.assertLess(grande, metade)
+        self.assertLess(metade, tudo)
+
+    def test_volume_de_sinal_leve_nao_domina(self):
+        """500 fornecedores nao podem virar pontuacao por volume."""
+        from pipeline.alarmes import indice
+        muitos = indice(100000000, [self._al(1, 100000)] * 50)
+        um_grave = indice(100000000, [self._al(3, 100000000)])
+        self.assertLess(muitos, um_grave)
+
+    def test_nao_passa_de_cem(self):
+        from pipeline.alarmes import indice
+        self.assertEqual(indice(1000, [self._al(3, 1000)] * 30), 100)
+
+    def test_nada_declarado_fica_fora_do_indice(self):
+        """C2 e ausencia de conta, nao algo a conferir dentro dela."""
+        from pipeline.alarmes import FORA_DO_INDICE, indice
+        self.assertIn('C2', FORA_DO_INDICE)
+        self.assertEqual(indice(0, [self._al(1, 0, 'C2')]), 0)
+
+    def test_todo_codigo_tem_rotulo_curto_sem_codigo_dentro(self):
+        """O codigo e endereco interno: nunca aparece na tela."""
+        import re
+        from pipeline.alarmes import CATALOGO, CURTO
+        for cod in CATALOGO:
+            self.assertIn(cod, CURTO, f'{cod} sem rotulo curto')
+            self.assertLessEqual(len(CURTO[cod]), 22, f'{cod}: rotulo longo')
+            self.assertIsNone(re.search(r'[A-D]\d', CURTO[cod]),
+                              f'{cod}: o rotulo contem o codigo')
+
+
 class TestRedacao(unittest.TestCase):
     """As travas de linguagem. Um alarme e um numero, nunca uma acusacao."""
 
@@ -453,6 +502,15 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIn('RR', meta['ufs'])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
+            self.assertTrue(all(len(l) == 15 for l in uf['c']))
+            br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
+                                encoding='utf-8'))
+            self.assertTrue(all(len(l) == 16 for l in br['c']))
+            self.assertTrue(all(l[15] == 'RR' for l in br['c']))
+            self.assertEqual(sum(l[6] for l in br['c']), 6909092605)
+            self.assertIn('RR', meta['nome_uf'])
+            self.assertEqual(meta['nome_uf']['BR'] if 'BR' in meta['nome_uf']
+                             else 'Presidência', 'Presidência')
             # ranking em ordem decrescente de gasto
             gastos = [l[6] for l in uf['c']]
             self.assertEqual(gastos, sorted(gastos, reverse=True))

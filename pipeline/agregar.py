@@ -20,6 +20,22 @@ CARGOS = {
 }
 CARGOS_PAINEL = ('1', '3', '5', '6', '7', '8')
 
+# O TSE chama de SG_UF a unidade eleitoral, e para os cargos nacionais ela e
+# 'BR'. Na tela isso precisa ter nome, senao 'BR' parece uma sigla de estado
+# que ninguem reconhece.
+NOME_UF = {
+    'BR': 'Presidência', 'BRASIL': 'Brasil inteiro',
+    'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas',
+    'BA': 'Bahia', 'CE': 'Ceará', 'DF': 'Distrito Federal',
+    'ES': 'Espírito Santo', 'GO': 'Goiás', 'MA': 'Maranhão',
+    'MT': 'Mato Grosso', 'MS': 'Mato Grosso do Sul', 'MG': 'Minas Gerais',
+    'PA': 'Pará', 'PB': 'Paraíba', 'PR': 'Paraná', 'PE': 'Pernambuco',
+    'PI': 'Piauí', 'RJ': 'Rio de Janeiro', 'RN': 'Rio Grande do Norte',
+    'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima',
+    'SC': 'Santa Catarina', 'SP': 'São Paulo', 'SE': 'Sergipe',
+    'TO': 'Tocantins',
+}
+
 # Receita que e dinheiro publico. Sai do bolso de todo mundo, entao e o corte
 # que mais interessa a quem le.
 FONTES_PUBLICAS = ('FUNDO ESPECIAL', 'FUNDO PARTIDARIO', 'FUNDO PARTIDÁRIO')

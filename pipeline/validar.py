@@ -10,6 +10,7 @@ import os
 import sys
 
 LIMITE_UF_MB = 3.0
+LIMITE_BRASIL_MB = 4.0
 LIMITE_INDICE_MB = 3.0
 
 
@@ -63,8 +64,8 @@ def validar(pasta):
                          f'{meta["ufs"][uf]["n"]}')
         soma = 0
         for l in linhas:
-            if len(l) != 14:
-                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 14')
+            if len(l) != 15:
+                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 15')
                 break
             if not (0 <= l[3] < n_part):
                 erros.append(f'uf/{uf}.json: id de partido {l[3]} fora do dicionario')
@@ -90,6 +91,27 @@ def validar(pasta):
     mb = os.path.getsize(os.path.join(pasta, 'indice.json')) / 1e6
     if mb > LIMITE_INDICE_MB:
         erros.append(f'indice.json tem {mb:.1f} MB, acima de {LIMITE_INDICE_MB}')
+
+    if not falta(os.path.join('uf', 'BRASIL.json')):
+        caminho = os.path.join(pasta, 'uf', 'BRASIL.json')
+        mb = os.path.getsize(caminho) / 1e6
+        if mb > LIMITE_BRASIL_MB:
+            erros.append(f'uf/BRASIL.json tem {mb:.1f} MB, acima de '
+                         f'{LIMITE_BRASIL_MB}')
+        br = _le(caminho).get('c', [])
+        ufs_conhecidas = set(meta.get('ufs', {}))
+        for l in br[:500]:
+            if len(l) != 16:
+                erros.append(f'uf/BRASIL.json: linha com {len(l)} campos, '
+                             f'esperado 16')
+                break
+            if l[15] not in ufs_conhecidas:
+                erros.append(f'uf/BRASIL.json: UF {l[15]!r} fora de meta.ufs')
+                break
+        com_movimento = sum(v['com_gasto'] for v in meta.get('ufs', {}).values())
+        if len(br) < com_movimento:
+            erros.append(f'uf/BRASIL.json tem {len(br)} linhas, menos que as '
+                         f'{com_movimento} com gasto')
 
     al = _le(os.path.join(pasta, 'alarmes.json')).get('a', [])
     for linha in al[:2000]:
