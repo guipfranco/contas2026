@@ -1,0 +1,25 @@
+name: inspecionar as fontes
+
+# Abre os zips do TSE e descreve o que tem dentro. Roda a mao, quando o layout
+# precisa ser confirmado ou quando o validador reclama.
+
+on:
+  workflow_dispatch:
+    inputs:
+      quais:
+        description: fontes a inspecionar
+        default: candidatos,consulta_cand
+      linhas:
+        description: linhas de amostra por arquivo
+        default: '3'
+
+jobs:
+  inspecionar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m ferramentas.inspecionar --quais "${{ inputs.quais }}" --linhas "${{ inputs.linhas }}"
