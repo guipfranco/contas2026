@@ -27,14 +27,19 @@
   }
 }
 *{box-sizing:border-box}
-html,body{max-width:100%;overflow-x:hidden}
+/* O corte horizontal fica só no html, que propaga para a viewport. No body ele criava um
+   container de rolagem próprio, e ali todo position:sticky da página parava de grudar sem
+   avisar: o cabeçalho, a coluna do lado no laptop e o rótulo da lista rolavam junto. */
+html{max-width:100%;overflow-x:hidden}
+body{max-width:100%}
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:15px;line-height:1.35;padding-bottom:84px;
+  font-size:15px;line-height:1.35;
+  /* o rodape e fixo e muda de altura com a largura: a altura dele e medida, nunca chutada */
+  padding-bottom:calc(var(--fh,84px) + 8px);
 }
-@media(min-width:720px){body{padding-bottom:60px}}
 h1,h2,h3{margin:0;font-size:1em;font-weight:700}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 a{color:var(--ac)}
@@ -48,7 +53,6 @@ input{font:inherit}
 header{position:sticky;top:0;z-index:30;background:var(--sf);border-bottom:1px solid var(--b)}
 .hwrap{max-width:1180px;margin:0 auto;padding:5px 10px 6px}
 .linha1{display:flex;gap:6px;align-items:center}
-#chipuf .chip{padding:0 12px;font-weight:700}
 .busca{position:relative;flex:1;min-width:0}
 .busca input{
   width:100%;height:44px;padding:0 42px 0 32px;border:1px solid var(--b);border-radius:var(--raio);
@@ -75,6 +79,12 @@ header{position:sticky;top:0;z-index:30;background:var(--sf);border-bottom:1px s
 .chip[data-on="1"] .k,.chip[data-on="1"] .seta{color:var(--ac)}
 .chip.limpar{border-style:dashed;color:var(--mut)}
 .chip:active{background:var(--sf2)}
+/* no laptop a barra de filtros ocupa a largura toda, em vez de amontoar tudo a esquerda */
+@media(min-width:900px){
+  .chips{gap:8px}
+  .chips .chip{flex:1 1 150px;justify-content:space-between}
+  .chips .chip.limpar{flex:0 0 auto}
+}
 
 main{max-width:1180px;margin:0 auto;padding:10px}
 .wrap{display:grid;gap:10px;align-items:start;grid-template-columns:minmax(0,1fr)}
@@ -82,9 +92,14 @@ main{max-width:1180px;margin:0 auto;padding:10px}
 @media(min-width:960px){
   .wrap{grid-template-columns:minmax(0,1fr) 336px;grid-template-areas:"lista lado"}
   .lista{grid-area:lista}
-  .lado{grid-area:lado;position:sticky;top:calc(var(--hh,132px) + 10px)}
+  /* a coluna do lado gruda abaixo do cabeçalho; mais alta que a tela, ela rola por dentro,
+     senão o pé dela (os últimos tipos de gasto) ficaria fora de alcance enquanto estivesse presa */
+  .lado{grid-area:lado;position:sticky;top:calc(var(--hh,132px) + 10px);
+        max-height:calc(100vh - var(--hh,132px) - var(--fh,60px) - 24px);overflow:auto}
 }
-.cartao{background:var(--sf);border:1px solid var(--b);border-radius:var(--raio);overflow:hidden;min-width:0}
+/* overflow:clip corta igual ao hidden e nao cria container de rolagem: e o que deixa
+   a .status grudar no alto da lista. Quem nao entende 'clip' fica com 'hidden'. */
+.cartao{background:var(--sf);border:1px solid var(--b);border-radius:var(--raio);overflow:hidden;overflow:clip;min-width:0}
 .cab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--b)}
 .cab h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
 .cab .acao{font-size:12px;color:var(--ac);font-weight:600;min-height:30px;padding:0 4px}
@@ -130,16 +145,73 @@ ul.l{list-style:none;margin:0;padding:0}
 .selos{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:0 12px 9px;margin-top:-3px}
 .row[data-selos] .rowmain{padding-bottom:3px}
 .selo{
-  position:relative;min-width:30px;height:24px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:700;
+  position:relative;display:inline-flex;align-items:center;min-width:30px;max-width:100%;height:24px;
+  padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;
   background:var(--slsf);color:var(--sl);border:1px solid var(--slb);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+/* no botao quem corta o texto e o span de dentro: recorte na caixa comeria o ::after,
+   que e a area de toque de 44px, e o selo e a porta da ressalva no celular */
+button.selo{overflow:visible}
+button.selo>span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* area de toque de 44px sem engordar o desenho */
 .selos .selo::after{content:"";position:absolute;top:-10px;bottom:-10px;left:-3px;right:-3px}
 .selo[data-g="2"]{background:var(--amsf);color:var(--am);border-color:var(--amb)}
 .selo[data-g="3"]{background:var(--am);color:var(--sf);border-color:var(--am)}
+/* rotulo por extenso cabe no laptop; no celular fica o primeiro e um "+N" que abre a lista toda */
+.selos .selomais{display:none;flex:none;background:var(--sf);color:var(--mut);border-color:var(--b)}
+@media(max-width:560px){
+  .selos .extra{display:none}
+  .selos .selomais.mob{display:inline-flex}
+}
+@media(min-width:561px){
+  .selos .selomais.desk{display:inline-flex}
+}
 .prop{position:absolute;left:0;bottom:0;height:3px;background:var(--ac);opacity:.35;pointer-events:none;border-radius:0 2px 2px 0}
 
-.status{margin:0;padding:0 12px;min-height:44px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* Indice de conferencia: coluna propria na linha, fora do link, com a ressalva a um toque.
+   Tres decisoes desta rodada: (1) o botao tem borda, porque ele e a unica porta para a
+   ressalva e precisa parecer controle; (2) a escala vai escrita ('/100'), porque numero
+   nu ao lado de um nome le como nota dada a pessoa; (3) nao ha cor por faixa nem regua na
+   lista, porque duas cores sem legenda viram semaforo e a regua por faixa exagerava valor
+   baixo. A palavra da faixa esta no rotulo de acessibilidade, na folha e na ficha. */
+.row.temix .rowmain{padding-right:48px}
+.row.temix .selos{padding-right:48px}
+.ixbt{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:40px;min-height:44px;padding:2px 0;border:1px solid var(--b);border-radius:8px;
+  background:var(--sf);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+}
+.ixbt:active{background:var(--sf2)}
+@media(hover:hover){.ixbt:hover{background:var(--sf2)}}
+.ixbt .n{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.05;color:var(--ink)}
+.ixbt .de{font-size:9px;font-weight:600;line-height:1;color:var(--mut)}
+.ixbt[data-f="0"] .n{color:var(--mut)}
+.ixficha{
+  padding:12px;border-top:1px solid var(--b);display:grid;
+  grid-template-columns:auto minmax(0,1fr);gap:2px 14px;align-items:center;
+}
+.ixficha .ixn{font-size:30px;font-weight:800;line-height:1;color:var(--sl);font-variant-numeric:tabular-nums}
+.ixficha[data-f="0"] .ixn{color:var(--mut)}
+.ixficha[data-f="2"] .ixn,.ixficha[data-f="3"] .ixn{color:var(--am)}
+.ixficha .ixn .de{font-size:14px;font-weight:600;color:var(--mut)}
+.ixficha .ixt{font-size:13.5px}
+.ixficha .ixs{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.ixficha .nao{grid-column:1/-1;margin-top:0}
+
+/* ordenacao sempre a vista, em vez de escondida num menu */
+.ordwrap{display:flex;align-items:center;gap:8px;padding:7px 12px 9px;border-bottom:1px solid var(--b);flex-wrap:wrap}
+.ordrot{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);flex:none}
+.ord{display:flex;gap:3px;background:var(--sf2);padding:3px;border-radius:9px;flex:1 1 260px;flex-wrap:wrap}
+.ord button{flex:1 1 auto;min-height:38px;padding:0 9px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--mut);white-space:nowrap}
+.ord button[aria-pressed="true"]{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ordnota{flex:1 1 100%;font-size:11.5px;color:var(--mut)}
+
+/* O botao da direita e, ao mesmo tempo, o rotulo da coluna de indice. Solto, ele saia da
+   tela na primeira rolada e sobravam numeros de 0 a 100 sem uma palavra que os explicasse. */
+.status{margin:0;padding:0 12px;min-height:44px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:8px;
+  position:sticky;top:var(--hh,132px);z-index:5;background:var(--sf)}
 .status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status .ordbt{min-height:44px;padding:0 2px;color:var(--ac);font-weight:600;font-size:12px;text-align:right;white-space:nowrap}
 .vazio{padding:26px 16px;text-align:center;color:var(--mut);font-size:13.5px}
@@ -195,7 +267,9 @@ ul.l{list-style:none;margin:0;padding:0}
 .sinal:last-child{border-bottom:0}
 .sinal .top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
 .sinal .tx{font-size:13px;color:var(--ink)}
-.sinal .nao{margin-top:10px;font-size:12.5px;font-weight:600;color:var(--ac);min-height:44px;text-align:left}
+.nao{display:block;font-size:12.5px;font-weight:600;color:var(--ac);min-height:44px;text-align:left}
+.sinal .nao{margin-top:10px}
+.nota .nao{margin-top:2px}
 .grav{font-size:11px;color:var(--mut)}
 .pontos i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sf2);margin-right:2px;border:1px solid var(--slb)}
 .pontos i.on{background:var(--am);border-color:var(--am)}
@@ -218,7 +292,9 @@ details summary::-webkit-details-marker{display:none}
 .nota{padding:10px 12px;font-size:12.5px;color:var(--mut);background:var(--sf)}
 .nota b{color:var(--ink)}
 
-/* folha (sheet) */
+/* Folha (sheet). Decisao de desenho: no celular a folha sobe da base, que e o padrao do
+   aparelho e deixa o polegar perto do conteudo; a partir de 720px ela abre centrada no alto.
+   A regra de abrir ancorado vale para os menus de filtro, nao para a folha de leitura. */
 .fundo{position:fixed;inset:0;background:rgba(6,10,16,.5);z-index:40}
 .folha{
   position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--sf);
@@ -242,6 +318,18 @@ details summary::-webkit-details-marker{display:none}
 .fcorpo .selo{margin:0 14px}
 .tecla{display:flex;justify-content:space-between;gap:10px;padding:6px 14px;font-size:13px}
 .tecla kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;background:var(--sf2);border:1px solid var(--b);border-radius:5px;padding:1px 5px}
+
+/* dropdown ancorado ao botao que o abriu (nao e folha que sobe da base) */
+.menu{
+  position:fixed;z-index:45;background:var(--sf);border:1px solid var(--b);border-radius:12px;
+  box-shadow:0 10px 30px rgba(6,10,16,.22);display:flex;flex-direction:column;overflow:hidden;
+}
+.menu .mcab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 14px;border-bottom:1px solid var(--b);flex:none}
+.menu .mcab h2{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.menu .mcab button{width:38px;height:38px;border-radius:8px;color:var(--mut);font-size:15px;flex:none}
+.menu .mcorpo{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 8px;flex:1 1 auto;min-height:0}
+.menu .rot{margin:0;padding:10px 14px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.menu .opt[aria-pressed="true"]{color:var(--ac);font-weight:700;background:var(--acsf)}
 
 footer{
   position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sf);border-top:1px solid var(--b);
@@ -269,7 +357,6 @@ footer{
 <header>
   <div class="hwrap">
     <div class="linha1">
-      <span id="chipuf"></span>
       <div class="busca">
         <svg class="lupa" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5 18 18"></path></svg>
         <input id="q" type="search" autocomplete="off" autocorrect="off" spellcheck="false"
@@ -372,16 +459,30 @@ var S = {
   view:'ranking', uf:'SP', cargo:'', partido:'', fed:'', ord:'contratado',
   sinal:'', tipo:'', q:'', cand:'', grav:'', fam:'', auf:'', fo:'valor', limite:60
 };
-var ORDS = {contratado:'gasto contratado', pago:'gasto pago', receita:'receita declarada',
-            sinais:'quantidade de sinais a conferir'};
-var COLS = {contratado:6, pago:7, receita:8, sinais:12};
+var ORDS = {contratado:'gasto contratado', indice:'índice de conferência', pago:'gasto pago',
+            receita:'receita declarada', sinais:'quantidade de sinais a conferir'};
+/* o que aparece sempre na barra segmentada; 'sinais' segue valendo no link antigo */
+var ORDSEG = [['contratado','Contratado'], ['indice','A conferir'], ['pago','Pago'], ['receita','Receita']];
+var COLS = {contratado:6, pago:7, receita:8, indice:14, sinais:12};
 var FAMS = {A:'fornecedor', B:'doador', C:'candidato', D:'ritmo'};
 /* a mesma ressalva em toda tela onde o sinal vira a metrica principal */
 var NOTA_SINAL = '<div class="nota">Cada sinal é um <b>padrão automático</b> que vale conferir no dado ' +
   'declarado, nunca uma acusação. Toque em <b>o que isso não significa</b> antes de tirar conclusão. ' +
   'Quem presta serviço a uma campanha não faz parte dela: o fornecedor citado no texto de um sinal é ' +
   '<b>terceiro</b>, e tem o mesmo direito de pedir correção.</div>';
+/* o indice ordena a fila de conferencia; a ressalva anda junto dele em toda tela */
+var NOTA_INDICE = '<div class="nota">O <b>índice de conferência</b> ordena uma fila do que vale conferir ' +
+  'primeiro, a partir dos sinais levantados. Ele <b>não mede irregularidade</b>: nenhum sinal afirma ilícito, ' +
+  'e vários apontam padrão inteiramente legal.' +
+  '<button class="nao" data-act="oindice">o que o índice não é ›</button></div>';
+/* a coluna do índice aparece em qualquer ordem, então a ressalva também: esta é a versão
+   de uma linha, para a tela em que o índice não é o critério de ordenação */
+var NOTA_INDICE_CURTA = '<div class="nota">O número à direita de cada linha é o <b>índice de ' +
+  'conferência</b>, de 0 a 100. Ele ordena o que vale conferir primeiro, a partir dos sinais ' +
+  'levantados, e <b>não mede irregularidade</b>.' +
+  '<button class="nao" data-act="oindice">o que o índice não é ›</button></div>';
 var UFNOME = {
+  BRASIL:'no Brasil inteiro', BR:'na disputa presidencial',
   AC:'no Acre', AL:'em Alagoas', AM:'no Amazonas', AP:'no Amapá', BA:'na Bahia',
   CE:'no Ceará', DF:'no Distrito Federal', ES:'no Espírito Santo', GO:'em Goiás',
   MA:'no Maranhão', MG:'em Minas Gerais', MS:'no Mato Grosso do Sul', MT:'no Mato Grosso',
@@ -391,6 +492,112 @@ var UFNOME = {
   TO:'no Tocantins'
 };
 function ondeUF(uf){ return UFNOME[uf] || ('em ' + uf); }
+
+/* ---------- unidades eleitorais: estados, Presidência e o país inteiro ---------- */
+function nomeUnidade(u){
+  if(!u) return '';
+  var n = META && META.nome_uf && META.nome_uf[u];
+  return n || u;
+}
+function temBrasil(){ return !!(META && META.nome_uf && META.nome_uf.BRASIL); }
+function unidadeValida(u){
+  if(!META) return true;
+  if(u === 'BRASIL') return temBrasil();
+  return !!(META.ufs && META.ufs[u]);
+}
+var somaBR = null;
+/* o arquivo do país não vem no meta: o total dele é a soma das unidades */
+function totalBrasil(){
+  if(somaBR) return somaBR;
+  var t = {n:0, com_gasto:0, contratado:0, pago:0, receita:0, alarmes:0};
+  for(var u in META.ufs){
+    var o = META.ufs[u];
+    t.n += o.n || 0; t.com_gasto += o.com_gasto || 0; t.contratado += o.contratado || 0;
+    t.pago += o.pago || 0; t.receita += o.receita || 0; t.alarmes += o.alarmes || 0;
+  }
+  somaBR = t;
+  return t;
+}
+function unidadeInfo(u){
+  if(u === 'BRASIL') return totalBrasil();
+  return (META.ufs && META.ufs[u]) || {};
+}
+function estadosOrdenados(){
+  var e = Object.keys(META.ufs || {}).filter(function(u){ return u !== 'BR'; });
+  e.sort(function(a,b){ return nomeUnidade(a).localeCompare(nomeUnidade(b), 'pt-BR'); });
+  return e;
+}
+/* Recuo de unidade inválida. BR (Presidência) é uma chave de META.ufs como outra qualquer,
+   e pegar a primeira chave do objeto abria a disputa presidencial para link velho ou hash
+   digitado errado. O recuo é um estado. */
+function ufPadrao(){
+  if(!META || !META.ufs) return 'SP';
+  if(META.ufs.SP) return 'SP';
+  return estadosOrdenados()[0] || Object.keys(META.ufs)[0] || 'SP';
+}
+/* na coluna estreita da busca o estado cabe pela sigla, e a Presidência não tem sigla de estado */
+function siglaUnidade(u){ return u === 'BR' ? 'Presid.' : String(u || ''); }
+function unidadesAgrupadas(){
+  var out = [], pais = [];
+  if(temBrasil()) pais.push('BRASIL');
+  if(META.ufs && META.ufs.BR) pais.push('BR');
+  if(pais.length){
+    out.push({sep:'País'});
+    pais.forEach(function(u){ out.push({v:u, r:nomeUnidade(u)}); });
+  }
+  var estados = estadosOrdenados();
+  if(estados.length){
+    if(pais.length) out.push({sep:'Estados'});
+    estados.forEach(function(u){ out.push({v:u, r:nomeUnidade(u)}); });
+  }
+  return out;
+}
+
+/* ---------- rótulos de sinal: o código é endereço, nunca rótulo de tela ---------- */
+function curtoDe(cod){
+  var s = META && META.sinais && META.sinais[cod];
+  if(s && (s.curto || s.nome)) return s.curto || s.nome;
+  var d = sinalDe(cod);
+  if(d && d.nome) return d.nome;
+  if(d && d.significa) return d.significa.length > 24 ? d.significa.slice(0,23) + '…' : d.significa;
+  return 'sinal a conferir';
+}
+function nomeDe(cod){
+  var s = META && META.sinais && META.sinais[cod];
+  if(s && (s.nome || s.curto)) return s.nome || s.curto;
+  var d = sinalDe(cod);
+  if(d && d.nome) return d.nome;
+  return curtoDe(cod);
+}
+
+/* ---------- índice de conferência ---------- */
+var FAIXAS_PADRAO = [[50,'confira primeiro'],[20,'vale conferir'],[1,'pouco a conferir'],[0,'nada apontado']];
+function faixasIndice(){
+  var fx = META && META.indice && META.indice.faixas;
+  return (fx && fx.length) ? fx : FAIXAS_PADRAO;
+}
+function faixaDe(v){
+  var fx = faixasIndice(), n = typeof v === 'number' ? v : 0;
+  for(var i=0;i<fx.length;i++){
+    if(n >= fx[i][0]) return {n:Math.max(0, Math.min(3, fx.length - 1 - i)), t:String(fx[i][1] || '')};
+  }
+  return {n:0, t:String((fx[fx.length-1] || [])[1] || '')};
+}
+function temIndice(r){ return typeof r[14] === 'number' && isFinite(r[14]); }
+function indiceDe(r){ return temIndice(r) ? r[14] : 0; }
+/* A régua da lista saiu nesta rodada. Ela enchia por faixa, com piso de 10 %, então um
+   índice 1, o menor que existe, já acendia um décimo da barra, e quase todo índice cai
+   abaixo de 20: quem comparasse barra com barra via distância onde havia sinal fraco.
+   No lugar dela entra a escala escrita, que é o que faltava para o número não ser lido
+   como nota dada à pessoa. A palavra da faixa continua no rótulo de acessibilidade. */
+function botaoIndice(v){
+  var fx = faixaDe(v);
+  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '" ' +
+    'aria-label="Índice de conferência ' + v + ' de 100' + (fx.t ? ', ' + esc(fx.t) : '') +
+    '. Ver o que o índice é e o que ele não é">' +
+    '<span class="n">' + v + '</span>' +
+    '<span class="de" aria-hidden="true">/100</span></button>';
+}
 /* um erro por fonte: sucesso numa aba nao pode apagar a falha de outra */
 var erros = {uf:null, indice:null, alarmes:null, forn:null, cota:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
@@ -409,7 +616,7 @@ function lerHash(){
 function aplicarHash(){
   var o = lerHash();
   S.uf = (o.uf || S.uf || 'SP').toUpperCase();
-  if(META && !META.ufs[S.uf]) S.uf = Object.keys(META.ufs)[0];
+  if(META && !unidadeValida(S.uf)) S.uf = ufPadrao();
   S.cargo = o.cargo || ''; S.partido = o.partido || ''; S.fed = o.fed || '';
   S.ord = ORDS[o.ord] ? o.ord : 'contratado';
   S.sinal = o.sinal || ''; S.tipo = o.tipo || ''; S.q = o.q || '';
@@ -466,7 +673,9 @@ window.addEventListener('hashchange', function(){
 var folha = document.getElementById('folha'), focoAnterior = null;
 function folhaAberta(){ return folha.childNodes.length > 0; }
 function abrirFolha(titulo, corpo){
-  focoAnterior = document.activeElement;
+  /* folha que abre por cima de outra nao pode sequestrar o foco de volta para dentro dela */
+  if(!folhaAberta()) focoAnterior = document.activeElement;
+  fecharMenu(true);
   folha.innerHTML =
     '<div class="fundo" data-act="fecharfolha"></div>' +
     '<div class="folha" role="dialog" aria-modal="true" aria-labelledby="ftit">' +
@@ -502,14 +711,112 @@ folha.addEventListener('input', function(e){
 });
 
 function opcoes(chave, itens, atual){
-  var h = itens.length > 10 ? '<input class="filtro" type="search" placeholder="filtrar a lista" aria-label="Filtrar a lista">' : '';
+  var reais = itens.filter(function(it){ return !it.sep; });
+  var h = reais.length > 10 ? '<input class="filtro" type="search" placeholder="filtrar a lista" aria-label="Filtrar a lista">' : '';
   h += itens.map(function(it){
+    if(it.sep) return '<p class="rot">' + esc(it.sep) + '</p>';
     var sel = String(it.v) === String(atual);
     return '<button class="opt" data-act="opt" data-k="' + chave + '" data-v="' + esc(it.v) + '" aria-pressed="' + sel + '">' +
            '<span>' + esc(it.r) + '</span>' + (it.c ? '<span class="c">' + esc(it.c) + '</span>' : '') + '</button>';
   }).join('');
   return h;
 }
+
+/* ---------- dropdown ancorado ao botao ---------- */
+var menu = document.createElement('div');
+menu.id = 'menu';
+document.body.appendChild(menu);
+var menuBt = null;
+function menuAberto(){ return !!menuBt; }
+function abrirMenu(bt, titulo, corpo){
+  if(!bt) return;
+  fecharMenu(true);
+  menuBt = bt;
+  bt.setAttribute('aria-expanded','true');
+  menu.innerHTML =
+    '<div class="menu" role="group" aria-label="' + esc(titulo) + '">' +
+      '<div class="mcab"><h2>' + esc(titulo) + '</h2>' +
+      '<button data-act="fecharmenu" aria-label="Fechar">✕</button></div>' +
+      '<div class="mcorpo">' + corpo + '</div>' +
+    '</div>';
+  posicionarMenu();
+  var alvo = menu.querySelector('.filtro') || menu.querySelector('.mcorpo [aria-pressed="true"]') ||
+             menu.querySelector('.mcorpo .opt') || menu.querySelector('.mcab button');
+  if(alvo) alvo.focus();
+}
+function fecharMenu(semFoco){
+  if(!menuBt) return;
+  var bt = menuBt;
+  menuBt = null;
+  menu.innerHTML = '';
+  bt.setAttribute('aria-expanded','false');
+  if(!semFoco && bt.focus && document.body.contains(bt)) bt.focus();
+}
+/* ancorado logo abaixo do botao, sem sair da tela pela direita nem pelo pe */
+function posicionarMenu(){
+  var cx = menu.firstChild;
+  if(!cx || !menuBt) return;
+  var r = menuBt.getBoundingClientRect();
+  var vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  var estreito = vw < 560, topo, larg;
+  if(estreito){
+    /* Decisão de desenho, e não falha de ancoragem: abaixo de 560px o dropdown preso ao chip
+       ficaria com menos de 200px úteis e encostaria na borda, então ele vira painel de largura
+       total logo abaixo da barra de filtros. Preso ao botão, de 560px para cima. */
+    var hd = document.querySelector('header');
+    topo = Math.round((hd ? hd.getBoundingClientRect().bottom : r.bottom) + 4);
+    larg = vw - 16;
+    cx.style.left = '8px';
+  } else {
+    topo = Math.round(r.bottom + 6);
+    larg = Math.max(240, Math.min(340, vw - 16));
+    var esq = Math.round(r.left);
+    if(esq + larg > vw - 8) esq = vw - 8 - larg;
+    if(esq < 8) esq = 8;
+    cx.style.left = esq + 'px';
+  }
+  cx.style.top = topo + 'px';
+  cx.style.width = larg + 'px';
+  cx.style.maxHeight = Math.max(180, Math.min(estreito ? Math.round(vh * 0.62) : 380, vh - topo - 12)) + 'px';
+}
+menu.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ e.preventDefault(); fecharMenu(); return; }
+  var f = menu.querySelectorAll('button, a[href], input');
+  if(e.key === 'Tab'){
+    if(!f.length) return;
+    var pri = f[0], ult = f[f.length-1];
+    if(e.shiftKey && document.activeElement === pri){ e.preventDefault(); ult.focus(); }
+    else if(!e.shiftKey && document.activeElement === ult){ e.preventDefault(); pri.focus(); }
+    return;
+  }
+  if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return;
+  var l = Array.prototype.slice.call(menu.querySelectorAll('.opt')).filter(function(b){ return b.style.display !== 'none'; });
+  if(!l.length) return;
+  e.preventDefault();
+  var i = l.indexOf(document.activeElement), n;
+  if(e.key === 'Home') n = 0;
+  else if(e.key === 'End') n = l.length - 1;
+  else if(e.key === 'ArrowDown') n = (i < 0) ? 0 : Math.min(l.length - 1, i + 1);
+  else n = (i <= 0) ? 0 : i - 1;
+  l[n].focus();
+  l[n].scrollIntoView({block:'nearest'});
+});
+menu.addEventListener('input', function(e){
+  if(!e.target.classList.contains('filtro')) return;
+  var t = norm(e.target.value);
+  menu.querySelectorAll('.opt').forEach(function(b){
+    b.style.display = (!t || norm(b.textContent).indexOf(t) >= 0) ? '' : 'none';
+  });
+  menu.querySelectorAll('.rot').forEach(function(p){ p.style.display = t ? 'none' : ''; });
+});
+document.addEventListener('pointerdown', function(e){
+  if(!menuAberto()) return;
+  var alvo = e.target && e.target.closest ? e.target : null;
+  if(alvo && (alvo.closest('#menu') || alvo.closest('[data-act^="f-"]'))) return;
+  fecharMenu(true);
+});
+window.addEventListener('resize', posicionarMenu);
+window.addEventListener('scroll', posicionarMenu, true);
 /* O catalogo casa PELO CODIGO, nunca por posicao numa lista: aviso trocado seria
    a ressalva de um sinal ao lado do texto de outro, e a ressalva e a peca que
    impede o sinal de virar acusacao. Formato novo: META.sinais[cod]. Formato
@@ -532,12 +839,12 @@ function sinalDe(cod){
   return {significa:txt.trim(), nao:nao.trim(), nome:'', familia:FAMS[cod.charAt(0)] || ''};
 }
 function abrirAviso(cod){
-  var s = sinalDe(cod), corpo = '';
+  var s = sinalDe(cod), corpo = '', titulo = nomeDe(cod);
   if(!s){
     corpo = '<p>A explicação deste sinal não veio nesta versão dos dados, então ela não pode ser ' +
       'mostrada aqui. Sem a explicação, o sinal não sustenta conclusão nenhuma: trate como aviso de que ' +
       'vale conferir a prestação de contas na fonte, no TSE.</p>';
-    abrirFolha('Sinal ' + cod, corpo);
+    abrirFolha(titulo, corpo);
     return;
   }
   corpo += '<p class="rot">O que o sinal aponta</p><p>' + esc(s.significa) + '</p>';
@@ -547,7 +854,81 @@ function abrirAviso(cod){
   corpo += '<p class="rot">Lembrete</p><p>O sinal é automático, calculado a partir do que foi declarado ao TSE. ' +
            'Ele serve para conferir, não conclui nada sobre ninguém. Quem é apontado pode pedir correção: ' +
            'veja <b>contato e metodologia</b> na ajuda.</p>';
-  abrirFolha('Sinal ' + cod + (s.nome ? ' · ' + s.nome : ''), corpo);
+  abrirFolha(titulo, corpo);
+}
+/* a lista inteira de sinais de uma linha, para o "+N" do celular */
+function abrirSinaisDaLinha(pacote){
+  var itens = String(pacote || '').split(',').filter(Boolean).map(function(x){
+    var p = x.split(':');
+    return {cod:p[0], g:(+p[1] || 1), n:(+p[2] || 1)};
+  });
+  var c = NOTA_SINAL;
+  itens.forEach(function(it){
+    var s = sinalDe(it.cod);
+    c += '<div class="sinal">' +
+      '<div class="top"><span class="selo" data-g="' + it.g + '" aria-hidden="true">' + esc(curtoDe(it.cod)) + '</span>' +
+      pontos(it.g) + (it.n > 1 ? '<span class="grav">· ' + it.n + ' ocorrências</span>' : '') + '</div>' +
+      '<div class="tx">' + esc(s ? s.significa : 'A explicação deste sinal não veio nesta versão dos dados.') + '</div>' +
+      '<button class="nao" data-act="aviso" data-cod="' + esc(it.cod) + '">o que isso não significa ›</button></div>';
+  });
+  abrirFolha('Sinais a conferir', c);
+}
+/* O pipeline emite o motivo de cada sinal que fica de fora do índice sem acentuação, e texto
+   de interface sem acento não vai para a tela. A frase acentuada mora aqui, casada pelo código
+   do sinal e só válida enquanto o texto de origem for o mesmo: se ele mudar, a tela diz menos
+   em vez de dizer errado. Uma frase por sinal, porque o motivo de cada um é diferente. */
+var FORA_PT = {
+  C2:['ausencia de declaracao nao e algo a conferir na conta, e a falta dela',
+      'a ausência de declaração não é algo a conferir dentro da conta declarada, é a falta dela'],
+  D1:['fornecedor aparecer hoje e o normal de uma prestacao entregue aos poucos',
+      'fornecedor que aparece hoje é o normal de uma prestação entregue aos poucos']
+};
+function motivoFora(cod, txt){
+  var p = FORA_PT[cod];
+  if(p && norm(p[0]) === norm(txt)) return p[1];
+  return 'fica fora da soma do índice, e o motivo está na metodologia do projeto';
+}
+/* a ressalva do índice, a um toque de todo lugar onde ele aparece */
+function abrirIndice(){
+  var ix = (META && META.indice) || {};
+  var c = '<p class="rot">O que é</p><p>' + esc(ix.o_que_e ||
+    'Soma dos sinais levantados, pesada pela intensidade de cada um. Vai de 0 a 100 e serve para ordenar ' +
+    'uma fila de conferência.') + '</p>';
+  c += '<p class="rot">O que ele não é</p><p>' + esc(ix.o_que_nao_e ||
+    'Não é medida de irregularidade. Nenhum sinal afirma ilícito, vários apontam padrão inteiramente legal, ' +
+    'e o índice não sabe nada que os sinais já não digam.') + '</p>';
+  var fx = faixasIndice();
+  c += '<p class="rot">As faixas</p>';
+  fx.forEach(function(f, i){
+    var ate = i > 0 ? (fx[i-1][0] - 1) : 100;
+    c += '<div class="tecla"><span>' + esc(f[1]) + '</span><span class="num">' +
+         f[0] + (ate > f[0] ? ' a ' + ate : '') + '</span></div>';
+  });
+  if(ix.peso){
+    var pesos = Object.keys(ix.peso).map(function(k){
+      var g = (META.gravidades && META.gravidades[k]) ? META.gravidades[k] : ('intensidade ' + k);
+      return g + ' vale ' + ix.peso[k];
+    });
+    c += '<p class="rot">Como é somado</p><p>Cada sinal entra com um peso pela intensidade: ' +
+      esc(pesos.join(', ')) + '. ' +
+      (ix.quantos_somam ? 'Somam no máximo <b>' + esc(String(ix.quantos_somam)) + '</b> sinais por candidatura, ' +
+        'para que uma candidatura com muitos sinais fracos não passe na frente de uma com poucos sinais fortes. ' : '') +
+      'O peso também considera quanto do dinheiro daquela campanha o sinal alcança.</p>';
+  }
+  if(ix.fora && Object.keys(ix.fora).length){
+    c += '<p class="rot">O que fica de fora da conta</p>' +
+      '<p>Nem todo sinal entra no índice, e o motivo não é o mesmo para todos.</p>';
+    Object.keys(ix.fora).forEach(function(k){
+      c += '<p><b>' + esc(curtoDe(k)) + '</b>: ' + esc(motivoFora(k, ix.fora[k])) + '.</p>';
+    });
+    c += '<p><button class="nao" data-act="ajuda" style="min-height:36px">' +
+      'ver a metodologia e o contato do projeto ›</button></p>';
+  }
+  c += '<p class="rot">Lembrete</p><p>O índice é automático e derivado só do que foi declarado ao TSE. ' +
+    'Ele serve para escolher por onde começar a conferir, não para concluir nada sobre ninguém. ' +
+    'Um índice alto não é acusação, e um índice zero não é selo de aprovação.</p>';
+  var tit = String(ix.nome || 'Índice de conferência');
+  abrirFolha(tit.charAt(0).toUpperCase() + tit.slice(1), c);
 }
 
 /* ---------- selos de sinal ---------- */
@@ -559,12 +940,21 @@ function selosDe(lista){
     m[cod].n++; if(g > m[cod].g) m[cod].g = g;
   });
   ordem.sort(function(a,b){ return m[b].g - m[a].g; });
-  return ordem.slice(0,3).map(function(cod){
-    var o = m[cod], c = esc(cod);
-    return '<button class="selo" data-g="' + o.g + '" data-act="aviso" data-cod="' + c + '" ' +
-      'aria-label="Sinal ' + c + ', intensidade ' + o.g + ' de 3' + (o.n>1 ? ', ' + o.n + ' ocorrências' : '') +
-      '. Ver o que significa e o que não significa">' + c + (o.n > 1 ? '·' + o.n : '') + '</button>';
+  var pacote = ordem.map(function(c){ return c + ':' + m[c].g + ':' + m[c].n; }).join(',');
+  var h = ordem.slice(0,3).map(function(cod, i){
+    var o = m[cod], rot = curtoDe(cod);
+    return '<button class="selo' + (i ? ' extra' : '') + '" data-g="' + o.g + '" data-act="aviso" data-cod="' + esc(cod) + '" ' +
+      'aria-label="' + esc(rot) + ', intensidade ' + o.g + ' de 3' + (o.n>1 ? ', ' + o.n + ' ocorrências' : '') +
+      '. Ver o que significa e o que não significa"><span>' + esc(rot) + (o.n > 1 ? ' ·' + o.n : '') + '</span></button>';
   }).join('');
+  /* no celular só o primeiro rótulo cabe; no laptop cabem três. O resto fica a um toque. */
+  function maisBt(classe, n){
+    return '<button class="selo selomais ' + classe + '" data-act="sinaisdalinha" data-cods="' + esc(pacote) + '" ' +
+      'aria-label="Ver os outros ' + n + (n === 1 ? ' sinal' : ' sinais') + ' desta candidatura"><span>+' + n + '</span></button>';
+  }
+  if(ordem.length > 1) h += maisBt('mob', ordem.length - 1);
+  if(ordem.length > 3) h += maisBt('desk', ordem.length - 3);
+  return h;
 }
 function pontos(g){
   var n = (typeof g === 'number' && g >= 1 && g <= 3) ? Math.round(g) : 0;
@@ -605,6 +995,7 @@ function valorTipo(r){
 function valorDe(r){
   if(S.tipo !== '') return valorTipo(r);
   if(S.ord === 'sinais') return r[12].length;
+  if(S.ord === 'indice') return indiceDe(r);
   return r[COLS[S.ord]];
 }
 function filtradas(){
@@ -620,29 +1011,36 @@ function filtradas(){
 /* ---------- cabeçalho: chips ---------- */
 function chip(act, rotulo, valor, ligado){
   var txt = ligado && valor ? valor : rotulo;
-  return '<button class="chip" data-act="' + act + '" data-on="' + (ligado ? 1 : 0) + '" aria-haspopup="dialog" ' +
-    'aria-label="' + esc(rotulo) + ': ' + esc(valor || 'todos') + '. Tocar para escolher">' +
+  return '<button class="chip" data-act="' + act + '" data-on="' + (ligado ? 1 : 0) + '" aria-haspopup="true" ' +
+    'aria-expanded="false" aria-label="' + esc(rotulo) + ': ' + esc(valor || 'todos') + '. Tocar para escolher">' +
     '<span>' + esc(txt) + '</span><span class="seta" aria-hidden="true">▾</span></button>';
 }
+function rotuloSinal(v){
+  if(!v) return '';
+  if(v === 'com') return 'com sinal';
+  if(v.length === 1) return FAMS[v] || v;
+  return curtoDe(v);
+}
 function renderChips(){
-  var c = document.getElementById('chips'), cu = document.getElementById('chipuf'), h = '';
-  if(!META){ c.innerHTML = ''; cu.innerHTML = ''; return; }
+  var c = document.getElementById('chips'), h = '';
+  if(!META){ c.innerHTML = ''; return; }
   if(S.view === 'alarmes'){
-    cu.innerHTML = chip('f-auf','UF dos sinais', S.auf || 'Brasil', true);
+    h += chip('f-auf','Unidade', S.auf ? nomeUnidade(S.auf) : 'Brasil inteiro', true);
     h += chip('f-grav','Intensidade', S.grav ? 'força ' + S.grav + ' de 3' : 'todas', !!S.grav);
-    h += chip('f-fam','Família', S.fam ? (S.fam.length === 1 ? S.fam + ' ' + (FAMS[S.fam]||'') : S.fam) : 'todas', !!S.fam);
+    h += chip('f-fam','Família', S.fam ? rotuloSinal(S.fam) : 'todas', !!S.fam);
     if(S.auf || S.grav || S.fam) h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   } else if(S.view === 'fornecedores'){
-    cu.innerHTML = '';
-    h += '<button class="chip" data-act="fo" data-v="valor" data-on="' + (S.fo==='valor'?1:0) + '">Quem recebeu</button>';
-    h += '<button class="chip" data-act="fo" data-v="candidatos" data-on="' + (S.fo==='candidatos'?1:0) + '">Quem atende mais</button>';
-    h += '<button class="chip" data-act="fo" data-v="cota" data-on="' + (S.fo==='cota'?1:0) + '">Cota</button>';
+    /* data-on é estilo; quem usa leitor de tela precisa do estado, como na barra de ordem */
+    [['valor','Quem recebeu'], ['candidatos','Quem atende mais'], ['cota','Cota']].forEach(function(o){
+      h += '<button class="chip" data-act="fo" data-v="' + o[0] + '" data-on="' + (S.fo===o[0]?1:0) +
+        '" aria-pressed="' + (S.fo===o[0]) + '">' + esc(o[1]) + '</button>';
+    });
   } else {
-    cu.innerHTML = chip('f-uf','Estado', S.uf, true);
+    h += chip('f-uf','Unidade eleitoral', nomeUnidade(S.uf), true);
     h += chip('f-cargo','Cargo', S.cargo ? cargoCurto(META.cargos[S.cargo] || S.cargo) : '', !!S.cargo);
     h += chip('f-partido','Partido', S.partido, !!S.partido);
     h += chip('f-fed','Federação', S.fed ? fedCurta(S.fed) : '', !!S.fed);
-    h += chip('f-sinal','Sinais', S.sinal ? (S.sinal === 'com' ? 'com sinal' : S.sinal) : '', !!S.sinal);
+    h += chip('f-sinal','Sinais', rotuloSinal(S.sinal), !!S.sinal);
     if(S.tipo !== '') h += '<button class="chip" data-on="1" data-act="limpatipo">' + esc(META.dic.tipo[+S.tipo] || '') + ' ✕</button>';
     if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== 'contratado')
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
@@ -655,8 +1053,15 @@ function renderChips(){
     if(ativo) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
-  var hh = document.querySelector('header').offsetHeight;
-  document.documentElement.style.setProperty('--hh', hh + 'px');
+  medirBarras();
+}
+/* As duas barras fixas mudam de altura com a largura da tela e com o número de filtros
+   ligados: no celular a frase legal do rodapé quebra em três linhas e ele passa de 84px
+   para 111px. As duas alturas são medidas e o CSS reserva o espaço a partir delas. */
+function medirBarras(){
+  var hd = document.querySelector('header'), pe = document.getElementById('rodape');
+  if(hd) document.documentElement.style.setProperty('--hh', hd.offsetHeight + 'px');
+  if(pe) document.documentElement.style.setProperty('--fh', pe.offsetHeight + 'px');
 }
 
 /* ---------- blocos reutilizados ---------- */
@@ -692,14 +1097,16 @@ function fraseDoRecorte(n, comGasto, ct, pg, pb){
   var outroFiltro = !!(S.partido || S.fed || S.sinal || S.tipo !== '');
   var onde = esc(ondeUF(S.uf)), f;
   var verbo = (comGasto === 1 ? ' já declarou gasto' : ' já declararam gasto');
+  /* no país inteiro a lista só traz quem declarou movimento: a frase diz isso em vez de esconder */
+  var qualif = (S.uf === 'BRASIL') ? ' que declararam movimento' : '';
   if(S.cargo){
     f = 'Entre as <b>' + inteiro(n) + '</b> candidatura' + (n === 1 ? '' : 's') + ' a ' +
-      esc(cargoCurto(META.cargos[S.cargo] || '')) + ' ' + onde + (outroFiltro ? ' neste recorte' : '') +
+      esc(cargoCurto(META.cargos[S.cargo] || '')) + ' ' + onde + qualif + (outroFiltro ? ' neste recorte' : '') +
       ', <b>' + inteiro(comGasto) + '</b>' + verbo;
   } else {
     f = (outroFiltro ? 'Neste recorte ' + onde : onde.charAt(0).toUpperCase() + onde.slice(1)) +
       ', <b>' + inteiro(comGasto) + '</b> ' + (n === 1 ? 'da' : 'das') + ' <b>' + inteiro(n) +
-      '</b> candidatura' + (n === 1 ? '' : 's') + verbo;
+      '</b> candidatura' + (n === 1 ? '' : 's') + qualif + verbo;
   }
   f += ', somando <b>' + moeda(ct) + '</b> contratados';
   if(pb == null) f += '. Os números por candidatura estão carregando.';
@@ -708,21 +1115,23 @@ function fraseDoRecorte(n, comGasto, ct, pg, pb){
   return '<div class="abre">' + f + '</div>';
 }
 function blocoResumo(lista){
-  var u = META.ufs[S.uf] || {};
+  var u = unidadeInfo(S.uf);
   var temLista = !!UFD;
   var n = temLista ? lista.length : (u.n || 0);
   var ct = 0, pg = 0, pb = 0, rc = 0, sn = 0, semMov = 0, comGasto = 0;
   if(temLista){
     lista.forEach(function(r){
       ct += r[6]; pg += r[7]; rc += r[8]; pb += r[9]; sn += r[12].length;
-      if(r[6] === 0 && r[8] === 0) semMov++;
+      /* no país a lista traz só quem declarou movimento: contar aqui contradiria a nota
+         logo abaixo, que é a que responde por esse recorte */
+      if(S.uf !== 'BRASIL' && r[6] === 0 && r[8] === 0) semMov++;
       if(r[6] > 0) comGasto++;
     });
   } else {
     ct = u.contratado || 0; pg = u.pago || 0; rc = u.receita || 0; sn = u.alarmes || 0;
     comGasto = u.com_gasto || 0; pb = null;
   }
-  var h = '<div class="cartao"><h2 class="ocultavisual">Resumo do recorte em ' + esc(S.uf) + '</h2>';
+  var h = '<div class="cartao"><h2 class="ocultavisual">Resumo do recorte · ' + esc(nomeUnidade(S.uf)) + '</h2>';
   h += fraseDoRecorte(n, comGasto, ct, pg, pb);
   h += '<div class="tiles">';
   h += '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(ct)) + '">' + moeda(ct) + '</div>' +
@@ -742,6 +1151,16 @@ function blocoResumo(lista){
     h += '<div class="nota">Receita <b>' + moeda(rc) + '</b>' +
          (semMov ? ' · <b>' + inteiro(semMov) + '</b> sem nada declarado' : '') +
          ' · última despesa em <b>' + esc(dataBR(META.tse.data_max_despesa) || 'sem data') + '</b></div>';
+    /* O arquivo do país só traz quem declarou movimento, e o que ficou de fora vai declarado na
+       tela. O número que vem do pipeline é o do país inteiro, de todos os cargos: com filtro
+       ligado ele falaria de um recorte que não é o da tela, então a nota espera a lista limpa. */
+    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '');
+    if(S.uf === 'BRASIL' && semFiltro && typeof UFD.sem_movimento === 'number' && UFD.sem_movimento > 0){
+      h += '<div class="nota">A visão do país reúne <b>só quem declarou movimento</b>. Outras <b>' +
+        inteiro(UFD.sem_movimento) + '</b> candidaturas não declararam receita nem despesa até a data desta ' +
+        'base e ficaram de fora desta lista. Quem não movimenta dinheiro presta contas ao final, sem nada ' +
+        'a declarar, e isso não é falha.</div>';
+    }
     h += notaPares();
   }
   return h + '</div>';
@@ -750,7 +1169,14 @@ function blocoResumo(lista){
    inventaria um agregado que ninguem calculou. */
 function notaPares(){
   if(!S.cargo) return '';
-  var u = META.ufs[S.uf] || {}, p = (u.pares || {})[S.cargo];
+  var u = META.ufs[S.uf];
+  /* o país inteiro não tem entrada em META.ufs, então não tem mediana: dizer isso é melhor
+     do que sumir com a única nota da tela que responde "isso é muito?" */
+  if(!u){
+    return '<div class="nota">A comparação com o grupo (a mediana e o p90 do cargo) é calculada ' +
+      '<b>por estado</b>. Escolha um estado na unidade eleitoral para ver a régua do grupo.</div>';
+  }
+  var p = (u.pares || {})[S.cargo];
   if(!p || !p.n) return '';
   return '<div class="nota">Entre as <b>' + inteiro(p.n) + '</b> candidaturas a ' +
     esc(cargoCurto(META.cargos[S.cargo] || '')) + ' ' + esc(ondeUF(S.uf)) + ' que declararam gasto, ' +
@@ -776,24 +1202,37 @@ function blocoTipos(lista){
   }
   return h + '</details></div>';
 }
+/* na visão do país a linha tem 16 campos e o 15 é a sigla; nas UFs ela tem 15 e não existe */
+function ufDaLinha(r){
+  return (r.length > 15 && r[15]) ? String(r[15]) : '';
+}
 function linhaRanking(r, i, max){
   var sq = r[0], sinais = r[12].length;
   var porSinal = (S.ord === 'sinais' && S.tipo === '');
+  var porIndice = (S.ord === 'indice' && S.tipo === '');
   var v = valorDe(r);
-  var rot = porSinal ? inteiro(sinais) + (sinais === 1 ? ' sinal' : ' sinais') : moeda(v);
-  var larg = max > 0 ? Math.max(0.5, v / max * 100) : 0;
-  var meta = [META.dic.partido[r[3]] || '', r[2], cargoCurto(META.cargos[r[4]] || ''), fedCurta(META.dic.fed[r[5]] || '')]
+  /* ordenado pelo índice, o valor da linha continua sendo dinheiro: o índice tem coluna própria */
+  var vm = porIndice ? r[6] : v;
+  var rot = porSinal ? inteiro(sinais) + (sinais === 1 ? ' sinal' : ' sinais') : moeda(vm);
+  /* A barra do pé da linha mede o valor que está escrito na linha. Ordenado pelo índice ela
+     não existe: uma barra larga sem rótulo, desenhada com o índice ao lado de um valor em
+     dinheiro, lê como termômetro da pessoa e ainda desmente o número da própria linha. */
+  var larg = (!porIndice && max > 0) ? Math.max(0.5, v / max * 100) : 0;
+  var ul = ufDaLinha(r);
+  var ufrot = ul ? (ul === 'BR' ? 'Presidência' : ul) : '';
+  var meta = [ufrot, META.dic.partido[r[3]] || '', r[2], cargoCurto(META.cargos[r[4]] || ''), fedCurta(META.dic.fed[r[5]] || '')]
              .filter(Boolean).join(' · ');
   var pubTxt, pubLarg = 0;
   if(r[7] > 0){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + '% público'; }
   else { pubTxt = 'sem pagamento declarado'; }
   /* quem nao declarou nada nao tem o nome esmaecido: o estado ja esta escrito na linha,
      e apagar um nome numa lista de nomes le como categoria inferior */
-  return '<li class="row"' + (sinais ? ' data-selos="' + Math.min(3, sinais) + '"' : '') + '>' +
+  var ix = temIndice(r) ? indiceDe(r) : null;
+  return '<li class="row' + (ix === null ? '' : ' temix') + '"' + (sinais ? ' data-selos="' + Math.min(3, sinais) + '"' : '') + '>' +
     '<a class="rowmain" href="#' + montarHashCand(sq) + '">' +
       '<span class="r-pos num">' + (i+1) + '</span>' +
       '<span class="r-nome">' + esc(r[1]) + '</span>' +
-      '<span class="r-val num" title="' + esc(porSinal ? '' : moedaCheia(v)) + '">' + rot + '</span>' +
+      '<span class="r-val num" title="' + esc(porSinal ? '' : moedaCheia(vm)) + '">' + rot + '</span>' +
       '<span class="r-meta">' + esc(meta) + '</span>' +
       '<span class="r-pub">' + (r[7] > 0 ? '<span class="bar p" aria-hidden="true"><i style="width:' + pubLarg + '%"></i></span>' : '') +
         esc(pubTxt) + ' · ' + inteiro(r[10]) + ' fornec.' +
@@ -801,8 +1240,35 @@ function linhaRanking(r, i, max){
         (porSinal ? ' · ' + moeda(r[6]) + ' contratado' : '') + '</span>' +
     '</a>' +
     (sinais ? '<span class="selos">' + selosDe(r[12]) + '</span>' : '') +
-    '<span class="prop" style="width:' + larg + '%"></span>' +
+    (ix === null ? '' : botaoIndice(ix)) +
+    (larg ? '<span class="prop" style="width:' + larg + '%"></span>' : '') +
   '</li>';
+}
+/* a ordem deixa de morar num menu escondido e fica sempre a vista */
+function barraOrdem(){
+  var segs = ORDSEG.slice();
+  if(S.ord === 'sinais') segs.push(['sinais','Nº de sinais']);
+  /* Com um tipo escolhido, quem manda na ordem é o gasto naquele tipo. O segmentado dizia o
+     contrário: marcava como pressionado um critério que não estava valendo, e quem usa leitor
+     de tela só ouvia isso. O critério em vigor ganha o próprio segmento. */
+  var porTipo = (S.tipo !== '');
+  var h = '<div class="ordwrap"><span class="ordrot" id="rotord">Ordenar por</span>' +
+    '<div class="ord" role="group" aria-labelledby="rotord">';
+  h += segs.map(function(s){
+    return '<button data-act="ord" data-v="' + s[0] + '" aria-pressed="' + (!porTipo && S.ord === s[0]) + '" ' +
+      'aria-label="Ordenar por ' + esc(ORDS[s[0]] || s[1]) + '">' + esc(s[1]) + '</button>';
+  }).join('');
+  if(porTipo){
+    h += '<button data-act="limpatipo" aria-pressed="true" aria-label="Em vigor: ordem pelo gasto no ' +
+      'tipo escolhido. Tocar para limpar o tipo e voltar a ordenar por ' + esc(ORDS[S.ord] || '') +
+      '">Gasto neste tipo</button>';
+  }
+  h += '</div>';
+  if(porTipo){
+    h += '<span class="ordnota">Com um tipo de gasto escolhido, a lista é ordenada pelo gasto nesse tipo. ' +
+      'Limpe o tipo para voltar a ordenar por <b>' + esc(ORDS[S.ord] || '') + '</b>.</span>';
+  }
+  return h + '</div>';
 }
 function montarHashCand(sq){
   var guarda = S.cand, v = S.view;
@@ -813,7 +1279,20 @@ function montarHashCand(sq){
 }
 function viewRanking(){
   var m = document.getElementById('conteudo');
-  if(erros.uf){ m.innerHTML = painelErro('Não foi possível carregar as candidaturas de ' + S.uf + '. Verifique a conexão.', 'retryuf'); return; }
+  /* O erro é da unidade, não do painel: um booleano global fazia a primeira unidade que
+     falhasse envenenar todas as outras, porque a tela de erro saía antes de qualquer pedido
+     novo. E 404 não é conexão ruim: é arquivo que não existe, e tentar de novo não resolve. */
+  var er = erros.uf;
+  if(er && er.u === S.uf){
+    if(er.s === 404){
+      m.innerHTML = '<div class="cartao"><div class="erro"><p>' +
+        esc('A lista de candidaturas ' + ondeUF(S.uf) + ' ainda não foi publicada nesta versão dos dados.') +
+        '</p><button class="bt pri" data-act="ufpadrao">Ver ' + esc(nomeUnidade(ufPadrao())) + '</button></div></div>';
+    } else {
+      m.innerHTML = painelErro('Não foi possível carregar as candidaturas ' + ondeUF(S.uf) + '. Verifique a conexão.', 'retryuf');
+    }
+    return;
+  }
   /* UFD nulo sem nada em voo ficava preso no esqueleto para sempre */
   if(!UFD || UFD.uf !== S.uf){
     if(ufEmVoo !== S.uf) carregarUF();
@@ -823,15 +1302,23 @@ function viewRanking(){
   var lista = filtradas();
   var max = lista.length ? valorDe(lista[0]) : 0;
   var vis = lista.slice(0, S.limite);
+  var porIndice = (S.ord === 'indice' && S.tipo === '');
   var porSinal = (S.ord === 'sinais' && S.tipo === '') || S.sinal !== '';
+  /* a coluna do índice é desenhada em toda linha que traz o número, em qualquer ordem:
+     a ressalva segue a coluna, não o critério de ordenação */
+  var temColunaIx = vis.some(function(r){ return temIndice(r); });
   var h = '<div class="wrap"><div class="lado">' +
     (lista.length ? blocoResumo(lista) + blocoTipos(lista) : '') + '</div><div class="lista">';
   if(avisoDic) h += '<div class="cartao" style="margin-bottom:10px"><div class="nota">' + esc(avisoDic) + '</div></div>';
-  if(porSinal && lista.length) h += '<div class="cartao" style="margin-bottom:10px">' + NOTA_SINAL + '</div>';
+  if((porSinal || porIndice || temColunaIx) && lista.length){
+    h += '<div class="cartao" style="margin-bottom:10px">' +
+      (porIndice ? NOTA_INDICE : (temColunaIx ? NOTA_INDICE_CURTA : '')) +
+      ((porSinal || porIndice) ? NOTA_SINAL : '') + '</div>';
+  }
   h += '<div class="cartao"><div class="status"><span role="status">' + inteiro(lista.length) + ' candidatura' +
-       (lista.length === 1 ? '' : 's') + ' em ' + esc(S.uf) + '</span>' +
-       '<button class="ordbt" data-act="f-ord" aria-haspopup="dialog">' +
-       (S.tipo !== '' ? 'por gasto no tipo' : 'por ' + ORDS[S.ord]) + ' ↓</button></div>';
+       (lista.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(S.uf)) + '</span>' +
+       /* o botao e, ao mesmo tempo, o rotulo da coluna de indice, que fica logo abaixo dele */
+       '<button class="ordbt" data-act="oindice">índice de conferência ›</button></div>' + barraOrdem();
   if(!lista.length){
     h += '<div class="vazio">Nenhuma candidatura com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
@@ -849,7 +1336,9 @@ function viewRanking(){
 function viewBusca(){
   var m = document.getElementById('conteudo');
   if(erros.indice){ m.innerHTML = painelErro('Não foi possível carregar o índice de nomes.', 'retryidx'); return; }
-  if(!IDX){ m.innerHTML = esqueleto(5); return; }
+  /* como nas outras abas, a tela pede o que lhe falta: chegar aqui pelo endereço, sem passar
+     pelo campo de busca, deixava o esqueleto girando para sempre */
+  if(!IDX){ m.innerHTML = esqueleto(5); carregarIndice(); return; }
   var t = norm(S.q), so = t.replace(/\D/g,'');
   var pre = [], meio = [], numero = [];
   for(var i=0;i<IDX.c.length;i++){
@@ -868,11 +1357,13 @@ function viewBusca(){
     h += '<div class="vazio">Nada com esse nome ou número.<br>Tente outro trecho do nome de urna.</div>';
   } else {
     h += '<ul class="l">' + res.map(function(c){
-      var meta = [META.dic.partido[c[4]] || '', c[5], cargoCurto(META.cargos[c[3]] || ''), c[2]].filter(Boolean).join(' · ');
+      /* a unidade já está na coluna da direita: repeti-la aqui como código cru dava dois
+         nomes para a mesma coisa na mesma linha */
+      var meta = [META.dic.partido[c[4]] || '', c[5], cargoCurto(META.cargos[c[3]] || '')].filter(Boolean).join(' · ');
       return '<li class="row"><a class="rowmain" href="#uf=' + esc(c[2]) + '&cand=' + esc(c[0]) + '">' +
         '<span class="r-pos" aria-hidden="true">›</span>' +
         '<span class="r-nome">' + esc(c[1]) + '</span>' +
-        '<span class="r-val" style="font-size:12px;color:var(--mut);font-weight:600">' + esc(c[2]) + '</span>' +
+        '<span class="r-val" style="font-size:12px;color:var(--mut);font-weight:600">' + esc(siglaUnidade(c[2])) + '</span>' +
         '<span class="r-meta">' + esc(meta) + '</span>' +
         '<span class="r-pub">' + (c[6] ? 'tem movimento declarado' : 'sem receita nem despesa declarada') + '</span></a></li>';
     }).join('') + '</ul>';
@@ -928,9 +1419,10 @@ function viewAlarmes(){
     h += '<div class="vazio">Nenhum sinal com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
     h += vis.map(function(a){
-      var meta = [META.dic.partido[a[5]] || '', cargoCurto(META.cargos[a[6]] || ''), a[2]].filter(Boolean).join(' · ');
+      /* o menu desta mesma tela lista 'Presidência': a linha não pode chamar a unidade de 'BR' */
+      var meta = [META.dic.partido[a[5]] || '', cargoCurto(META.cargos[a[6]] || ''), nomeUnidade(a[2])].filter(Boolean).join(' · ');
       return '<div class="sinal">' +
-        '<div class="top"><span class="selo" data-g="' + a[1] + '" aria-hidden="true">' + esc(a[0]) + '</span>' +
+        '<div class="top"><span class="selo" data-g="' + a[1] + '">' + esc(nomeDe(a[0])) + '</span>' +
         pontos(a[1]) + '<span class="grav">· ' + esc(FAMS[a[0].charAt(0)] || '') + '</span></div>' +
         '<a class="nomegrande" style="color:inherit;text-decoration:none" href="#uf=' + esc(a[2]) + '&cand=' + esc(a[3]) + '">' +
           esc(a[4]) + ' <span style="font-weight:400;color:var(--mut);font-size:12px">' + esc(meta) + ' ›</span></a>' +
@@ -999,7 +1491,7 @@ function viewCota(){
   } else {
     h += COTA.p.map(function(p){
       return '<div class="sinal">' +
-        '<div class="top"><span class="selo" data-g="' + p.grav + '" aria-hidden="true">B4</span>' + pontos(p.grav) + '</div>' +
+        '<div class="top"><span class="selo" data-g="' + p.grav + '">' + esc(nomeDe('B4')) + '</span>' + pontos(p.grav) + '</div>' +
         '<div class="nomegrande">' + esc(p.partido) + ' · ' + esc(p.uf) + '</div>' +
         '<div class="kv" style="padding-left:0;padding-right:0">' +
           '<span class="k">Dinheiro público declarado</span><span class="v num">' + moeda(p.total) + '</span>' +
@@ -1053,6 +1545,17 @@ function blocoPares(f){
     '<div class="rs">A comparação é só entre quem disputa o mesmo cargo no mesmo estado e já declarou gasto. ' +
     'Gastar mais ou menos que o grupo não é irregularidade: é contexto para ler o número, e vale conferir na fonte.</div></div>';
 }
+/* o índice na ficha, ao lado dos outros números, com a faixa escrita por extenso */
+function blocoIndiceFicha(f){
+  if(typeof f.indice !== 'number' || !isFinite(f.indice)) return '';
+  var fx = faixaDe(f.indice);
+  return '<div class="ixficha" data-f="' + fx.n + '">' +
+    '<div class="ixn">' + f.indice + '<span class="de">/100</span></div>' +
+    '<div class="ixt"><b>Índice de conferência</b> · ' + esc(f.faixa || fx.t) +
+    '<span class="ixs">Ordena o que vale conferir primeiro, a partir dos sinais listados abaixo. ' +
+    'Não mede irregularidade.</span></div>' +
+    '<button class="nao" data-act="oindice">o que o índice não é ›</button></div>';
+}
 function viewCand(){
   var m = document.getElementById('conteudo');
   var f = cacheFicha[S.cand];
@@ -1066,7 +1569,9 @@ function viewCand(){
   if(!f){ m.innerHTML = esqueleto(6); carregarFicha(); return; }
   var nada = !f.contratado && !f.pago && !f.receita;
   var pubPct = pct(f.pago_publico, f.pago);
-  var ident = [f.partido, f.nr, f.cargo, f.uf].filter(Boolean).join(' · ');
+  /* a unidade sai pelo nome: código é endereço, e a mesma unidade não pode ter um nome no
+     chip da tela e outro no subtítulo da ficha */
+  var ident = [f.partido, f.nr, f.cargo, nomeUnidade(f.uf)].filter(Boolean).join(' · ');
   var h = '<button class="voltar" data-act="voltar">‹ voltar ao ranking</button>';
   h += '<div class="cartao"><div class="fhead">' +
     '<h1>' + esc(f.nome) + '</h1>' +
@@ -1081,6 +1586,7 @@ function viewCand(){
       'sem nada a declarar. Por isso não há valores para mostrar aqui.</div>';
     h += '<div class="tiles"><div class="tile sin"><div class="r">Sinais</div><div class="v num">' +
       inteiro(f.alarmes.length) + '</div><div class="n">para conferir</div></div></div>';
+    h += blocoIndiceFicha(f);
   } else {
     h += '<div class="tiles">' +
       '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(f.contratado)) + '">' + moeda(f.contratado) + '</div><div class="n">' + inteiro(f.n_despesas) + (f.n_despesas === 1 ? ' despesa' : ' despesas') + '</div></div>' +
@@ -1094,6 +1600,7 @@ function viewCand(){
         'Receita pública declarada: ' + moeda(f.receita_publica) + '.</div>' +
         '<div class="bar p" style="margin-top:8px" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
     }
+    h += blocoIndiceFicha(f);
     h += blocoPares(f);
   }
   h += '<div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">' +
@@ -1101,9 +1608,12 @@ function viewCand(){
 
   h += '<div class="fgrid" style="margin-top:10px">';
   if(f.alarmes.length){
+    /* a ficha é a tela que nomeia terceiro por extenso dentro do texto do sinal, e a mais
+       compartilhada: a ressalva fica à vista, como na aba de sinais, não só a um toque */
     h += '<div class="cartao full"><div class="cab"><h2>Sinais para conferir</h2><span style="font-size:11px;color:var(--mut)">' + f.alarmes.length + '</span></div>' +
+      NOTA_SINAL +
       f.alarmes.map(function(a){
-        return '<div class="sinal"><div class="top"><span class="selo" data-g="' + a.grav + '" aria-hidden="true">' + esc(a.cod) + '</span>' +
+        return '<div class="sinal"><div class="top"><span class="selo" data-g="' + a.grav + '">' + esc(nomeDe(a.cod)) + '</span>' +
           pontos(a.grav) + '<span class="grav">· ' + esc(FAMS[a.cod.charAt(0)] || '') + '</span></div>' +
           '<div class="tx">' + esc(a.texto) + '</div>' +
           '<button class="nao" data-act="aviso" data-cod="' + esc(a.cod) + '">o que isso não significa ›</button></div>';
@@ -1126,7 +1636,8 @@ function viewCand(){
       '<span style="font-size:11px;color:var(--mut)">' + inteiro(f.n_forn) + ' fornecedores no total</span></div>' +
       f.forn.map(function(x){
         var selos = (x[6] || []).map(function(c){
-          return '<button class="selo" data-act="aviso" data-cod="' + esc(c) + '" aria-label="Sinal ' + esc(c) + ', ver o que significa">' + esc(c) + '</button>';
+          return '<button class="selo" data-act="aviso" data-cod="' + esc(c) + '" aria-label="' + esc(curtoDe(c)) +
+            ', ver o que significa e o que não significa"><span>' + esc(curtoDe(c)) + '</span></button>';
         }).join(' ');
         return '<div class="forn"><div class="n1"><span class="nm">' + esc(x[1] || 'sem nome') + '</span>' +
           '<b class="num" title="' + esc(moedaCheia(x[2])) + '">' + moeda(x[2]) + '</b></div>' +
@@ -1197,10 +1708,11 @@ function carregarUF(){
     if(ufEmVoo === uf) ufEmVoo = '';
     if(S.uf !== uf) return;
     UFD = d; conferirDicionarios(d); render();
-  })['catch'](function(){
+  })['catch'](function(e){
     if(ufEmVoo === uf) ufEmVoo = '';
     if(S.uf !== uf) return;
-    erros.uf = 1; render();
+    /* de quem é a falha e de que tipo: 404 é arquivo que não existe, e tentar de novo não resolve */
+    erros.uf = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
   });
 }
 function carregarIndice(){
@@ -1264,6 +1776,8 @@ function carregarFicha(){
 function render(){
   if(!META) return;
   renderChips();
+  /* o botao que ancora o dropdown acabou de ser refeito: o menu nao pode ficar solto */
+  if(menuBt && !document.body.contains(menuBt)) fecharMenu(true);
   var chave = S.view + '|' + S.cand + '|' + S.fo;
   var m = document.getElementById('conteudo');
   if(S.view === 'cand') viewCand();
@@ -1286,11 +1800,15 @@ document.addEventListener('click', function(e){
   if(!t) return;
   var a = t.getAttribute('data-act');
   if(a === 'fecharfolha'){ fecharFolha(); return; }
+  if(a === 'fecharmenu'){ fecharMenu(); return; }
   if(a === 'aviso'){ e.preventDefault(); abrirAviso(t.getAttribute('data-cod')); return; }
+  if(a === 'sinaisdalinha'){ e.preventDefault(); abrirSinaisDaLinha(t.getAttribute('data-cods')); return; }
+  if(a === 'oindice'){ e.preventDefault(); abrirIndice(); return; }
   if(a === 'ajuda'){ abrirAjuda(); return; }
+  if(a === 'ord'){ fecharMenu(true); ir({ord:t.getAttribute('data-v')}); return; }
   if(a === 'opt'){
     var k = t.getAttribute('data-k'), v = t.getAttribute('data-v'), p = {};
-    fecharFolha();
+    fecharFolha(); fecharMenu(true);
     if(S.view === 'cand' || S.view === 'busca'){ p.view = 'ranking'; p.cand = ''; p.q = ''; }
     /* trocar de UF aqui nao precisa de caso especial: o render confere se o arquivo
        carregado e o da UF pedida, venha ela do clique ou do hash */
@@ -1316,23 +1834,60 @@ document.addEventListener('click', function(e){
   if(a === 'limpaq'){ document.getElementById('q').value = ''; ir({q:'', view:'ranking'}); document.getElementById('q').focus(); return; }
   if(a === 'copiar'){ copiarLink(t); return; }
   if(a === 'retry'){ render(); return; }
+  if(a === 'ufpadrao'){ ir({uf: ufPadrao()}); return; }
   if(a === 'retryuf'){ erros.uf = null; carregarUF(); render(); return; }
   if(a === 'retryidx'){ erros.indice = null; carregarIndice(); render(); return; }
   if(a === 'retryala'){ erros.alarmes = null; ALA = null; carregarAlarmes(); render(); return; }
   if(a === 'retryfor'){ erros.forn = null; FOR = null; carregarForn(); render(); return; }
   if(a === 'retrycota'){ erros.cota = null; COTA = null; carregarCota(); render(); return; }
   if(a === 'retrycand'){ erros.cand = null; carregarFicha(); render(); return; }
-  if(a.indexOf('f-') === 0){ abrirFiltro(a.slice(2)); return; }
+  if(a.indexOf('f-') === 0){
+    if(menuBt === t){ fecharMenu(); return; }
+    abrirFiltro(a.slice(2), t);
+    return;
+  }
 });
 function focarNovaLinha(){
   var l = document.querySelectorAll('.rowmain, .sinal');
   var alvo = l[Math.max(0, S.limite - 60)];
   if(alvo && alvo.focus) alvo.focus();
 }
+/* Uma linha em português dizendo que recorte a tela mostra. Serve onde o endereço apareceria
+   como texto: o código do sinal é endereço, e endereço não é rótulo de tela. */
+function descreverRecorte(){
+  var p = [];
+  if(S.view === 'alarmes'){
+    p.push('lista de sinais');
+    p.push(S.auf ? nomeUnidade(S.auf) : 'Brasil inteiro');
+    if(S.grav) p.push('intensidade ' + S.grav + ' de 3');
+    if(S.fam) p.push(rotuloSinal(S.fam));
+  } else if(S.view === 'fornecedores'){
+    p.push(S.fo === 'cota' ? 'cota de dinheiro público'
+         : (S.fo === 'candidatos' ? 'quem atende mais campanhas' : 'quem recebeu'));
+  } else if(S.view === 'cand'){
+    var fi = cacheFicha[S.cand];
+    p.push(fi ? 'ficha de ' + fi.nome : 'ficha de uma candidatura');
+    if(fi && fi.uf) p.push(nomeUnidade(fi.uf));
+  } else {
+    p.push(nomeUnidade(S.uf));
+    if(S.cargo) p.push(cargoCurto(META.cargos[S.cargo] || S.cargo));
+    if(S.partido) p.push(S.partido);
+    if(S.fed) p.push(fedCurta(S.fed));
+    if(S.sinal) p.push('sinal ' + rotuloSinal(S.sinal));
+    if(S.tipo !== '') p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
+    if(S.view === 'busca') p.push('busca por "' + S.q + '"');
+  }
+  return p.filter(Boolean).join(' · ');
+}
 function copiarLink(bt){
   var url = location.href, antes = bt.textContent;
   var ok = function(){ bt.textContent = 'Link copiado'; setTimeout(function(){ bt.textContent = antes; }, 1800); };
-  var mostrar = function(){ abrirFolha('Link desta tela', '<p>' + esc(url) + '</p>'); };
+  /* recuo de quando o navegador nega a área de transferência: aqui o endereço é o conteúdo
+     pedido, e continua à mão para copiar, com a frase do recorte antes dele */
+  var mostrar = function(){
+    abrirFolha('Link desta tela', '<p>' + esc(descreverRecorte()) + '</p>' +
+      '<p class="rot">Endereço</p><p style="word-break:break-all">' + esc(url) + '</p>');
+  };
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(url).then(ok)['catch'](mostrar);
   } else {
@@ -1347,14 +1902,18 @@ function contarPor(fn, ignorar){
   UFD.c.forEach(function(r){ if(passa(r, ignorar)){ var k = fn(r); m[k] = (m[k]||0) + 1; } });
   return m;
 }
-function abrirFiltro(qual){
+function abrirFiltro(qual, bt){
   if(!META) return;   /* o botao existe desde o primeiro instante; o dicionario nao */
+  bt = bt || document.querySelector('[data-act="f-' + qual + '"]');
+  if(!bt) return;
+  var abrir = function(titulo, corpo){ abrirMenu(bt, titulo, corpo); };
   if(qual === 'uf'){
-    var itens = Object.keys(META.ufs).sort().map(function(u){
-      var o = META.ufs[u];
-      return {v:u, r:u, c:inteiro(o.n) + ' cand. · ' + moeda(o.contratado)};
+    var itens = unidadesAgrupadas().map(function(it){
+      if(it.sep) return it;
+      var o = unidadeInfo(it.v);
+      return {v:it.v, r:it.r, c:inteiro(o.n || 0) + ' cand. · ' + moeda(o.contratado || 0)};
     });
-    abrirFolha('Estado', opcoes('uf', itens, S.uf));
+    abrir('Unidade eleitoral', opcoes('uf', itens, S.uf));
   } else if(qual === 'cargo'){
     var cc = contarPor(function(r){ return r[4]; }, 'cargo');
     var it = [{v:'', r:'Todos os cargos', c: UFD ? inteiro(UFD.c.length) : ''}];
@@ -1362,7 +1921,7 @@ function abrirFiltro(qual){
       if(UFD && !cc[k]) return;
       it.push({v:k, r:META.cargos[k], c: cc[k] ? inteiro(cc[k]) : '0'});
     });
-    abrirFolha('Cargo', opcoes('cargo', it, S.cargo));
+    abrir('Cargo', opcoes('cargo', it, S.cargo));
   } else if(qual === 'partido'){
     var cp = contarPor(function(r){ return META.dic.partido[r[3]]; }, 'partido');
     var ip = [{v:'', r:'Todos os partidos', c:''}];
@@ -1370,7 +1929,7 @@ function abrirFiltro(qual){
       if(UFD && !cp[p]) return;
       ip.push({v:p, r:p, c: cp[p] ? inteiro(cp[p]) : '0'});
     });
-    abrirFolha('Partido', opcoes('partido', ip, S.partido));
+    abrir('Partido', opcoes('partido', ip, S.partido));
   } else if(qual === 'fed'){
     var cf = contarPor(function(r){ return META.dic.fed[r[5]] || ''; }, 'fed');
     var iff = [{v:'', r:'Todas as federações', c:''}];
@@ -1379,35 +1938,42 @@ function abrirFiltro(qual){
       if(UFD && !cf[f]) return;
       iff.push({v:f, r:f, c: cf[f] ? inteiro(cf[f]) : '0'});
     });
-    abrirFolha('Federação', opcoes('fed', iff, S.fed));
-  } else if(qual === 'ord'){
-    abrirFolha('Ordenar por', opcoes('ord', Object.keys(ORDS).map(function(k){ return {v:k, r:ORDS[k]}; }), S.ord));
+    abrir('Federação', opcoes('fed', iff, S.fed));
   } else if(qual === 'sinal'){
     var cs = {};
     if(UFD) UFD.c.forEach(function(r){ if(passa(r,'sinal')) codigosDaLinha(r).forEach(function(c){ cs[c] = (cs[c]||0)+1; }); });
     var isx = [{v:'', r:'Todas as candidaturas', c:''}, {v:'com', r:'Só as que têm algum sinal', c:''}];
-    Object.keys(FAMS).forEach(function(f){ isx.push({v:f, r:'Família ' + f + ' · ' + FAMS[f], c:''}); });
-    META.dic.alarme.forEach(function(c){ isx.push({v:c, r:c + ' · ' + resumoCod(c), c: cs[c] ? inteiro(cs[c]) : '0'}); });
-    abrirFolha('Sinais', opcoes('sinal', isx, S.sinal));
+    isx.push({sep:'Por família'});
+    Object.keys(FAMS).forEach(function(f){ isx.push({v:f, r:FAMS[f], c:''}); });
+    isx.push({sep:'Por sinal'});
+    META.dic.alarme.forEach(function(c){ isx.push({v:c, r:nomeDe(c), c: cs[c] ? inteiro(cs[c]) : '0'}); });
+    abrir('Sinais', opcoes('sinal', isx, S.sinal));
   } else if(qual === 'grav'){
-    abrirFolha('Intensidade do sinal', opcoes('grav', [
+    abrir('Intensidade do sinal', opcoes('grav', [
       {v:'', r:'Todas'}, {v:'3', r:'3 de 3'}, {v:'2', r:'2 de 3'}, {v:'1', r:'1 de 3'}
     ], S.grav));
   } else if(qual === 'fam'){
-    var ifa = [{v:'', r:'Todas as famílias', c:''}];
-    Object.keys(FAMS).forEach(function(f){ ifa.push({v:f, r:'Família ' + f + ' · ' + FAMS[f], c:''}); });
-    META.dic.alarme.forEach(function(c){ ifa.push({v:c, r:c + ' · ' + resumoCod(c), c:''}); });
-    abrirFolha('Família do sinal', opcoes('fam', ifa, S.fam));
+    var ifa = [{sep:'Por família'}];
+    Object.keys(FAMS).forEach(function(f){ ifa.push({v:f, r:FAMS[f], c:''}); });
+    ifa.push({sep:'Por sinal'});
+    META.dic.alarme.forEach(function(c){ ifa.push({v:c, r:nomeDe(c), c:''}); });
+    ifa.unshift({v:'', r:'Todas as famílias', c:''});
+    abrir('Família do sinal', opcoes('fam', ifa, S.fam));
   } else if(qual === 'auf'){
-    var iu = [{v:'', r:'Todas as UFs', c:''}];
-    Object.keys(META.ufs).sort().forEach(function(u){ iu.push({v:u, r:u, c: inteiro(META.ufs[u].alarmes || 0) + ' sinais'}); });
-    abrirFolha('Estado', opcoes('auf', iu, S.auf));
+    /* aqui o valor vazio já é o país inteiro, então não existe opção "Brasil" separada */
+    var iu = [{v:'', r:'Brasil inteiro', c:''}];
+    if(META.ufs.BR) iu.push({v:'BR', r:nomeUnidade('BR'), c: inteiro(META.ufs.BR.alarmes || 0) + ' sinais'});
+    iu.push({sep:'Estados'});
+    estadosOrdenados().forEach(function(u){
+      iu.push({v:u, r:nomeUnidade(u), c: inteiro((META.ufs[u] || {}).alarmes || 0) + ' sinais'});
+    });
+    abrir('Unidade eleitoral', opcoes('auf', iu, S.auf));
   }
 }
 function resumoCod(cod){
   var s = sinalDe(cod);
   if(!s) return 'explicação não disponível nesta versão dos dados';
-  var t = (s.nome || s.significa).trim();
+  var t = (s.significa || s.nome || '').trim();
   return t.length > 64 ? t.slice(0,62) + '…' : t;
 }
 function abrirTodosTipos(){
@@ -1427,15 +1993,21 @@ function abrirAjuda(){
     'Cada sinal traz junto o que ele <b>não</b> significa.</p>' +
     '<p class="rot">Os ' + cods.length + ' sinais</p>';
   cods.forEach(function(cod){
-    c += '<button class="opt" data-act="aviso" data-cod="' + esc(cod) + '"><span><b>' + esc(cod) + '</b> · ' + esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
+    c += '<button class="opt" data-act="aviso" data-cod="' + esc(cod) + '"><span><b>' + esc(nomeDe(cod)) + '</b> · ' +
+      esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
   });
-  c += '<p class="rot">Famílias</p><p>' + Object.keys(FAMS).map(function(f){ return f + ' ' + FAMS[f]; }).join(' · ') + '</p>';
+  c += '<p class="rot">Famílias</p><p>' + Object.keys(FAMS).map(function(f){ return FAMS[f]; }).join(' · ') + '</p>';
+  c += '<p class="rot">O índice de conferência</p>' +
+    '<p>Ao lado de cada candidatura aparece um número de 0 a 100 que ordena o que vale conferir primeiro. ' +
+    'Ele soma os sinais levantados, e <b>não é medida de irregularidade</b>.</p>' +
+    '<button class="opt" data-act="oindice"><span>O que o índice é e o que ele não é</span><span class="c">ver ›</span></button>';
   c += '<p class="rot">Atalhos de teclado</p>' +
     '<div class="tecla"><span>Ir para a busca</span><span><kbd>/</kbd></span></div>' +
     '<div class="tecla"><span>Navegar na lista</span><span><kbd>j</kbd> <kbd>k</kbd></span></div>' +
     '<div class="tecla"><span>Abrir o que está em foco</span><span><kbd>Enter</kbd></span></div>' +
     '<div class="tecla"><span>Ranking, sinais, dinheiro</span><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></div>' +
-    '<div class="tecla"><span>Filtros</span><span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>f</kbd> <kbd>o</kbd> <kbd>s</kbd></span></div>' +
+    '<div class="tecla"><span>Filtros</span><span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>f</kbd> <kbd>s</kbd></span></div>' +
+    '<div class="tecla"><span>Ir para a ordenação</span><span><kbd>o</kbd></span></div>' +
     '<div class="tecla"><span>Voltar, fechar</span><span><kbd>Esc</kbd></span></div>' +
     '<div class="tecla"><span>Esta ajuda</span><span><kbd>?</kbd></span></div>';
   c += '<p class="rot">Os dados</p><p>Prestação de contas da eleição de 2026, dados abertos do TSE, ' +
@@ -1450,7 +2022,7 @@ function abrirAjuda(){
     '<p>O cálculo de cada sinal (a regra, o limiar e a janela de dados) está no mesmo repositório, em ' +
     '<b>pipeline/alarmes/</b>, e o código que monta esta tela está em <b>site/index.html</b>. ' +
     'Nada aqui é feito à mão: o que estiver errado no dado de origem pode ser conferido na fonte, no TSE.</p>' +
-    '<p class="rot">Esta tela</p><p style="word-break:break-all">' + esc(location.href) + '</p>' +
+    '<p class="rot">Esta tela</p><p>' + esc(descreverRecorte()) + '</p>' +
     '<p><button class="bt" data-act="copiar">Copiar o link desta tela</button></p>';
   abrirFolha('Como ler este painel', c);
 }
@@ -1480,7 +2052,7 @@ campoQ.addEventListener('keydown', function(e){
 
 /* ---------- teclado ---------- */
 document.addEventListener('keydown', function(e){
-  if(folhaAberta()) return;
+  if(folhaAberta() || menuAberto()) return;
   var alvo = e.target, tag = alvo.tagName;
   if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || alvo.isContentEditable) return;
   if(e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1510,14 +2082,16 @@ document.addEventListener('keydown', function(e){
     if(k === 'c'){ abrirFiltro('cargo'); return; }
     if(k === 'p'){ abrirFiltro('partido'); return; }
     if(k === 'f'){ abrirFiltro('fed'); return; }
-    if(k === 'o'){ abrirFiltro('ord'); return; }
     if(k === 's'){ abrirFiltro('sinal'); return; }
+    /* a ordem virou controle sempre a vista: a tecla leva o foco ate ele */
+    if(k === 'o'){
+      var b = document.querySelector('.ord button');
+      if(b){ e.preventDefault(); b.focus(); b.scrollIntoView({block:'nearest'}); }
+      return;
+    }
   }
 });
-window.addEventListener('resize', function(){
-  var hh = document.querySelector('header').offsetHeight;
-  document.documentElement.style.setProperty('--hh', hh + 'px');
-});
+window.addEventListener('resize', medirBarras);
 
 /* ---------- início ---------- */
 function iniciar(){
@@ -1525,11 +2099,14 @@ function iniciar(){
   aplicarHash();
   get('meta.json').then(function(d){
     META = d;
-    if(!META.ufs[S.uf]) S.uf = Object.keys(META.ufs)[0];
+    if(!unidadeValida(S.uf)) S.uf = ufPadrao();
     document.getElementById('dtger').textContent = dataBR(META.tse.gerado || META.gerado_em) || 'sem data';
     document.getElementById('btajuda').disabled = false;
     document.getElementById('btajuda2').disabled = false;
-    carregarUF();          /* o render ja cobre isso, mas comecar o fetch aqui adianta a primeira tela */
+    /* Adiantar o fetch só vale para a tela que usa o arquivo da unidade. Todo link de ficha
+       saído do ranking do país carrega uf=BRASIL, e o arquivo do país são megabytes que a
+       ficha não lê. Nas outras telas o render pede o arquivo quando ele fizer falta. */
+    if(S.view === 'ranking') carregarUF();
     render();
     if(S.view === 'busca') carregarIndice();
   })['catch'](function(){
