@@ -1,7 +1,10 @@
 tmp/
 site/dados/
+site/propostas/
 estado/
+estado-repo/
 *.zip
+!tests/fixtures/**/*.zip
 *.parcial
 __pycache__/
 *.pyc
