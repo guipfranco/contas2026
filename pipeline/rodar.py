@@ -21,7 +21,8 @@ from . import agregar as A
 from . import carregar as C
 from . import escrever as E
 from . import historico as H
-from .alarmes import Contexto, CATALOGO, avaliar, confere_redacao
+from .alarmes import (CATALOGO, GRAVIDADE, Contexto, avaliar,
+                      confere_redacao)
 from .alarmes import doador as al_doador
 from .alarmes import ritmo as al_ritmo
 from .baixar import baixar_fontes
@@ -236,9 +237,7 @@ def main(argv=None):
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},
-                    a.site,
-                    avisos=[f'{c}: {CATALOGO[c][2]} O que NAO significa: '
-                            f'{CATALOGO[c][3]}' for c in sorted(CATALOGO)])
+                    a.site, catalogo=CATALOGO, gravidades=GRAVIDADE)
     passo(t0, f'indice {b_ind / 1e6:.2f} MB, alarmes {b_al / 1e3:.0f} KB, '
               f'fornecedores {b_forn / 1e3:.0f} KB')
 

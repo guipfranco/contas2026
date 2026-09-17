@@ -282,10 +282,10 @@ class TestAlarmes(unittest.TestCase):
                                           '', '', '', 12000000]
         x = al_forn.avaliar(self.a, self.ctx)[0]
         self.assertEqual(x.codigo, 'A6')
-        self.assertIn('em 1 lancamento,', x.texto)
+        self.assertIn('em 1 lançamento,', x.texto)
         self.a.por_forn['11144477735'][1] = 3
         x = al_forn.avaliar(self.a, self.ctx)[0]
-        self.assertIn('em 3 lancamentos,', x.texto)
+        self.assertIn('em 3 lançamentos,', x.texto)
 
     def test_a6_ignora_o_ordinario(self):
         """R$ 60 mil a uma pessoa fisica e o comum, nao um sinal.
@@ -311,7 +311,7 @@ class TestAlarmes(unittest.TestCase):
         self._forn('13347016000118', 500000)
         xs = [x for x in al_forn.avaliar(self.a, self.ctx) if x.codigo == 'A7']
         self.assertEqual(len(xs), 1)
-        self.assertIn('digito verificador', xs[0].texto)
+        self.assertIn('dígito verificador', xs[0].texto)
 
     def test_a7_nao_reclama_de_documento_valido(self):
         self._forn('13347016000117', 500000)
@@ -404,6 +404,29 @@ class TestRedacao(unittest.TestCase):
         from pipeline.alarmes import Alarme
         ruim = [Alarme('A1', 2, '1', '', 0, 'Fornecedor recente')]
         self.assertTrue(confere_redacao(ruim))
+
+    def test_nenhum_texto_de_sinal_sai_sem_acento(self):
+        """Portugues sem acento numa tela publica e erro, nao estilo.
+
+        A regra vale para o texto escrito aqui. Nome proprio vindo do TSE fica
+        como o TSE publicou.
+        """
+        import re
+        from pipeline.alarmes import candidato, doador, fornecedor, ritmo
+        sem_acento = re.compile(
+            r"(lancamento|lancamentos|fisica|fisicas|digito|digitacao|proprio|"
+            r"propria|proprios|servico|servicos|eleicao|declaracao|declaracoes|"
+            r"prestacao|situacao|arrecadacao|constituicao|paragrafo|publico|"
+            r"publica|automatico|minimo|padrao|tambem|numero|nao|esta|ate)")
+        achados = []
+        for mod in (candidato, doador, fornecedor, ritmo):
+            fonte = open(mod.__file__, encoding='utf-8').read()
+            # so as f-strings de mensagem, nunca comentario nem docstring
+            for m in re.findall(r"f'([^']{20,})'", fonte):
+                fora = re.sub(r'\{[^}]*\}', '', m)
+                for p in sem_acento.findall(fora.lower()):
+                    achados.append((mod.__name__, p, m[:60]))
+        self.assertEqual(achados, [], f'{len(achados)} palavras sem acento')
 
     def test_moeda_legivel(self):
         self.assertEqual(moeda(123456789), 'R$ 1,2 mi')

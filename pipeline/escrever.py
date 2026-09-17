@@ -168,7 +168,21 @@ def escrever_fornecedores(nac, destino, topo=400):
                  {'por_valor': linhas, 'por_candidatos': espalhados})
 
 
-def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino, avisos=()):
+def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
+                  catalogo=None, gravidades=None):
+    """O meta carrega os dicionarios e o catalogo de sinais.
+
+    O catalogo sai indexado PELO CODIGO, nao por posicao numa lista. A versao
+    anterior era uma lista de frases, e o front tinha de casar a frase com o
+    sinal pelo indice: bastava acrescentar um codigo no meio para a tela passar
+    a mostrar a ressalva errada ao lado do sinal errado.
+    """
+    sinais = {}
+    for cod, (familia, nome, significa, nao_significa) in (catalogo or {}).items():
+        sinais[cod] = {
+            'familia': familia, 'nome': nome,
+            'significa': significa, 'nao_significa': nao_significa,
+        }
     return grava(os.path.join(destino, 'meta.json'), {
         'gerado_em': gerado,
         'tse': tse,
@@ -176,5 +190,9 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino, avisos=())
         'ufs': ufs,
         'cargos': {k: CARGOS[k] for k in cargos},
         'dic': {k: d.lista for k, d in dics.items()},
-        'avisos': list(avisos),
+        'sinais': sinais,
+        'gravidades': gravidades or {},
+        # mantido enquanto o front antigo existir; o que vale e `sinais`
+        'avisos': [f'{c}: {v["significa"]} O que NAO significa: '
+                   f'{v["nao_significa"]}' for c, v in sorted(sinais.items())],
     })

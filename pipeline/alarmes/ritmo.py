@@ -37,7 +37,7 @@ def d2_salto(a, ctx):
         if delta < D2_DO_ZERO:
             return
         yield Alarme('D2', 2, a.sq, '', delta,
-                     f'A primeira declaracao de gasto do candidato entrou hoje, '
+                     f'A primeira declaração de gasto do candidato entrou hoje, '
                      f'com {moeda(delta)} de uma vez.')
         return
     if delta * 100 < antes * D2_FATIA:
@@ -65,9 +65,9 @@ def d3_nota_repetida(a, ctx):
         n = len(outros)
         plural = 's' if n > 1 else ''
         yield Alarme('D3', 2 if n >= 3 else 1, a.sq, doc, valor,
-                     f'O documento {num} de {nome[:28]} aparece tambem na conta '
+                     f'O documento {num} de {nome[:28]} aparece também na conta '
                      f'de {n} outro{plural} candidato{plural}. Rateio de '
-                     f'material conjunto e legal e gera esse padrao.')
+                     f'material conjunto é legal e gera esse padrão.')
 
 
 def indexar_colisoes(nac, aggs):

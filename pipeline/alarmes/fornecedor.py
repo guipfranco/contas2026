@@ -163,7 +163,7 @@ def a6_pessoa_fisica(a, ctx):
     for doc, e in a.por_forn.items():
         if len(doc) != 11 or e[0] < A6_UM:
             continue
-        lanc = f'{e[1]} lancamento' + ('s' if e[1] > 1 else '')
+        lanc = f'{e[1]} lançamento' + ('s' if e[1] > 1 else '')
         nac = ctx.nac.fornecedores.get(doc)
         alem, muitos = '', 0
         if nac and nac[5] > 1:
@@ -172,8 +172,8 @@ def a6_pessoa_fisica(a, ctx):
                     f'{muitos} candidaturas, somando {moeda(nac[0])}.')
         grave = e[0] >= A6_GRAVE or muitos >= A6_MUITOS_CANDIDATOS
         yield Alarme('A6', 2 if grave else 1, a.sq, doc, e[0],
-                     f'{(e[2] or "Uma pessoa fisica")[:32]} recebeu '
-                     f'{moeda(e[0])} em {lanc}, como pessoa fisica.{alem}')
+                     f'{(e[2] or "Uma pessoa física")[:32]} recebeu '
+                     f'{moeda(e[0])} em {lanc}, como pessoa física.{alem}')
 
 
 def _dv_ok(doc):
@@ -208,8 +208,8 @@ def a7_documento_invalido(a, ctx):
         tipo = 'CNPJ' if len(doc) == 14 else 'CPF'
         yield Alarme('A7', 2, a.sq, doc, e[0],
                      f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])} '
-                     f'com um {tipo} cujo digito verificador nao fecha. '
-                     f'Costuma ser erro de digitacao na prestacao de contas.')
+                     f'com um {tipo} cujo dígito verificador não fecha. '
+                     f'Costuma ser erro de digitação na prestação de contas.')
 
 
 def avaliar(a, ctx):

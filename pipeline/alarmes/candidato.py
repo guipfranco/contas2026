@@ -15,12 +15,12 @@ def c1_teto(a, ctx):
         return
     if fatia > 100:
         yield Alarme('C1', 3, a.sq, '', a.contratado,
-                     f'O gasto contratado esta em {fatia} % do limite do cargo '
-                     f'({moeda(a.contratado)} de {moeda(teto)}). A conta so '
-                     f'fecha na prestacao final.')
+                     f'O gasto contratado está em {fatia} % do limite do cargo '
+                     f'({moeda(a.contratado)} de {moeda(teto)}). A conta só '
+                     f'fecha na prestação final.')
     else:
         yield Alarme('C1', 2, a.sq, '', a.contratado,
-                     f'O gasto contratado esta em {fatia} % do limite do cargo '
+                     f'O gasto contratado está em {fatia} % do limite do cargo '
                      f'({moeda(a.contratado)} de {moeda(teto)}).')
 
 
@@ -29,8 +29,8 @@ def c2_nada_declarado(a, ctx):
         return
     d = ctx.hoje
     yield Alarme('C2', 1, a.sq, '', 0,
-                 f'Nenhuma receita e nenhuma despesa declaradas ate '
-                 f'{d[8:]}/{d[5:7]}. Quem nao movimenta dinheiro presta contas '
+                 f'Nenhuma receita e nenhuma despesa declaradas até '
+                 f'{d[8:]}/{d[5:7]}. Quem não movimenta dinheiro presta contas '
                  f'ao final sem nada a declarar.')
 
 

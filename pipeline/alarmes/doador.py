@@ -79,18 +79,18 @@ def b3_recursos_proprios(a, ctx):
             return
         fatia = pct(proprio, teto)
         yield Alarme('B3', 3, a.sq, '', proprio,
-                     f'Recursos proprios somam {moeda(proprio)}, {fatia} % do '
-                     f'teto de gastos do cargo. A lei permite ate 10 %, ou '
-                     f'{moeda(limite)}. A conta so fecha na prestacao final.')
+                     f'Recursos próprios somam {moeda(proprio)}, {fatia} % do '
+                     f'teto de gastos do cargo. A lei permite até 10 %, ou '
+                     f'{moeda(limite)}. A conta só fecha na prestação final.')
         return
     total = a.receita + a.estimavel
     fatia = pct(proprio, total)
     if fatia < B3_FATIA_SEM_TETO:
         return
     yield Alarme('B3', 1, a.sq, '', proprio,
-                 f'{fatia} % da receita ({moeda(proprio)}) veio do proprio '
-                 f'candidato. O limite legal e 10 % do teto de gastos do cargo, '
-                 f'que nao esta cadastrado aqui para este cargo.')
+                 f'{fatia} % da receita ({moeda(proprio)}) veio do próprio '
+                 f'candidato. O limite legal é 10 % do teto de gastos do cargo, '
+                 f'que não está cadastrado aqui para este cargo.')
 
 
 def b2_pulverizacao(a, ctx):
@@ -141,9 +141,9 @@ def b4_cota(nac):
             'fatia_mulheres': fatia, 'fatia_negros': fatia_negros,
             'grav': 2 if fatia < 20 else 1,
             'texto': f'Candidatas do {partido} em {uf} receberam {fatia} % do '
-                     f'dinheiro publico declarado ate agora ({moeda(mulheres)} '
-                     f'de {moeda(total)}). A Constituicao, no artigo 17, '
-                     f'paragrafo 8, garante no minimo 30 %, e a conta e '
+                     f'dinheiro público declarado até agora ({moeda(mulheres)} '
+                     f'de {moeda(total)}). A Constituição, no artigo 17, '
+                     f'parágrafo 8, garante no mínimo 30 %, e a conta e '
                      f'fechada ao fim da campanha.',
         })
     saida.sort(key=lambda x: (x['fatia_mulheres'], -x['total']))
