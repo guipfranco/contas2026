@@ -237,7 +237,6 @@ def main(argv=None):
     passo(t0, f'Brasil inteiro: {b_br / 1e6:.2f} MB')
     b_ind = E.escrever_indice(list(aggs.values()), dics, a.site)
     b_al = E.escrever_alarmes(todos, aggs, dics, a.site)
-    b_forn = E.escrever_fornecedores(nac, a.site)
     fichas_forn = E.escrever_fornecedores_fichas(nac, aggs, dados_receita,
                                                  nac.cnae_nome, todos, a.site)
     passo(t0, f'{fichas_forn["fornecedores"]:,} fichas de fornecedor em '
@@ -255,7 +254,9 @@ def main(argv=None):
                 for unidade, recorte in sorted(recortes.items()))
     passo(t0, f'recorte de fornecedor em {len(recortes)} arquivos, '
               f'{b_rec / 1e6:.2f} MB')
-    b_pan = E.escrever_panorama(list(aggs.values()), nac, a.site)
+    # o panorama e a lista nacional de fornecedores sairam em 18/09: a tela passou
+    # a agrupar por partido, estado e cargo no proprio front, sobre as linhas que
+    # ja estao filtradas, e quem recebeu vem do recorte por unidade
     E.grava(os.path.join(a.site, 'cota.json'), {'n': len(cota), 'p': cota})
 
     contagens = {
@@ -284,8 +285,7 @@ def main(argv=None):
                                               if len(d) == 14
                                               and d in dados_receita)})
     passo(t0, f'indice {b_ind / 1e6:.2f} MB, alarmes {b_al / 1e3:.0f} KB, '
-              f'fornecedores {b_forn / 1e3:.0f} KB, '
-              f'panorama {b_pan / 1e3:.0f} KB')
+              f'recorte de fornecedor {b_rec / 1e6:.2f} MB')
 
     print('6. estado')
     H.gravar(a.estado, hoje, nac, aggs)

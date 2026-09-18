@@ -296,27 +296,6 @@ def validar(pasta):
             erros.append(f'alarmes.json: texto sem numero: {linha[8][:60]!r}')
             break
 
-    # panorama: os agregados tem de fechar com o que as UFs somam
-    if not falta('panorama.json'):
-        pan = _le(os.path.join(pasta, 'panorama.json'))
-        total_uf = sum(v['contratado'] for v in meta.get('ufs', {}).values())
-        for grupo in ('partidos', 'cargos', 'ufs'):
-            if not pan.get(grupo):
-                erros.append(f'panorama.json: {grupo} vazio')
-                continue
-            soma = sum(x['contratado'] for x in pan[grupo])
-            if soma != total_uf:
-                erros.append(f'panorama.json: {grupo} soma {soma}, as UFs somam '
-                             f'{total_uf}')
-        n_cand = sum(f['n'] for f in pan.get('faixas_cand', []))
-        if n_cand != c.get('candidaturas'):
-            erros.append(f'panorama.json: faixas cobrem {n_cand} candidaturas, '
-                         f'o meta diz {c.get("candidaturas")}')
-        n_forn = sum(f['n'] for f in pan.get('faixas_forn', []))
-        if n_forn != c.get('fornecedores'):
-            erros.append(f'panorama.json: faixas cobrem {n_forn} fornecedores, '
-                         f'o meta diz {c.get("fornecedores")}')
-
     # fichas de fornecedor: o front acha o bloco pela conta do ident, entao o
     # numero de blocos declarado no meta tem de bater com o que foi escrito, e
     # nenhuma ficha de pessoa fisica pode trazer documento sem mascara

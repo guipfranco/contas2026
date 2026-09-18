@@ -1233,6 +1233,11 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertEqual(gastos, sorted(gastos, reverse=True))
             # o recorte de fornecedor sai por unidade e para o pais, e com uma
             # UF so os dois sao a mesma lista
+            # o panorama e a lista nacional de fornecedores sairam em 18/09: a
+            # tela agrupa no front, sobre as linhas ja filtradas, e quem recebeu
+            # vem do recorte por unidade
+            for morto in ('panorama.json', 'fornecedores.json'):
+                self.assertFalse(os.path.exists(os.path.join(site, morto)), morto)
             rec = os.path.join(site, 'forn-recorte')
             r_rr = json.load(open(os.path.join(rec, 'RR.json'), encoding='utf-8'))
             r_br = json.load(open(os.path.join(rec, 'BRASIL.json'),
