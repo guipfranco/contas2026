@@ -62,6 +62,18 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 - **Ficha de pessoa física tem piso, e ele é calibrado contra o dado** `[decidido, Guilherme 17/09/2026]`. Empresa sempre tem ficha, porque CNPJ é público por natureza. Pessoa física só a partir de **R$ 10 mil** recebidos na eleição inteira (`PISO_FICHA_PF`, em `escrever.py`): em Roraima isso deixa 455 de 9.082 (5 %) e ainda cobre 37,5 % de tudo que foi pago a pessoa física. Quem fica de fora continua nas listas, com o documento mascarado, e **não ganha link**: nome apontando para página que não existe é pior que nome sem link.
 - **`CONTAS_SAL` é a chave que protege o CPF.** O identificador de pessoa física é um HMAC com essa chave, que vem do ambiente e nunca do repositório. No GitHub Actions ela é um secret; sem ela, `ident.py` usa um sal declarado no código e o identificador vira reversível por força bruta. **Rodada de produção sem `CONTAS_SAL` não deve publicar ficha de pessoa física.**
 
+## O estado da publicacao, em 18/09/2026
+
+**A rodada diaria esta desabilitada a mao** (`gh workflow list --all` mostra
+`disabled_manually`). O motivo: a branch `dados` ja foi recriada no formato novo,
+sem CPF em texto puro, e uma rodada com o codigo antigo leria aquele arquivo como
+documento cru, regravaria os CPF e dispararia "fornecedor novo" para centenas de
+milhares de pessoas.
+
+Para religar, na ordem: `git push` do `main` com o codigo novo, e so entao
+`gh workflow enable diario.yml`. O secret `CONTAS_SAL` ja existe no repositorio
+desde 18/09.
+
 ## Para rodar
 
 ```bash
