@@ -2,7 +2,7 @@
 
 Painel dos gastos de campanha da eleição brasileira de 2026, a partir da prestação de contas que o TSE publica em dados abertos. Feito para abrir no celular.
 
-**O que ele faz que o DivulgaCandContas não faz:** ranking comparável entre candidaturas, corte por tipo de gasto, quanto de cada campanha saiu de dinheiro público, quem são os grandes fornecedores da eleição inteira, e sinais automáticos que apontam números fora do comum.
+**O que ele faz que o DivulgaCandContas não faz:** ranking comparável entre candidaturas, corte por tipo de gasto, quanto de cada campanha saiu de dinheiro público, uma ficha para cada fornecedor (com o cadastro da Receita, os sócios e todas as campanhas que pagaram a ele), um panorama por partido, cargo, estado e faixa de valor, e sinais automáticos que apontam números fora do comum.
 
 **O que ele não faz:** acusar ninguém. Um sinal aqui é um número que chamou atenção, com o motivo escrito ao lado e a explicação inocente na mesma linha. Quem conclui é gente, depois de conferir.
 
@@ -18,6 +18,7 @@ pipeline/     Python 3.12, só biblioteca padrão. Nenhuma dependência.
   escrever.py     gera os JSON que o site lê
   validar.py      confere o que vai ao ar; aponta, nunca conserta
   rodar.py        a rodada inteira
+  ident.py        o endereco publico de cada fornecedor, sem repetir CPF
 site/index.html   um arquivo, sem CDN e sem biblioteca
 dados/            tabelas mantidas à mão (tetos legais, mapa CNAE)
 tests/            unittest, contra uma fatia real de Roraima
@@ -39,6 +40,10 @@ Duas vezes por dia o GitHub Actions baixa, recalcula e republica no Pages. O est
 **O CDN do TSE barra cliente automático, mas não o runner do GitHub.** Da máquina local, toda requisição leva 403, com qualquer user-agent, em curl, urllib e PowerShell. No runner do Actions, um user-agent de Chrome com os cabeçalhos de navegação passa. `python -m pipeline.baixar --spike` refaz esse diagnóstico quando algo parar de funcionar.
 
 **A fila de enriquecimento é curta.** São 45.348 CNPJ fornecedores no país, mas 4.817 concentram 80% do valor. Meia hora de consulta resolve o topo, e não precisa do dump de 5 GB da Receita.
+
+**A cauda dos fornecedores é quase toda gente, não empresa.** Em Roraima, 9.581 fornecedores para 376 candidaturas: 95 % são pessoa física, 92 % têm um único lançamento, e a mediana recebida é R$ 1.500. É por isso que a ficha de fornecedor mora em blocos de cerca de 120, e não num arquivo por fornecedor: seriam 419 mil arquivos publicados duas vezes por dia.
+
+**Origem e fonte de receita são colunas diferentes do TSE, e trocá-las inverte a tela.** `DS_ORIGEM_RECEITA` é como o partido classificou o repasse; `DS_FONTE_RECEITA` é de que caixa o dinheiro saiu, e é ela que diz o que é dinheiro público. Um filtro chamado "Fonte do dinheiro" rodava sobre a coluna de origem, e respondia o contrário do número de capa da própria página: ele saiu, e a ficha mostra as duas colunas com o nome certo.
 
 ## Os sinais
 

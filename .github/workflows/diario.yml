@@ -61,6 +61,12 @@ jobs:
           ls -la estado/ || true
 
       - name: rodada
+        env:
+          # A chave que protege o CPF: o identificador publico de fornecedor
+          # pessoa fisica e um HMAC com ela. Sem ela, essas fichas simplesmente
+          # nao sao escritas, e a rodada avisa alto. Crie o secret com:
+          #   gh secret set CONTAS_SAL --body "<uma frase longa e aleatoria>"
+          CONTAS_SAL: ${{ secrets.CONTAS_SAL }}
         run: |
           python -m pipeline.rodar \
             --site site/dados \

@@ -10,6 +10,8 @@ Uma passada por arquivo. Nada e lido duas vezes.
 """
 import collections
 
+from .carregar import limpar_nome
+
 # Cargo por codigo, do proprio TSE. So estes entram no painel: suplente de
 # senador nao tem prestacao propria e vice concorre na chapa.
 CARGOS = {
@@ -23,6 +25,21 @@ CARGOS_PAINEL = ('1', '3', '5', '6', '7', '8')
 # O TSE chama de SG_UF a unidade eleitoral, e para os cargos nacionais ela e
 # 'BR'. Na tela isso precisa ter nome, senao 'BR' parece uma sigla de estado
 # que ninguem reconhece.
+#
+# ONDE_UF e o mesmo mapa com a preposicao ja contraida, para o texto do sinal
+# nao sair com "em Bahia" e "em Presidencia". O front tem a copia dele.
+ONDE_UF = {
+    'BR': 'na disputa presidencial', 'BRASIL': 'no Brasil inteiro',
+    'AC': 'no Acre', 'AL': 'em Alagoas', 'AP': 'no Amapá', 'AM': 'no Amazonas',
+    'BA': 'na Bahia', 'CE': 'no Ceará', 'DF': 'no Distrito Federal',
+    'ES': 'no Espírito Santo', 'GO': 'em Goiás', 'MA': 'no Maranhão',
+    'MT': 'no Mato Grosso', 'MS': 'no Mato Grosso do Sul', 'MG': 'em Minas Gerais',
+    'PA': 'no Pará', 'PB': 'na Paraíba', 'PR': 'no Paraná', 'PE': 'em Pernambuco',
+    'PI': 'no Piauí', 'RJ': 'no Rio de Janeiro', 'RN': 'no Rio Grande do Norte',
+    'RS': 'no Rio Grande do Sul', 'RO': 'em Rondônia', 'RR': 'em Roraima',
+    'SC': 'em Santa Catarina', 'SP': 'em São Paulo', 'SE': 'em Sergipe',
+    'TO': 'no Tocantins',
+}
 NOME_UF = {
     'BR': 'Presidência', 'BRASIL': 'Brasil inteiro',
     'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas',
@@ -54,13 +71,13 @@ class Agg:
                  'receita', 'estimavel', 'receita_publica',
                  'n_despesas', 'por_tipo', 'por_forn', 'por_dia',
                  'por_origem', 'por_fonte_paga', 'por_doador',
-                 'primeira', 'ultima', 'genero', 'cor_raca')
+                 'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao')
 
     def __init__(self, sq):
         self.sq = sq
         self.uf = self.cargo = self.nr = self.nome = self.partido = self.cpf = ''
         self.fed = ''
-        self.genero = self.cor_raca = ''
+        self.genero = self.cor_raca = self.ocupacao = ''
         self.prestadores = set()
         self.tipo_prest = ''
         self.contratado = self.pago = self.pago_publico = 0
@@ -85,14 +102,21 @@ class Nacional:
     def __init__(self):
         # doc -> [valor, n_linhas, nome, tipo_forn, cnae, n_candidatos]
         self.fornecedores = {}
-        self._forn_cands = collections.defaultdict(set)
-        # 'doc|numero' -> [sq...] quando a mesma nota aparece em mais de um
+        # doc -> {sq: valor}. Era um conjunto de sq, so para contar campanhas;
+        # virou o valor por campanha porque e o corpo da ficha do fornecedor:
+        # quem pagou a ele, e quanto. Custa 8 bytes por par em relacao ao set.
+        self.forn_cands = collections.defaultdict(dict)
+        # 'doc|numero' -> [sq, valor somado daquela nota no primeiro candidato]
         self.docs_vistos = {}
-        self.docs_colisao = collections.defaultdict(set)
+        # 'doc|numero' -> {sq: valor daquela nota naquele candidato}. O valor e
+        # o da nota, nunca o total do fornecedor: ele vai para o sinal D3 e de
+        # la para o indice, entao medir o total inflaria a fila de conferencia.
+        self.docs_colisao = collections.defaultdict(dict)
         self.doadores = {}
         self._doador_cands = collections.defaultdict(set)
-        # (partido, uf) -> [publico_total, publico_para_mulheres, publico_para_negros]
-        self.fundo_partido = collections.defaultdict(lambda: [0, 0, 0])
+        # (partido, uf) -> [publico_total, publico_para_mulheres,
+        #                   publico_para_negros, {sq das candidaturas}]
+        self.fundo_partido = collections.defaultdict(lambda: [0, 0, 0, set()])
         self.cargos = collections.Counter()
         # o proprio arquivo do TSE traz o nome de cada CNAE; nao
         # precisa de tabela mantida a mao
@@ -107,13 +131,14 @@ class Nacional:
         self.hoje = ''
 
     def fecha(self):
-        for doc, cands in self._forn_cands.items():
+        for doc, cands in self.forn_cands.items():
             if doc in self.fornecedores:
                 self.fornecedores[doc][5] = len(cands)
         for doc, cands in self._doador_cands.items():
             if doc in self.doadores:
                 self.doadores[doc][4] = len(cands)
-        self._forn_cands.clear()
+        # forn_cands nao e limpo: ele e a ficha de cada fornecedor, escrita
+        # depois desta chamada
         self._doador_cands.clear()
         self.docs_vistos.clear()
 
@@ -172,7 +197,9 @@ def agregar_despesas(fluxo, aggs, nac):
                 nac.datas_no_futuro += 1
             elif d.dt > nac.data_max:
                 nac.data_max = d.dt
-        nome_forn = d.forn_rfb or d.forn
+        # o CPF sai de dentro do nome aqui, na entrada: quem grava ficha, lista
+        # e sinal le este mesmo campo, e a limpeza num lugar so nao tem brecha
+        nome_forn = limpar_nome(d.forn_rfb or d.forn)
         if d.doc:
             _bota_forn(a.por_forn, d.doc, d.valor, nome_forn, d.tipo_forn,
                        d.cnae, d.sq_cand_forn, d.tipo)
@@ -180,15 +207,23 @@ def agregar_despesas(fluxo, aggs, nac):
                        d.cnae, d.sq_cand_forn, d.tipo)
             if d.cnae and d.ds_cnae and d.cnae not in nac.cnae_nome:
                 nac.cnae_nome[d.cnae] = d.ds_cnae
-            nac._forn_cands[d.doc].add(d.sq)
+            porcand = nac.forn_cands[d.doc]
+            porcand[d.sq] = porcand.get(d.sq, 0) + d.valor
             if d.num_doc:
                 chave = f'{d.doc}|{d.num_doc}'
                 antes = nac.docs_vistos.get(chave)
                 if antes is None:
-                    nac.docs_vistos[chave] = d.sq
-                elif antes != d.sq:
-                    nac.docs_colisao[chave].add(antes)
-                    nac.docs_colisao[chave].add(d.sq)
+                    nac.docs_vistos[chave] = [d.sq, d.valor]
+                elif antes[0] == d.sq:
+                    # a mesma nota, na mesma conta, em mais de uma linha: e a
+                    # nota com varios itens que o carregar.py descreve
+                    antes[1] += d.valor
+                    if chave in nac.docs_colisao:
+                        nac.docs_colisao[chave][d.sq] = antes[1]
+                else:
+                    colisao = nac.docs_colisao[chave]
+                    colisao.setdefault(antes[0], antes[1])
+                    colisao[d.sq] = colisao.get(d.sq, 0) + d.valor
         nac.n_despesas += 1
         nac.total_contratado += d.valor
         nac.cargos[d.cargo] += 1
@@ -239,8 +274,13 @@ def agregar_receitas(fluxo, aggs, nac):
                 f[1] += r.valor
             if (r.cor_raca or '').upper() in ('PRETA', 'PARDA'):
                 f[2] += r.valor
+            # quantas candidaturas entram na conta do recorte: sem isso, um
+            # partido com uma candidatura unica a Presidencia aparece com 0 %
+            # de fatia como se fosse escolha, quando e aritmetica
+            f[3].add(r.sq)
         if r.doc:
-            nome = r.doador_rfb or r.doador
+            # o doador pessoa fisica tambem pode trazer o CPF dentro do nome
+            nome = limpar_nome(r.doador_rfb or r.doador)
             e = a.por_doador.get(r.doc)
             if e is None:
                 a.por_doador[r.doc] = [r.valor, 1, nome, r.origem]
@@ -280,6 +320,11 @@ def juntar_candidaturas(cands, aggs):
         a.cpf = a.cpf or c.cpf
         a.genero = a.genero or c.genero
         a.cor_raca = a.cor_raca or c.cor_raca
+        # A ocupacao declarada e o unico campo do cadastro que diz o que a
+        # pessoa faz. Ela e declaracao de quem se candidatou, nunca registro
+        # de mandato: DS_SIT_TOT_TURNO vem #NULO em 100 % das linhas de 2026,
+        # porque a eleicao ainda nao aconteceu.
+        a.ocupacao = a.ocupacao or c.ocupacao
         a.fed = c.fed or a.fed
     ficha = {c.sq for c in cands}
     for sq, a in aggs.items():

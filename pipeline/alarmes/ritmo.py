@@ -71,16 +71,23 @@ def d3_nota_repetida(a, ctx):
 
 
 def indexar_colisoes(nac, aggs):
-    """Prepara o D3: de "nota vista em N candidatos" para "por candidato"."""
+    """Prepara o D3: de "nota vista em N candidatos" para "por candidato".
+
+    O valor que sai daqui e o da **nota citada no texto**, nao o total que o
+    fornecedor recebeu daquela campanha. Os dois eram muito diferentes: o
+    fornecedor de uma nota de R$ 25 mil podia ter recebido R$ 1 milhao no
+    total, e como o valor do sinal entra no indice de conferencia (alcance =
+    valor / contratado), medir o total punha na frente da fila quem tinha
+    fornecedor grande, e nao quem tinha nota repetida grande.
+    """
     por_cand = {}
-    for chave, sqs in nac.docs_colisao.items():
+    for chave, por_sq in nac.docs_colisao.items():
         doc, num = chave.split('|', 1)
-        for sq in sqs:
-            a = aggs.get(sq)
-            if not a:
+        sqs = set(por_sq)
+        for sq, valor in por_sq.items():
+            if sq not in aggs:
                 continue
-            e = a.por_forn.get(doc)
-            por_cand.setdefault(sq, {})[doc] = (num, sqs - {sq}, e[0] if e else 0)
+            por_cand.setdefault(sq, {})[doc] = (num, sqs - {sq}, valor)
     return por_cand
 
 

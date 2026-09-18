@@ -22,6 +22,9 @@ e do partido, nunca de um candidato, e e aferida ao fim da campanha.
 import collections
 
 from . import Alarme, moeda, pct
+# a unidade eleitoral sai pelo nome tambem aqui: 'BR' e a Presidencia, e o
+# texto do sinal e tela como qualquer outra
+from ..agregar import ONDE_UF
 
 B1_MIN = 2000000         # R$ 20 mil, dos dois lados
 B1_GRAVE = 5000000
@@ -60,7 +63,7 @@ def b1_doador_fornecedor(a, ctx):
         yield Alarme('B1', 2 if grave else 1, a.sq, doc, max(d[0], f[0]),
                      f'{nome} doou {moeda(d[0])} para a campanha e recebeu '
                      f'{moeda(f[0])} dela como fornecedor. Doar e prestar '
-                     f'servico sao atos distintos, ambos permitidos.')
+                     f'serviço são atos distintos, ambos permitidos.')
 
 
 def b3_recursos_proprios(a, ctx):
@@ -109,8 +112,8 @@ def b2_pulverizacao(a, ctx):
                      valor * len(pessoas),
                      f'{len(pessoas)} pessoas diferentes doaram exatamente '
                      f'{moeda(valor)} no mesmo dia ({dia[8:]}/{dia[5:7]}), '
-                     f'somando {moeda(valor * len(pessoas))}. Arrecadacao com '
-                     f'valor sugerido gera esse padrao.')
+                     f'somando {moeda(valor * len(pessoas))}. Arrecadação com '
+                     f'valor sugerido gera esse padrão.')
 
 
 def indexar_doacoes(linhas):
@@ -129,22 +132,30 @@ def b4_cota(nac):
     montante que o partido destina, e e aferida ao fim da campanha.
     """
     saida = []
-    for (partido, uf), (total, mulheres, negros) in nac.fundo_partido.items():
+    for (partido, uf), dados in nac.fundo_partido.items():
+        total, mulheres, negros = dados[0], dados[1], dados[2]
+        cands = dados[3] if len(dados) > 3 else set()
         if total < B4_MIN_TOTAL or not partido:
             continue
         fatia = pct(mulheres, total)
         fatia_negros = pct(negros, total)
         if fatia >= B4_MINIMO_LEGAL:
             continue
+        # Quantas candidaturas dividem esse dinheiro. Sem esse denominador a
+        # tela abre por recortes de uma candidatura unica, onde a fatia so pode
+        # ser 0 % ou 100 %, e a aritmetica passa por escolha do partido.
+        n = len(cands)
+        onde = ONDE_UF.get(uf, 'em ' + uf)
+        quantas = (f'{n} candidatura' if n == 1 else f'{n} candidaturas')
         saida.append({
-            'partido': partido, 'uf': uf, 'total': total,
+            'partido': partido, 'uf': uf, 'total': total, 'n_cands': n,
             'fatia_mulheres': fatia, 'fatia_negros': fatia_negros,
             'grav': 2 if fatia < 20 else 1,
-            'texto': f'Candidatas do {partido} em {uf} receberam {fatia} % do '
+            'texto': f'Candidatas do {partido} {onde} receberam {fatia} % do '
                      f'dinheiro público declarado até agora ({moeda(mulheres)} '
-                     f'de {moeda(total)}). A Constituição, no artigo 17, '
-                     f'parágrafo 8, garante no mínimo 30 %, e a conta é '
-                     f'fechada ao fim da campanha.',
+                     f'de {moeda(total)}, divididos entre {quantas}). A '
+                     f'Constituição, no artigo 17, parágrafo 8, garante no '
+                     f'mínimo 30 %, e a conta é fechada ao fim da campanha.',
         })
     saida.sort(key=lambda x: (x['fatia_mulheres'], -x['total']))
     return saida

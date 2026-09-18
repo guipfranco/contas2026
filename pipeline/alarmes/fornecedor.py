@@ -142,7 +142,7 @@ def a4_cnae(a, ctx):
             continue
         yield Alarme('A4', 2 if e[0] >= MIN_A4_GRAVE else 1, a.sq, doc, e[0],
                      f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])} em '
-                     f'"{tipo[:32]}". A atividade registrada da empresa e '
+                     f'"{tipo[:32]}". A atividade registrada da empresa é '
                      f'"{nome_cnae[:38]}".')
 
 

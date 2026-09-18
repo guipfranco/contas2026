@@ -23,6 +23,7 @@ entre eles. Quem agrupa por UF e este pipeline, pela coluna SG_UF.
 """
 import csv
 import io
+import re
 import sys
 import zipfile
 from collections import namedtuple
@@ -146,6 +147,41 @@ def num_documento(s, doc_fornecedor=''):
 def cnpj_raiz(doc):
     """Os 8 primeiros digitos do CNPJ: a empresa, sem a filial."""
     return doc[:8] if len(doc) == 14 else ''
+
+
+def cpf_valido(doc):
+    """Digito verificador de CPF. A mesma conta do sinal A7, herdada da Rosie."""
+    doc = re.sub(r'\D', '', doc or '')
+    if len(doc) != 11 or doc == doc[0] * 11:
+        return False
+    for n in (9, 10):
+        soma = sum(int(doc[i]) * (n + 1 - i) for i in range(n))
+        if (soma * 10) % 11 % 10 != int(doc[n]):
+            return False
+    return True
+
+
+def limpar_nome(nome):
+    """Tira o CPF de dentro do nome do fornecedor.
+
+    A razao social de microempreendedor individual e o nome da pessoa com o CPF
+    colado: 'JOSE DA SILVA 11144477735'. O painel mascara o campo do documento e
+    publicava o numero inteiro no campo ao lado, que e o texto mais visivel da
+    ficha. Sai so a sequencia de onze digitos cujo digito verificador fecha:
+    numero que nao e CPF e parte do nome de alguem, e apagar seria inventar um
+    corte. Medido na fixture de Roraima: muda 5 nomes em 9.581, nenhum fica vazio.
+    """
+    nome = (nome or '').strip()
+    if not nome:
+        return nome
+
+    def tira(m):
+        return '' if cpf_valido(m.group(0)) else m.group(0)
+
+    limpo = re.sub(r'(?<!\d)\d{11}(?!\d)', tira, nome)
+    limpo = re.sub(r'\s{2,}', ' ', limpo).strip(' -.,')
+    # nome que era so o CPF continua como estava: um campo vazio diria menos
+    return limpo or nome
 
 
 def mascara(doc):

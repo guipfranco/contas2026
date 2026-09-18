@@ -426,7 +426,7 @@ class TestIndiceDeConferencia(unittest.TestCase):
         for cod in CATALOGO:
             self.assertIn(cod, CURTO, f'{cod} sem rotulo curto')
             self.assertLessEqual(len(CURTO[cod]), 22, f'{cod}: rotulo longo')
-            self.assertIsNone(re.search(r'[A-D]\d', CURTO[cod]),
+            self.assertIsNone(re.search(r'\b[A-D]\d\b', CURTO[cod]),
                               f'{cod}: o rotulo contem o codigo')
 
 
@@ -463,10 +463,10 @@ class TestRedacao(unittest.TestCase):
         import re
         from pipeline.alarmes import candidato, doador, fornecedor, ritmo
         sem_acento = re.compile(
-            r"(lancamento|lancamentos|fisica|fisicas|digito|digitacao|proprio|"
+            r"\b(lancamento|lancamentos|fisica|fisicas|digito|digitacao|proprio|"
             r"propria|proprios|servico|servicos|eleicao|declaracao|declaracoes|"
             r"prestacao|situacao|arrecadacao|constituicao|paragrafo|publico|"
-            r"publica|automatico|minimo|padrao|tambem|numero|nao|esta|ate)")
+            r"publica|automatico|minimo|padrao|tambem|numero|nao|esta|ate)\b")
         achados = []
         for mod in (candidato, doador, fornecedor, ritmo):
             fonte = open(mod.__file__, encoding='utf-8').read()
@@ -483,10 +483,10 @@ class TestRedacao(unittest.TestCase):
         from pipeline.alarmes import (CATALOGO, CURTO, FAIXAS, FORA_DO_INDICE,
                                       GRAVIDADE)
         sem = re.compile(
-            r"(nao|acao|acoes|declaracao|prestacao|ausencia|conferencia|"
+            r"\b(nao|acao|acoes|declaracao|prestacao|ausencia|conferencia|"
             r"indice|codigo|proprio|propria|servico|fisica|publico|publica|"
             r"minimo|numero|tambem|eleicao|situacao|atividade economica|"
-            r"digito|padrao|orgao)", re.I)
+            r"digito|padrao|orgao)\b", re.I)
         achados = []
         for nome, d in (('FORA_DO_INDICE', FORA_DO_INDICE), ('CURTO', CURTO),
                         ('GRAVIDADE', GRAVIDADE)):
@@ -508,7 +508,502 @@ class TestRedacao(unittest.TestCase):
         self.assertEqual(pct(5, 0), 0)
 
 
+class TestRedacaoDoSite(unittest.TestCase):
+    """O texto de site/index.html tambem e tela, e nenhum teste o lia.
+
+    As travas eram conferidas so no texto que o pipeline escreve, e o site tem
+    mais texto que ele: titulo de secao, nota, ressalva, rotulo de filtro. Foi
+    por ai que passou um cabecalho afirmando propriedade ("quem sao os donos")
+    sobre um dado que so diz quem consta como socio.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import re
+        caminho = os.path.join(os.path.dirname(AQUI), 'site', 'index.html')
+        fonte = io.open(caminho, encoding='utf-8').read()
+        cls.fonte = fonte
+        # as cadeias de texto do JavaScript, fora de comentario de bloco
+        sem_bloco = re.sub(r'/\*.*?\*/', ' ', fonte, flags=re.S)
+        brutos = re.findall(r"'((?:[^'\\]|\\.){12,})'", sem_bloco)
+        # so o que e frase: tag HTML e nome de atributo saem, e sobra o texto que
+        # alguem le na tela. Trecho com chave, igual ou parentese e codigo.
+        frases = []
+        for t in brutos:
+            limpo = re.sub(r'<[^>]*>', ' ', t)
+            limpo = re.sub(r'\s+', ' ', limpo).strip()
+            if any(c in limpo for c in '{}=;()[]'):
+                continue
+            if len(re.findall(r'[A-Za-zÀ-ÿ]{3,}', limpo)) < 3:
+                continue
+            frases.append(limpo)
+        cls.textos = frases
+
+    def test_palavra_que_imputa_conduta_so_entra_negada(self):
+        """"Irregularidade" e palavra proibida, e a tela precisa dela.
+
+        No pipeline a regua e simples, porque la a palavra so poderia aparecer
+        afirmando. Na tela ela aparece nas ressalvas, que sao o coracao do
+        produto: "nao mede irregularidade", "nao e acusacao". A regua aqui e a
+        que faz sentido: se a frase nao nega, ela afirma.
+        """
+        import re
+        nega = re.compile(r'\b(não|nao|nunca|nenhum|nenhuma)\b', re.I)
+        achados = []
+        for t in self.textos:
+            baixo = t.lower()
+            for p in PROIBIDAS:
+                if p in baixo and not nega.search(t):
+                    achados.append((p, t[:70]))
+        self.assertEqual(achados, [], f'{len(achados)} textos com palavra proibida')
+
+    def test_a_tela_nunca_usa_travessao(self):
+        for marca in ('—', '–'):
+            self.assertNotIn(marca, self.fonte, f'travessao {marca!r} no site')
+
+    def test_texto_da_tela_sai_acentuado(self):
+        import re
+        sem_acento = re.compile(
+            r'\b(lancamento|lancamentos|fisica|fisicas|proprio|propria|servico|'
+            r'servicos|eleicao|declaracao|declaracoes|prestacao|situacao|'
+            # 'publica' fica de fora: e verbo comum ('o TSE publica o CPF')
+            r'arrecadacao|publico|minimo|padrao|tambem|numero|nao|'
+            r'conferencia|indice|codigo|orgao|socio|socios)\b')
+        achados = []
+        for t in self.textos:
+            achados += [(m, t[:70]) for m in sem_acento.findall(t.lower())]
+        self.assertEqual(achados, [], f'{len(achados)} palavras sem acento')
+
+
+class TestHigieneDoFonte(unittest.TestCase):
+    """O bug que deixou tres testes de redacao passando com qualquer conteudo.
+
+    Um heredoc de shell decodificou \\b e gravou um caractere de backspace no
+    lugar da borda de palavra da expressao regular. O teste passava sempre.
+    """
+
+    def test_nenhum_fonte_do_repo_tem_caractere_de_controle(self):
+        raiz = os.path.dirname(AQUI)
+        proibidos = {chr(c) for c in range(32)} - {'\n', '\r', '\t'}
+        achados = []
+        for pasta, subs, arquivos in os.walk(raiz):
+            subs[:] = [s for s in subs
+                       if s not in ('.git', '__pycache__', 'fixtures', 'tmp')]
+            for nome in arquivos:
+                if not nome.endswith(('.py', '.html', '.yml', '.md')):
+                    continue
+                caminho = os.path.join(pasta, nome)
+                with io.open(caminho, encoding='utf-8', errors='replace') as f:
+                    texto = f.read()
+                for i, ch in enumerate(texto):
+                    if ch in proibidos:
+                        achados.append((os.path.relpath(caminho, raiz),
+                                        hex(ord(ch)), texto[max(0, i - 30):i + 5]))
+        self.assertEqual(achados, [], f'{len(achados)} caracteres de controle')
+
+
+class TestValorEnvolvido(unittest.TestCase):
+    """O valor do sinal alimenta o indice: medir a coisa errada muda a fila."""
+
+    def _despesa(self, sq, doc, num, valor, nome='GRAFICA X'):
+        return C.Despesa(
+            uf='RR', cargo='6', sq=sq, nr='11', nome='FULANO ' + sq, cpf='',
+            partido='XX', prestador='p' + sq, tipo_prest='', tipo_forn='PESSOA JURIDICA',
+            cnae='', ds_cnae='', doc=doc, forn=nome, forn_rfb=nome, uf_forn='RR',
+            sq_cand_forn='', cargo_forn='', part_forn='', tipo_doc='NOTA',
+            num_doc=num, tipo='Material impresso', dt='2026-09-10', valor=valor,
+            descricao='')
+
+    def test_d3_mede_a_nota_repetida_e_nao_o_total_do_fornecedor(self):
+        """A nota citada no texto e a nota que o 'valor envolvido' mede."""
+        aggs, nac = {}, A.Nacional()
+        linhas = [
+            self._despesa('111', '11222333000181', '900', 2500000),
+            self._despesa('222', '11222333000181', '900', 2500000),
+            # a mesma grafica fez muito mais coisa para o candidato 111
+            self._despesa('111', '11222333000181', '901', 100000000),
+        ]
+        A.agregar_despesas(iter(linhas), aggs, nac)
+        nac.fecha()
+        por_cand = al_ritmo.indexar_colisoes(nac, aggs)
+        ctx = Contexto(nac, hoje='2026-09-17')
+        ctx.colisao_por_cand = por_cand
+        sinais = list(al_ritmo.d3_nota_repetida(aggs['111'], ctx))
+        self.assertEqual(len(sinais), 1)
+        self.assertEqual(sinais[0].valor, 2500000)
+        self.assertEqual(aggs['111'].por_forn['11222333000181'][0], 102500000)
+        self.assertIn('900', sinais[0].texto)
+
+
+class TestCotaDeDinheiroPublico(unittest.TestCase):
+    """A tela da cota abre pela menor fatia: o denominador tem de ir junto."""
+
+    def _nac_com(self, partido, uf, total, mulheres, sqs):
+        nac = A.Nacional()
+        f = nac.fundo_partido[(partido, uf)]
+        f[0], f[1], f[2] = total, mulheres, 0
+        f[3].update(sqs)
+        return nac
+
+    def test_unidade_sai_pelo_nome_nunca_como_sigla_crua(self):
+        nac = self._nac_com('PL', 'BR', 4200000000, 0, {'1'})
+        linha = al_doa.b4_cota(nac)[0]
+        self.assertIn('na disputa presidencial', linha['texto'])
+        self.assertNotIn(' em BR ', linha['texto'])
+
+    def test_a_preposicao_vem_contraida_com_o_nome_do_estado(self):
+        """'em Bahia' e 'em Acre' sao erro de portugues numa tela publica."""
+        for uf, esperado in (('BA', 'na Bahia'), ('AC', 'no Acre'),
+                             ('SP', 'em São Paulo'), ('RJ', 'no Rio de Janeiro')):
+            nac = self._nac_com('PT', uf, 4200000000, 0, {'1', '2'})
+            self.assertIn(esperado, al_doa.b4_cota(nac)[0]['texto'])
+
+    def test_recorte_declara_quantas_candidaturas_entram_na_conta(self):
+        nac = self._nac_com('PL', 'BR', 4200000000, 0, {'1'})
+        linha = al_doa.b4_cota(nac)[0]
+        self.assertEqual(linha['n_cands'], 1)
+        self.assertIn('1 candidatura', linha['texto'])
+
+    def test_com_muitas_candidaturas_o_plural_acerta(self):
+        nac = self._nac_com('PT', 'SP', 9000000000, 1000000000, {'1', '2', '3'})
+        linha = al_doa.b4_cota(nac)[0]
+        self.assertEqual(linha['n_cands'], 3)
+        self.assertIn('3 candidaturas', linha['texto'])
+
+
+class TestCpfNoNome(unittest.TestCase):
+    """O nome do fornecedor MEI traz o CPF inteiro dentro dele.
+
+    A razao social de microempreendedor individual e 'FULANO DE TAL 12345678901'.
+    O painel mascara o campo do documento e publicava o numero completo no campo
+    ao lado, no nome, que e o texto mais visivel da ficha.
+    """
+
+    def test_cpf_valido_sai_do_nome(self):
+        from pipeline.carregar import limpar_nome
+        self.assertEqual(limpar_nome('JOSE DA SILVA 11144477735'), 'JOSE DA SILVA')
+        self.assertEqual(limpar_nome('11144477735 JOSE DA SILVA'), 'JOSE DA SILVA')
+
+    def test_numero_que_nao_e_cpf_fica(self):
+        from pipeline.carregar import limpar_nome
+        # digito verificador nao confere: e outro numero qualquer, e apagar seria
+        # inventar um corte no nome de alguem
+        self.assertEqual(limpar_nome('TRANSPORTES 12345678901'),
+                         'TRANSPORTES 12345678901')
+        self.assertEqual(limpar_nome('GRAFICA 2026 LTDA'), 'GRAFICA 2026 LTDA')
+
+    def test_nome_nunca_fica_vazio(self):
+        from pipeline.carregar import limpar_nome
+        self.assertEqual(limpar_nome('11144477735'), '11144477735')
+
+    def test_a_fixture_real_nao_publica_cpf_em_nome_nenhum(self):
+        import re
+        z = zipfile.ZipFile(os.path.join(FIX, 'candidatos.zip'))
+        aggs, nac = {}, A.Nacional()
+        A.agregar_despesas(C.despesas(z, 'RR'), aggs, nac)
+        onze = re.compile(r'(?<!\d)\d{11}(?!\d)')
+        sobrou = []
+        for doc, e in nac.fornecedores.items():
+            for achado in onze.findall(e[2] or ''):
+                if C.cpf_valido(achado):
+                    sobrou.append((doc, e[2]))
+        self.assertEqual(sobrou, [], f'{len(sobrou)} nomes com CPF dentro')
+
+
+class TestIdentificadorDeFornecedor(unittest.TestCase):
+    """O endereco da ficha nao pode ser o CPF, nem coisa que volte para ele."""
+
+    def test_cnpj_e_o_proprio_numero(self):
+        from pipeline.ident import ident
+        self.assertEqual(ident('11222333000181'), '11222333000181')
+
+    def test_cpf_nunca_aparece_no_identificador(self):
+        from pipeline.ident import ident
+        cpf = '12345678901'
+        i = ident(cpf)
+        self.assertTrue(i.startswith('p'))
+        self.assertNotIn(cpf, i)
+        for pedaco in (cpf[:3], cpf[3:6], cpf[6:9]):
+            self.assertNotIn(pedaco, i)
+
+    def test_o_mesmo_documento_cai_sempre_no_mesmo_endereco(self):
+        from pipeline.ident import ident, bloco
+        a, b = ident('12345678901'), ident('12345678901')
+        self.assertEqual(a, b)
+        self.assertEqual(bloco(a), bloco(b))
+        self.assertTrue(0 <= bloco(a) < 256)
+
+    def test_a_chave_do_ambiente_muda_o_identificador(self):
+        from pipeline import ident as I
+        antes = os.environ.get('CONTAS_SAL')
+        try:
+            os.environ['CONTAS_SAL'] = 'uma-chave'
+            um = I.ident('12345678901')
+            os.environ['CONTAS_SAL'] = 'outra-chave'
+            outro = I.ident('12345678901')
+            self.assertNotEqual(um, outro)
+            self.assertTrue(I.tem_sal_de_verdade())
+        finally:
+            if antes is None:
+                os.environ.pop('CONTAS_SAL', None)
+            else:
+                os.environ['CONTAS_SAL'] = antes
+
+    def test_o_estado_nao_guarda_documento_de_pessoa_fisica(self):
+        """O arquivo de fornecedores vistos ficava em texto puro, com CPF."""
+        tmp = tempfile.mkdtemp()
+        antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None) if antes is None
+                        else os.environ.__setitem__('CONTAS_SAL', antes))
+        try:
+            nac = A.Nacional()
+            nac.fornecedores = {'12345678901': [100, 1, 'FULANO', '', '', 1],
+                                '11222333000181': [200, 1, 'EMPRESA', '', '', 1]}
+            H.gravar(tmp, '2026-09-17', nac, {})
+            texto = io.open(os.path.join(tmp, 'fornecedores-vistos.txt'),
+                            encoding='utf-8').read()
+            self.assertNotIn('12345678901', texto)
+            self.assertIn('11222333000181', texto)
+            vistos, _, _ = H.carregar(tmp, '2026-09-18')
+            # e o pipeline continua sabendo que ja viu aquele fornecedor
+            self.assertIn('12345678901', vistos)
+            self.assertIn('11222333000181', vistos)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestFichaDeFornecedor(unittest.TestCase):
+    """A ficha de quem recebe: quem e, quem sao os donos, quem pagou."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.nac = A.Nacional()
+        self.nac.fornecedores = {
+            '11222333000181': [500000, 3, 'GRAFICA BOA LTDA', 'PESSOA JURIDICA',
+                               '1813099', 2, '', 0],
+            # abaixo do piso da ficha de pessoa fisica, de proposito
+            '12345678901': [90000, 1, 'FULANA DE TAL', 'PESSOA FISICA', '', 1, '', 0],
+        }
+        self.nac.forn_cands = {
+            '11222333000181': {'111': 300000, '222': 200000},
+            '12345678901': {'111': 90000},
+        }
+        self.aggs = {}
+        for sq, nome in (('111', 'CANDIDATO UM'), ('222', 'CANDIDATA DOIS')):
+            ag = A.Agg(sq)
+            ag.uf, ag.cargo, ag.nome, ag.partido, ag.nr = 'RR', '6', nome, 'ZZ', '10'
+            ag.contratado = 1000000
+            self.aggs[sq] = ag
+        self.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _escrever(self, receita=None, alarmes=None):
+        return E.escrever_fornecedores_fichas(
+            self.nac, self.aggs, receita or {}, {}, alarmes or [], self.tmp)
+
+    def _bloco_de(self, doc):
+        from pipeline.ident import bloco, ident
+        i = ident(doc)
+        caminho = os.path.join(self.tmp, 'forn', f'{bloco(i, self.blocos)}.json')
+        return json.load(open(caminho, encoding='utf-8'))['f'][i]
+
+    def test_a_ficha_diz_quais_candidaturas_pagaram_e_quanto(self):
+        self.blocos = self._escrever()['blocos']
+        f = self._bloco_de('11222333000181')
+        pagantes = {c[1]: c[5] for c in f['cands']}
+        self.assertEqual(pagantes, {'CANDIDATO UM': 300000, 'CANDIDATA DOIS': 200000})
+        self.assertEqual(f['valor'], 500000)
+        self.assertEqual(f['n_camp'], 2)
+
+    def test_os_socios_entram_quando_a_receita_ja_respondeu(self):
+        receita = {'11222333000181': {
+            'razao_social': 'GRAFICA BOA LTDA', 'situacao_cadastral': 'Ativa',
+            'data_inicio_atividade': '2019-03-01',
+            'natureza_juridica': 'Sociedade Empresária Limitada',
+            'porte_empresa': 'MICRO EMPRESA',
+            'socios': ['MARIA DOS SANTOS', 'JOAO PEREIRA']}}
+        self.blocos = self._escrever(receita=receita)['blocos']
+        f = self._bloco_de('11222333000181')
+        self.assertEqual(f['cadastro']['socios'], ['MARIA DOS SANTOS', 'JOAO PEREIRA'])
+        self.assertEqual(f['cadastro']['situacao'], 'Ativa')
+
+    def test_pessoa_fisica_tem_ficha_sem_o_cpf_aparecer_em_lugar_nenhum(self):
+        antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None) if antes is None
+                        else os.environ.__setitem__('CONTAS_SAL', antes))
+        self.nac.fornecedores['12345678901'][0] = 5000000      # acima do piso
+        self.blocos = self._escrever()['blocos']
+        f = self._bloco_de('12345678901')
+        self.assertEqual(f['nome'], 'FULANA DE TAL')
+        self.assertEqual(f['doc'], '***.456.789-**')
+        self.assertNotIn('cadastro', f)
+        bruto = io.open(os.path.join(self.tmp, 'forn', os.listdir(
+            os.path.join(self.tmp, 'forn'))[0]), encoding='utf-8').read()
+        for arquivo in os.listdir(os.path.join(self.tmp, 'forn')):
+            bruto = io.open(os.path.join(self.tmp, 'forn', arquivo),
+                            encoding='utf-8').read()
+            self.assertNotIn('12345678901', bruto)
+
+    def test_sem_a_chave_do_ambiente_a_ficha_de_pessoa_fisica_nao_e_escrita(self):
+        """Sem CONTAS_SAL o identificador de CPF volta por forca bruta.
+
+        Dez elevado a onze combinacoes caem em segundos numa placa de video, e o
+        identificador vai publicado na URL. Sem a chave, a ficha de pessoa fisica
+        nao sai; a de empresa sai, porque CNPJ e publico por natureza.
+        """
+        antes = os.environ.pop('CONTAS_SAL', None)
+        try:
+            saida = self._escrever()
+            achadas = []
+            for nome in os.listdir(os.path.join(self.tmp, 'forn')):
+                d = json.load(open(os.path.join(self.tmp, 'forn', nome), encoding='utf-8'))
+                achadas += list(d['f'])
+            self.assertIn('11222333000181', achadas)
+            self.assertFalse([x for x in achadas if x.startswith('p')])
+            self.assertEqual(saida['pessoas_fora'], 1)
+        finally:
+            if antes is not None:
+                os.environ['CONTAS_SAL'] = antes
+
+    def test_com_a_chave_a_ficha_de_pessoa_fisica_sai(self):
+        antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.nac.fornecedores['12345678901'][0] = 5000000      # acima do piso
+        try:
+            saida = self._escrever()
+            achadas = []
+            for nome in os.listdir(os.path.join(self.tmp, 'forn')):
+                d = json.load(open(os.path.join(self.tmp, 'forn', nome), encoding='utf-8'))
+                achadas += list(d['f'])
+            self.assertTrue([x for x in achadas if x.startswith('p')])
+            self.assertEqual(saida['pessoas_fora'], 0)
+        finally:
+            if antes is None:
+                os.environ.pop('CONTAS_SAL', None)
+            else:
+                os.environ['CONTAS_SAL'] = antes
+
+    def test_pessoa_fisica_abaixo_do_piso_nao_ganha_ficha(self):
+        """Quem prestou um servico pequeno nao vira pagina.
+
+        Medido em Roraima: 9.082 fornecedores pessoa fisica, e o piso de R$ 10
+        mil deixa 455 deles (5 %), cobrindo 37,5 % de tudo que foi pago a pessoa
+        fisica. Empresa nao tem piso: CNPJ e publico por natureza.
+        """
+        antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None) if antes is None
+                        else os.environ.__setitem__('CONTAS_SAL', antes))
+        # a pessoa fisica da fixture recebeu R$ 900, abaixo do piso
+        saida = self._escrever()
+        achadas = []
+        for nome in os.listdir(os.path.join(self.tmp, 'forn')):
+            d = json.load(open(os.path.join(self.tmp, 'forn', nome), encoding='utf-8'))
+            achadas += list(d['f'])
+        self.assertIn('11222333000181', achadas)
+        self.assertFalse([x for x in achadas if x.startswith('p')])
+        self.assertEqual(saida['pessoas_pequenas'], 1)
+
+    def test_pessoa_fisica_acima_do_piso_ganha_ficha(self):
+        antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None) if antes is None
+                        else os.environ.__setitem__('CONTAS_SAL', antes))
+        self.nac.fornecedores['12345678901'][0] = 5000000      # R$ 50 mil
+        saida = self._escrever()
+        achadas = []
+        for nome in os.listdir(os.path.join(self.tmp, 'forn')):
+            d = json.load(open(os.path.join(self.tmp, 'forn', nome), encoding='utf-8'))
+            achadas += list(d['f'])
+        self.assertTrue([x for x in achadas if x.startswith('p')])
+        self.assertEqual(saida['pessoas_pequenas'], 0)
+
+    def test_o_sinal_do_fornecedor_vai_junto_com_a_ressalva_do_codigo(self):
+        from pipeline.alarmes import Alarme
+        al = [Alarme('A1', 2, '111', '11222333000181', 300000,
+                     'A empresa foi aberta 40 dias antes da primeira despesa.')]
+        self.blocos = self._escrever(alarmes=al)['blocos']
+        f = self._bloco_de('11222333000181')
+        self.assertEqual(f['sinais'][0][0], 'A1')
+        self.assertIn('40 dias', f['sinais'][0][2])
+
+
+class TestPanorama(unittest.TestCase):
+    """A visao sem candidato: partido, cargo, estado e faixa de valor."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp()
+        cls.zc = zipfile.ZipFile(os.path.join(FIX, 'candidatos.zip'))
+        cls.zk = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand.zip'))
+        cls.aggs, cls.nac = {}, A.Nacional()
+        A.agregar_despesas(C.despesas(cls.zc, 'RR'), cls.aggs, cls.nac)
+        p2s = {}
+        for sq, ag in cls.aggs.items():
+            for pr in ag.prestadores:
+                p2s[pr] = sq
+        A.agregar_pagas(C.pagas(cls.zc, 'RR'), cls.aggs, cls.nac, p2s)
+        A.agregar_receitas(C.receitas(cls.zc, 'RR'), cls.aggs, cls.nac)
+        A.juntar_candidaturas(list(C.candidaturas(cls.zk, 'RR')), cls.aggs)
+        cls.nac.fecha()
+        E.escrever_panorama(list(cls.aggs.values()), cls.nac, cls.tmp)
+        cls.p = json.load(open(os.path.join(cls.tmp, 'panorama.json'),
+                               encoding='utf-8'))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_por_partido_traz_quantas_media_mediana_e_os_nomes_do_topo(self):
+        linha = self.p['partidos'][0]
+        self.assertTrue(linha['partido'])
+        self.assertGreater(linha['n'], 0)
+        self.assertGreaterEqual(linha['contratado'], linha['mediana'])
+        self.assertTrue(linha['topo'])
+        self.assertEqual(len(linha['topo'][0]), 4)     # sq, nome, uf, valor
+
+    def test_a_soma_dos_partidos_e_o_total_do_recorte(self):
+        soma = sum(x['contratado'] for x in self.p['partidos'])
+        self.assertEqual(soma, sum(a.contratado for a in self.aggs.values()))
+
+    def test_por_cargo_existe_e_soma_o_mesmo(self):
+        soma = sum(x['contratado'] for x in self.p['cargos'])
+        self.assertEqual(soma, sum(a.contratado for a in self.aggs.values()))
+
+    def test_faixas_de_gasto_cobrem_todas_as_candidaturas(self):
+        soma = sum(f['n'] for f in self.p['faixas_cand'])
+        self.assertEqual(soma, len(self.aggs))
+
+    def test_faixas_de_recebimento_cobrem_todos_os_fornecedores(self):
+        soma = sum(f['n'] for f in self.p['faixas_forn'])
+        self.assertEqual(soma, len(self.nac.fornecedores))
+        # e cada faixa mostra quem esta nela
+        cheias = [f for f in self.p['faixas_forn'] if f['n']]
+        self.assertTrue(all(f['topo'] for f in cheias))
+
+    def test_ocupacao_declarada_entra_no_panorama(self):
+        self.assertTrue(self.p['ocupacoes'])
+        nomes = [o[0] for o in self.p['ocupacoes']]
+        self.assertIn('OUTROS', nomes)
+
+
 class TestPontaAPonta(unittest.TestCase):
+    def setUp(self):
+        # a rodada de producao exige a chave que torna o identificador de pessoa
+        # fisica irreversivel; o teste roda o mesmo caminho
+        self.antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+
+    def tearDown(self):
+        if self.antes is None:
+            os.environ.pop('CONTAS_SAL', None)
+        else:
+            os.environ['CONTAS_SAL'] = self.antes
+
     def test_rodada_inteira_em_roraima(self):
         from pipeline import rodar
         tmp = tempfile.mkdtemp()
@@ -524,21 +1019,22 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIn('RR', meta['ufs'])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
-            self.assertTrue(all(len(l) == 16 for l in uf['c']))
-            # a origem da receita vem na linha, para o filtro por fonte de
-            # financiamento funcionar sem baixar a ficha de cada candidatura
-            self.assertIn('origem', meta['dic'])
-            com_origem = [l for l in uf['c'] if l[15]]
-            self.assertGreater(len(com_origem), 100)
-            n_orig = len(meta['dic']['origem'])
-            for l in com_origem:
-                for oid, v in l[15]:
-                    self.assertTrue(0 <= oid < n_orig)
-                    self.assertGreater(v, 0)
+            self.assertTrue(all(len(l) == 15 for l in uf['c']))
+            # A receita por origem saiu da linha do ranking em 17/09: ela
+            # alimentava um filtro que lia a coluna errada do TSE (origem em
+            # vez de fonte) e custava 100 KB no arquivo do pais. A pergunta
+            # continua respondida na ficha, que traz origens e fontes lado a
+            # lado, com o nome que o TSE usa para cada uma.
+            self.assertNotIn('origem', meta['dic'])
             br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
                                 encoding='utf-8'))
-            self.assertTrue(all(len(l) == 17 for l in br['c']))
-            self.assertTrue(all(l[16] == 'RR' for l in br['c']))
+            self.assertTrue(all(len(l) == 16 for l in br['c']))
+            self.assertTrue(all(l[15] == 'RR' for l in br['c']))
+            # o tipo de gasto por candidatura tambem saiu do arquivo do pais:
+            # era 36 % dele, e o painel de tipos passa a ser o agregado
+            self.assertTrue(all(l[11] == [] for l in br['c']))
+            self.assertIn('tipos', br)
+            self.assertGreater(len(br['tipos']), 5)
             self.assertEqual(sum(l[6] for l in br['c']), 6909092605)
             self.assertIn('RR', meta['nome_uf'])
             self.assertEqual(meta['nome_uf']['BR'] if 'BR' in meta['nome_uf']
@@ -559,7 +1055,9 @@ class TestPontaAPonta(unittest.TestCase):
                             '--site', os.path.join(tmp, 'site'), '--estado', estado,
                             '--dados', os.path.join(tmp, 'sem-dados'), '--hoje', dia])
             vistos, ontem, dia_ant = H.carregar(estado, '2026-09-18')
-            self.assertGreater(len(vistos), 5000)
+            # sem CONTAS_SAL a rodada guarda so os CNPJ: pessoa fisica nao ganha
+            # identificador publicavel, e o teste mede o que de fato e gravado
+            self.assertGreater(len(vistos), 400)
             self.assertEqual(dia_ant, '2026-09-17')
             self.assertGreater(len(ontem), 300)
         finally:

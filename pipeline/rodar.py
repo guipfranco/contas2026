@@ -94,9 +94,21 @@ def main(argv=None):
                    help='nao consulta a rede; o cache continua valendo')
     p.add_argument('--orcamento-receita', type=int, default=4800)
     p.add_argument('--hoje', default='', help='data da rodada (o padrao e o relogio)')
+    p.add_argument('--sem-chave', action='store_true',
+                   help='roda sem CONTAS_SAL; a ficha de pessoa fisica fica de fora')
     a = p.parse_args(argv)
 
     t0 = time.time()
+    # A chave que torna o identificador de pessoa fisica irreversivel. Sem ela a
+    # rodada para antes de escrever qualquer coisa: publicar um identificador que
+    # volta ao CPF e pior do que nao publicar a ficha.
+    from .ident import tem_sal_de_verdade
+    if not tem_sal_de_verdade() and not a.sem_chave:
+        print('CONTAS_SAL nao esta no ambiente.')
+        print('Sem ela, o identificador de fornecedor pessoa fisica e reversivel.')
+        print('No GitHub Actions, crie o secret. Aqui, rode com --sem-chave e as')
+        print('fichas de pessoa fisica ficarao de fora.')
+        return 1
     hoje = a.hoje or date.today().isoformat()
     ufs_pedidas = [u.strip().upper() for u in a.ufs.split(',') if u.strip()]
     uma_uf = ufs_pedidas[0] if len(ufs_pedidas) == 1 else None
@@ -190,7 +202,7 @@ def main(argv=None):
 
     print('5. escrever')
     dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme',
-                                 'origem')}
+                                 'ocupacao')}
     for cod in sorted(CATALOGO):
         dics['alarme'].id(cod)
     os.makedirs(a.site, exist_ok=True)
@@ -226,6 +238,19 @@ def main(argv=None):
     b_ind = E.escrever_indice(list(aggs.values()), dics, a.site)
     b_al = E.escrever_alarmes(todos, aggs, dics, a.site)
     b_forn = E.escrever_fornecedores(nac, a.site)
+    fichas_forn = E.escrever_fornecedores_fichas(nac, aggs, dados_receita,
+                                                 nac.cnae_nome, todos, a.site)
+    passo(t0, f'{fichas_forn["fornecedores"]:,} fichas de fornecedor em '
+              f'{fichas_forn["arquivos"]:,} arquivos, '
+              f'{fichas_forn["bytes"] / 1e6:.1f} MB')
+    if fichas_forn.get('colisoes'):
+        passo(t0, f'   ATENCAO: {fichas_forn["colisoes"]:,} fichas de fornecedor '
+                  f'nao foram escritas, o que indica identificador repetido')
+    if fichas_forn['pessoas_fora']:
+        passo(t0, f'   ATENCAO: {fichas_forn["pessoas_fora"]:,} fichas de pessoa '
+                  f'fisica NAO foram escritas, porque CONTAS_SAL nao esta no '
+                  f'ambiente e sem ela o identificador volta ao CPF')
+    b_pan = E.escrever_panorama(list(aggs.values()), nac, a.site)
     E.grava(os.path.join(a.site, 'cota.json'), {'n': len(cota), 'p': cota})
 
     contagens = {
@@ -244,9 +269,18 @@ def main(argv=None):
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},
-                    a.site, catalogo=CATALOGO, gravidades=GRAVIDADE)
+                    a.site, catalogo=CATALOGO, gravidades=GRAVIDADE,
+                    forn={'blocos': fichas_forn['blocos'],
+                          'n': fichas_forn['fornecedores'],
+                          'pessoas_fora': fichas_forn['pessoas_fora'],
+                          'pessoas_pequenas': fichas_forn['pessoas_pequenas'],
+                          'piso_pf': fichas_forn['piso_pf'],
+                          'com_cadastro': sum(1 for d in nac.fornecedores
+                                              if len(d) == 14
+                                              and d in dados_receita)})
     passo(t0, f'indice {b_ind / 1e6:.2f} MB, alarmes {b_al / 1e3:.0f} KB, '
-              f'fornecedores {b_forn / 1e3:.0f} KB')
+              f'fornecedores {b_forn / 1e3:.0f} KB, '
+              f'panorama {b_pan / 1e3:.0f} KB')
 
     print('6. estado')
     H.gravar(a.estado, hoje, nac, aggs)
