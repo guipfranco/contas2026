@@ -414,7 +414,14 @@ def escrever_forn_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
     dpart = dics['partido']
 
     def entrada(doc, e):
-        cad = nac.fornecedores.get(doc) or [0, 0, '']
+        cad = nac.fornecedores.get(doc)
+        if cad is None:
+            # Quem nao esta no cadastro nacional nao teve ficha escrita, porque a ficha
+            # sai justamente de la: aqui ele entra sem endereco. O caminho nao acontece
+            # hoje (os dois mapas se enchem na mesma passada), e a alternativa silenciosa
+            # seria um CNPJ ganhando link para pagina que nao existe.
+            return ['', 'Não informado', mascara(doc),
+                    1 if len(doc) == 14 else 0, e[0], e[1], e[2], 0]
         endereco, documento, pj, tem = _forn_publico(doc, cad, com_chave)
         return [endereco, curto(cad[2] or 'Não informado'), documento, pj,
                 e[0], e[1], e[2], tem]
@@ -445,6 +452,7 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
     a mostrar a ressalva errada ao lado do sinal errado.
     """
     from .alarmes import CURTO, FAIXAS, FORA_DO_INDICE, PESO, QUANTOS_SOMAM
+    from .alarmes.doador import B4_MIN_TOTAL, B4_MINIMO_LEGAL
     sinais = {}
     for cod, (familia, nome, significa, nao_significa) in (catalogo or {}).items():
         sinais[cod] = {
@@ -462,6 +470,11 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
         'dic': {k: d.lista for k, d in dics.items()},
         'sinais': sinais,
         'gravidades': gravidades or {},
+        # A regua da cota de genero, para a coluna da visao por partido medir com o
+        # mesmo piso do sinal B4. Abaixo dele a fatia e aritmetica e nao escolha: um
+        # partido com uma candidatura so divide o dinheiro entre uma pessoa, e a conta
+        # fecha em 0 % ou 100 %. Publicar aqui evita a constante copiada no front.
+        'cota': {'piso': B4_MIN_TOTAL, 'minimo': B4_MINIMO_LEGAL},
         # quantos blocos a ficha de fornecedor tem: o front acha o bloco
         # pela mesma conta do ident.bloco, sem baixar indice nenhum
         'forn': forn or {},

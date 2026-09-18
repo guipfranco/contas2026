@@ -2,7 +2,7 @@
 
 Painel dos gastos de campanha da eleição brasileira de 2026, a partir da prestação de contas que o TSE publica em dados abertos. Feito para abrir no celular.
 
-**O que ele faz que o DivulgaCandContas não faz:** ranking comparável entre candidaturas, corte por tipo de gasto, quanto de cada campanha saiu de dinheiro público, uma ficha para cada fornecedor (com o cadastro da Receita, os sócios e todas as campanhas que pagaram a ele), um panorama por partido, cargo, estado e faixa de valor, e sinais automáticos que apontam números fora do comum.
+**O que ele faz que o DivulgaCandContas não faz:** ranking comparável entre candidaturas, corte por tipo de gasto, quanto de cada campanha saiu de dinheiro público, a mesma lista somada por partido, estado e cargo, quem recebeu em cada recorte, uma ficha para cada fornecedor (com o cadastro da Receita, os sócios e todas as campanhas que pagaram a ele), e sinais automáticos que apontam números fora do comum.
 
 **O que ele não faz:** acusar ninguém. Um sinal aqui é um número que chamou atenção, com o motivo escrito ao lado e a explicação inocente na mesma linha. Quem conclui é gente, depois de conferir.
 

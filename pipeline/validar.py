@@ -81,6 +81,10 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
     """
     erros = []
     fora = d.get('fora') or {}
+    # Uma entrada quebrada interrompe a contagem da lista dela, e a partir dai toda
+    # comparacao de soma acusaria uma diferenca que e consequencia, nao causa: a queixa
+    # de verdade ficaria enterrada sob quatro linhas de "por partido soma X".
+    ruim = []
 
     def soma(itens, chave):
         total = 0
@@ -88,6 +92,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
             queixa = _queixa_da_entrada(e, sem_pessoas)
             if queixa:
                 erros.append(f'{rel}: {queixa}')
+                ruim.append(chave)
                 break
             total += e[4]
         sobra = fora.get(chave)
@@ -103,7 +108,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
 
     total = soma(d['geral'], 'geral')
     por_camp = soma(d['geral_por_camp'], 'geral_por_camp')
-    if por_camp != total:
+    if not ruim and por_camp != total:
         erros.append(f'{rel}: por campanhas soma {por_camp}, por valor {total}')
     somado = 0
     for pid, itens in d['partido'].items():
@@ -112,7 +117,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
             break
         somado += soma(itens, f'p:{pid}')
     else:
-        if somado != total:
+        if not ruim and somado != total:
             erros.append(f'{rel}: por partido soma {somado}, o geral {total}')
     somado = 0
     for cargo, itens in d['cargo'].items():
@@ -121,7 +126,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
             break
         somado += soma(itens, f'c:{cargo}')
     else:
-        if somado != total:
+        if not ruim and somado != total:
             erros.append(f'{rel}: por cargo soma {somado}, o geral {total}')
     somado = 0
     for chave, itens in d['celula'].items():
@@ -131,7 +136,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
             break
         somado += soma(itens, f'p:{pid}:c:{cargo}')
     else:
-        if somado != total:
+        if not ruim and somado != total:
             erros.append(f'{rel}: por celula soma {somado}, o geral {total}')
     return erros, total
 

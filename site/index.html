@@ -266,6 +266,12 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
    quatro celulas de 300px cada viram quatro cartazes */
 @media(min-width:960px){.lado .tiles{grid-template-columns:repeat(2,1fr)}}
 .tile{padding:10px 12px 12px;min-width:0}
+/* Dentro de uma ficha os quadros já estão num cartão, e cartão dentro de cartão seriam
+   duas bordas concêntricas em volta do mesmo número: ali eles voltam a ser a tabela de
+   razão separada por fios, que é o desenho que a ficha sempre teve. */
+.cartao>.tiles{padding:0;gap:1px;background:var(--b);
+  border-top:1px solid var(--b);border-bottom:1px solid var(--b)}
+.cartao>.tiles>.tile{background:var(--cs)}
 .tile .r{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .v{font-size:21px;font-weight:700;line-height:1.15;margin-top:3px;white-space:nowrap;letter-spacing:-.015em}
 .tile .n{font-size:12.5px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis}
@@ -1939,6 +1945,12 @@ function agrupar(lista, dim){
     return g;
   });
 }
+/* O piso da coluna de cota, o mesmo do sinal B4. O recuo existe para o caso de um meta
+   antigo no ar durante um deploy, e é o valor que o pipeline usa hoje. */
+function pisoCota(){
+  var c = (META && META.cota) || {};
+  return typeof c.piso === 'number' ? c.piso : 100000000;
+}
 function valorDoGrupo(g){
   if(S.ord === 'n') return g.n;
   if(S.ord === 'publico') return g.publico;
@@ -2007,15 +2019,21 @@ function linhaGrupoCartao(g, i, maior){
           ' · contratado ' + moeda(g.contratado) + ' · pago ' + moeda(g.pago));
   /* A cota de gênero virou coluna do partido, e ela mede a receita pública, que é o que
      a lei reserva: no mínimo 30 % do dinheiro público de campanha para candidaturas de
-     mulheres. A conta é do que foi declarado até agora, e a regra é aferida no fim. */
-  if(S.v === 'partido' && g.recPub > 0){
+     mulheres. A conta é do que foi declarado até agora, e a regra é aferida no fim.
+     O piso é o mesmo do sinal B4, e vem do meta: abaixo dele a fatia é aritmética e não
+     escolha, porque o dinheiro se divide entre uma ou duas candidaturas e a conta só
+     pode fechar em 0 % ou 100 %. */
+  if(S.v === 'partido' && g.recPub >= pisoCota()){
     pub += ' · ' + esc(pct(g.recPubF, g.recPub) + ' % da receita pública foi a candidatas');
   }
   var destino = S.v === 'partido' ? {v:'candidato', partido:g.k, fed:''}
               : (S.v === 'cargo' ? {v:'candidato', cargo:g.k}
                                  : {v:'candidato', uf:g.k});
+  /* "sem partido" não tem endereço: o filtro vazio é o mesmo que filtro nenhum, e o
+     toque abriria a lista inteira em vez das candidaturas sem partido. Linha sem link é
+     melhor que link que leva para outro lugar. */
   return linhaCartao({
-    pos:i + 1, nome:g.nome, href:hashCom(destino), classe:'grupo',
+    pos:i + 1, nome:g.nome, href:g.k ? hashCom(destino) : '', classe:'grupo',
     valor:valor, valorCheio:(S.ord === 'n') ? '' : moedaCheia(v), meta:meta,
     medida:porTipo ? barraMagnitude(v, maior) : fioPublico(g.publico, g.pago), pub:pub
   });
@@ -2180,10 +2198,15 @@ function viewFornRecorte(){
     /* quem não caberia na lista continua contado: sem esta linha, a lista dos maiores
        pareceria o conjunto inteiro */
     if(d.fora[0] > 0 && d.lista.length <= S.limite){
+      /* A coluna da direita é a grandeza da ordem, e o que ficou de fora só tem soma em
+         dinheiro: ordenada por campanhas, a cifra sairia no meio de uma coluna de
+         contagens e não seria nem o resto dela. Ali o valor vai escrito por extenso. */
       h += linhaCartao({classe:'resto',
         nome:'outros ' + inteiro(d.fora[0]) + ' fornecedores',
-        valor:moeda(d.fora[1]), valorCheio:moedaCheia(d.fora[1]),
-        pub:esc('somam este valor e ficam fora dos ' + inteiro(d.lista.length) + ' maiores')});
+        valor:porCamp ? '' : moeda(d.fora[1]),
+        valorCheio:porCamp ? '' : moedaCheia(d.fora[1]),
+        pub:esc('somam ' + moeda(d.fora[1]) + ' e ficam fora dos ' +
+                inteiro(d.lista.length) + ' maiores por valor')});
     }
     h += '</ul>';
     if(d.lista.length > S.limite){
@@ -2841,13 +2864,17 @@ function descreverRecorte(){
     p.push(fi ? 'ficha de ' + fi.nome : 'ficha de uma candidatura');
     if(fi && fi.uf) p.push(nomeUnidade(fi.uf));
   } else {
-    /* um ramo só, prefixado pela dimensão: "por partido · Roraima · Dep. Federal" */
+    /* Um ramo só, prefixado pela dimensão: "por partido · Roraima · Dep. Federal".
+       O que está guardado e não recorta esta dimensão não entra: esta frase vai para a
+       testeira, para o título da aba e para o link copiado, e descrever um recorte que
+       a lista embaixo não fez é pior do que não descrever nada. */
+    var foraDaqui = foraDaDimensao();
     if(S.v !== 'candidato') p.push('por ' + ROT_DIM[S.v]);
     p.push(nomeUnidade(ufDaTela()));
     if(S.cargo) p.push(cargoCurto(META.cargos[S.cargo] || S.cargo));
     if(S.partido) p.push(S.partido);
-    if(S.fed) p.push(fedCurta(S.fed));
-    if(S.sinal && S.v !== 'fornecedor') p.push('sinal ' + rotuloSinal(S.sinal));
+    if(S.fed && foraDaqui.indexOf('fed') < 0) p.push(fedCurta(S.fed));
+    if(S.sinal && foraDaqui.indexOf('sinal') < 0) p.push('sinal ' + rotuloSinal(S.sinal));
     if(noTipo()) p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
     if(S.view === 'busca') p.push('busca por "' + S.q + '"');
   }
@@ -3090,11 +3117,17 @@ document.addEventListener('keydown', function(e){
   /* a ordem é a mesma do rodapé: candidato, partido, estado, cargo, fornecedor */
   var dim = {'1':'candidato', '2':'partido', '3':'estado', '4':'cargo', '5':'fornecedor'}[k];
   if(dim){ ir({v:dim, q:'', cand:'', forn:''}); return; }
-  if(k === 'u'){ abrirFiltro('uf'); return; }
-  if(k === 'c'){ abrirFiltro('cargo'); return; }
-  if(k === 'p'){ abrirFiltro('partido'); return; }
-  if(k === 's'){ abrirFiltro('sinal'); return; }
-  if(k === 't'){ abrirFiltro('tipo'); return; }
+  /* A tecla abre o mesmo menu que o chip, e obedece à mesma matriz: onde o chip está
+     desligado, o atalho não abre nada. Sem isso, escolher um estado na dimensão Estado
+     mudava o filtro por baixo e a tela ficava igual, como se a tecla não existisse. */
+  var naoAbre = foraDaDimensao() + (S.v === 'estado' ? ',uf' : '') +
+                (temTipoPorLinha() ? '' : ',tipo');
+  var filtro = {u:'uf', c:'cargo', p:'partido', s:'sinal', t:'tipo'}[k];
+  if(filtro){
+    if(filtro === 'cargo' && ufDaTela() === 'BR') return;
+    if(naoAbre.indexOf(filtro) < 0) abrirFiltro(filtro);
+    return;
+  }
   /* a ordem virou controle sempre a vista: a tecla leva o foco ate ele */
   if(k === 'o'){
     var b = document.querySelector('.ord button');
