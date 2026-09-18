@@ -250,6 +250,11 @@ def main(argv=None):
         passo(t0, f'   ATENCAO: {fichas_forn["pessoas_fora"]:,} fichas de pessoa '
                   f'fisica NAO foram escritas, porque CONTAS_SAL nao esta no '
                   f'ambiente e sem ela o identificador volta ao CPF')
+    recortes = A.recorte_fornecedores(aggs)
+    b_rec = sum(E.escrever_forn_recorte(unidade, recorte, nac, dics, a.site)
+                for unidade, recorte in sorted(recortes.items()))
+    passo(t0, f'recorte de fornecedor em {len(recortes)} arquivos, '
+              f'{b_rec / 1e6:.2f} MB')
     b_pan = E.escrever_panorama(list(aggs.values()), nac, a.site)
     E.grava(os.path.join(a.site, 'cota.json'), {'n': len(cota), 'p': cota})
 

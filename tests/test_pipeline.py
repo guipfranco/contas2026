@@ -932,11 +932,19 @@ class TestFichaDeFornecedor(unittest.TestCase):
         self.assertIn('40 dias', f['sinais'][0][2])
 
 
-class TestPanorama(unittest.TestCase):
-    """A visao sem candidato: partido, cargo, estado e faixa de valor."""
+class TestRecorteDeFornecedores(unittest.TestCase):
+    """Quem recebeu, por unidade e por recorte de partido e cargo.
+
+    A tela de fornecedor obedece aos mesmos filtros das outras, e a linha do
+    ranking nao diz quem recebeu: este agregado e a unica forma de responder
+    "quem recebeu do PT em Roraima" sem baixar 419 mil fichas.
+    """
 
     @classmethod
     def setUpClass(cls):
+        # a classe mede o caminho SEM a chave, que e a rodada de quem
+        # desenvolve: nela nenhuma pessoa fisica pode ganhar endereco
+        cls.antes = os.environ.pop('CONTAS_SAL', None)
         cls.tmp = tempfile.mkdtemp()
         cls.zc = zipfile.ZipFile(os.path.join(FIX, 'candidatos.zip'))
         cls.zk = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand.zip'))
@@ -950,45 +958,220 @@ class TestPanorama(unittest.TestCase):
         A.agregar_receitas(C.receitas(cls.zc, 'RR'), cls.aggs, cls.nac)
         A.juntar_candidaturas(list(C.candidaturas(cls.zk, 'RR')), cls.aggs)
         cls.nac.fecha()
-        E.escrever_panorama(list(cls.aggs.values()), cls.nac, cls.tmp)
-        cls.p = json.load(open(os.path.join(cls.tmp, 'panorama.json'),
-                               encoding='utf-8'))
+        cls.recortes = A.recorte_fornecedores(cls.aggs)
+        cls.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        # o dicionario de partido nasce no ranking, e o recorte carrega o mesmo
+        # indice: a ordem tem de ser a mesma dos dois lados
+        E.escrever_uf('RR', list(cls.aggs.values()), {}, cls.dics, cls.tmp)
+        cls.rec = cls._grava(cls.tmp, cls.dics)
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
+        if cls.antes is not None:
+            os.environ['CONTAS_SAL'] = cls.antes
 
-    def test_por_partido_traz_quantas_media_mediana_e_os_nomes_do_topo(self):
-        linha = self.p['partidos'][0]
-        self.assertTrue(linha['partido'])
-        self.assertGreater(linha['n'], 0)
-        self.assertGreaterEqual(linha['contratado'], linha['mediana'])
-        self.assertTrue(linha['topo'])
-        self.assertEqual(len(linha['topo'][0]), 4)     # sq, nome, uf, valor
+    @classmethod
+    def _grava(cls, destino, dics):
+        saida = {}
+        for unidade, recorte in cls.recortes.items():
+            E.escrever_forn_recorte(unidade, recorte, cls.nac, dics, destino)
+            saida[unidade] = json.load(open(
+                os.path.join(destino, 'forn-recorte', f'{unidade}.json'),
+                encoding='utf-8'))
+        return saida
 
-    def test_a_soma_dos_partidos_e_o_total_do_recorte(self):
-        soma = sum(x['contratado'] for x in self.p['partidos'])
-        self.assertEqual(soma, sum(a.contratado for a in self.aggs.values()))
+    def _todas(self, r):
+        """Cada lista do arquivo, para as travas valerem em todas elas."""
+        yield r['geral']
+        yield r['geral_por_camp']
+        for chave in ('partido', 'cargo', 'celula'):
+            for lista in r[chave].values():
+                yield lista
 
-    def test_por_cargo_existe_e_soma_o_mesmo(self):
-        soma = sum(x['contratado'] for x in self.p['cargos'])
-        self.assertEqual(soma, sum(a.contratado for a in self.aggs.values()))
+    def test_o_geral_e_o_topo_por_valor_e_conta_quem_ficou_de_fora(self):
+        """Roraima tem 9.581 fornecedores: 200 na lista, 9.381 contados.
 
-    def test_faixas_de_gasto_cobrem_todas_as_candidaturas(self):
-        soma = sum(f['n'] for f in self.p['faixas_cand'])
-        self.assertEqual(soma, len(self.aggs))
+        O total do recorte, R$ 69.083.282,65, e MENOR que o contratado da UF,
+        R$ 69.090.926,05, e tem de ser: 660 linhas de despesa nao trazem
+        documento de fornecedor e somam R$ 7.643,40 que existem no contratado e
+        nao tem a quem ser atribuidos.
+        """
+        g = self.rec['RR']['geral']
+        self.assertEqual(len(g), A.TOPO_RECORTE_GERAL)
+        valores = [e[4] for e in g]
+        self.assertEqual(valores, sorted(valores, reverse=True))
+        fora = self.rec['RR']['fora']['geral']
+        self.assertEqual(fora[0], len(self.nac.fornecedores) - len(g))
+        self.assertEqual(fora[0], 9381)
+        total = sum(valores) + fora[1]
+        self.assertEqual(total, 6908328265)
+        self.assertLess(total, sum(a.contratado for a in self.aggs.values()))
 
-    def test_faixas_de_recebimento_cobrem_todos_os_fornecedores(self):
-        soma = sum(f['n'] for f in self.p['faixas_forn'])
-        self.assertEqual(soma, len(self.nac.fornecedores))
-        # e cada faixa mostra quem esta nela
-        cheias = [f for f in self.p['faixas_forn'] if f['n']]
-        self.assertTrue(all(f['topo'] for f in cheias))
+    def test_por_candidaturas_ordena_por_quantas_campanhas_pagaram(self):
+        c = self.rec['RR']['geral_por_camp']
+        campanhas = [e[5] for e in c]
+        self.assertEqual(campanhas, sorted(campanhas, reverse=True))
+        # e nao e a lista do valor em outra ordem: quem atende muita campanha
+        # pequena nao e quem recebeu mais
+        self.assertNotEqual([e[0] for e in c],
+                            [e[0] for e in self.rec['RR']['geral']])
+        fora = self.rec['RR']['fora']['geral_por_camp']
+        self.assertEqual(sum(e[4] for e in c) + fora[1], 6908328265)
 
-    def test_ocupacao_declarada_entra_no_panorama(self):
-        self.assertTrue(self.p['ocupacoes'])
-        nomes = [o[0] for o in self.p['ocupacoes']]
-        self.assertIn('OUTROS', nomes)
+    def test_partido_cargo_e_celula_somam_o_mesmo_que_o_geral(self):
+        r = self.rec['RR']
+        fora = r['fora']
+
+        def soma(listas, chave):
+            total = 0
+            for nome, lista in listas.items():
+                total += sum(e[4] for e in lista)
+                total += (fora.get(chave(nome)) or [0, 0])[1]
+            return total
+
+        total = sum(e[4] for e in r['geral']) + fora['geral'][1]
+        self.assertEqual(soma(r['partido'], lambda p: f'p:{p}'), total)
+        self.assertEqual(soma(r['cargo'], lambda c: f'c:{c}'), total)
+        self.assertEqual(soma(r['celula'], lambda k: 'p:{}:c:{}'.format(
+            *k.split(':'))), total)
+
+    def test_a_celula_bate_com_a_conta_feita_a_mao(self):
+        chave = sorted(self.rec['RR']['celula'])[0]
+        pid, _, cargo = chave.partition(':')
+        partido = self.dics['partido'].lista[int(pid)]
+        mao = {}
+        for a in self.aggs.values():
+            if (a.partido or '') != partido or a.cargo != cargo:
+                continue
+            for doc, e in a.por_forn.items():
+                x = mao.setdefault(doc, [0, 0, 0])
+                x[0] += e[0]
+                x[1] += 1
+                x[2] += e[1]
+        lista = self.rec['RR']['celula'][chave]
+        fora = self.rec['RR']['fora'].get(f'p:{pid}:c:{cargo}') or [0, 0]
+        self.assertEqual(len(mao), len(lista) + fora[0])
+        self.assertEqual(sum(x[0] for x in mao.values()),
+                         sum(e[4] for e in lista) + fora[1])
+        maior = max(mao.items(), key=lambda kv: (kv[1][0], kv[0]))
+        self.assertEqual(lista[0][2], C.mascara(maior[0]))
+        self.assertEqual(lista[0][4:7], maior[1])
+
+    def test_o_partido_e_o_indice_do_dicionario_do_ranking(self):
+        uf = json.load(open(os.path.join(self.tmp, 'uf', 'RR.json'),
+                            encoding='utf-8'))
+        do_ranking = {l[3] for l in uf['c']}
+        for pid in self.rec['RR']['partido']:
+            self.assertIn(int(pid), do_ranking)
+        pid = uf['c'][0][3]
+        partido = self.dics['partido'].lista[pid]
+        mao = sum(sum(e[0] for e in a.por_forn.values())
+                  for a in self.aggs.values() if (a.partido or '') == partido)
+        lista = self.rec['RR']['partido'][str(pid)]
+        fora = self.rec['RR']['fora'].get(f'p:{pid}') or [0, 0]
+        self.assertEqual(mao, sum(e[4] for e in lista) + fora[1])
+
+    def test_pessoa_fisica_sai_mascarada_e_o_cpf_nao_aparece_no_arquivo(self):
+        cpfs = [d for d in self.nac.fornecedores if len(d) == 11]
+        self.assertEqual(len(cpfs), 9082)
+        for unidade in ('RR', 'BRASIL'):
+            bruto = io.open(os.path.join(self.tmp, 'forn-recorte',
+                                         f'{unidade}.json'),
+                            encoding='utf-8').read()
+            self.assertEqual([c for c in cpfs if c in bruto], [])
+        pf = [e for e in self.rec['RR']['geral'] if not e[3]]
+        self.assertTrue(pf)
+        self.assertTrue(all('*' in e[2] for e in pf))
+
+    def test_sem_a_chave_nenhuma_pessoa_fisica_ganha_endereco_nem_ficha(self):
+        self.assertIsNone(os.environ.get('CONTAS_SAL'))
+        pessoas = 0
+        for unidade in ('RR', 'BRASIL'):
+            for lista in self._todas(self.rec[unidade]):
+                for e in lista:
+                    if e[3]:
+                        continue
+                    pessoas += 1
+                    self.assertEqual(e[0], '')
+                    self.assertEqual(e[7], 0)
+        self.assertTrue(pessoas)
+
+    def test_com_a_chave_so_a_pessoa_fisica_acima_do_piso_ganha_endereco(self):
+        from pipeline.ident import ident
+        outro = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, outro, True)
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None))
+        rec = self._grava(outro, {k: E.Dic() for k in
+                                  ('tipo', 'partido', 'fed', 'alarme')})
+        valor = {ident(d): e[0] for d, e in self.nac.fornecedores.items()
+                 if len(d) == 11}
+        com = sem = 0
+        for unidade in ('RR', 'BRASIL'):
+            for lista in self._todas(rec[unidade]):
+                for e in lista:
+                    if e[3]:
+                        continue
+                    if e[0]:
+                        com += 1
+                        self.assertTrue(e[0].startswith('p'))
+                        self.assertGreaterEqual(valor[e[0]], E.PISO_FICHA_PF)
+                    else:
+                        sem += 1
+                        self.assertEqual(e[7], 0)
+        self.assertTrue(com)
+        self.assertTrue(sem)
+
+    def test_tem_ficha_segue_o_total_nacional_e_nao_o_da_unidade(self):
+        """R$ 300 em Roraima e R$ 50 mil no Amazonas: a ficha existe nos dois.
+
+        O piso da ficha de pessoa fisica e medido na eleicao inteira. Se a
+        lista da UF decidisse pelo valor dela, o mesmo fornecedor apareceria com
+        link numa tela e sem link na outra.
+        """
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None))
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        cpf = '11144477735'
+        aggs = {}
+        for sq, uf, valor in (('1', 'RR', 30000), ('2', 'AM', 5000000)):
+            ag = A.Agg(sq)
+            ag.uf, ag.cargo, ag.partido, ag.nome = uf, '6', 'ZZ', 'CANDIDATO'
+            ag.por_forn = {cpf: [valor, 1, 'FULANA DE TAL', 'PESSOA FISICA',
+                                 '', '', '', valor]}
+            aggs[sq] = ag
+        nac = A.Nacional()
+        nac.fornecedores = {cpf: [5030000, 2, 'FULANA DE TAL', 'PESSOA FISICA',
+                                  '', 2, '', 0]}
+        dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        for unidade, recorte in A.recorte_fornecedores(aggs).items():
+            E.escrever_forn_recorte(unidade, recorte, nac, dics, tmp)
+        rr = json.load(open(os.path.join(tmp, 'forn-recorte', 'RR.json'),
+                            encoding='utf-8'))
+        e = rr['geral'][0]
+        self.assertEqual(e[4], 30000)
+        self.assertEqual(e[7], 1)
+        self.assertTrue(e[0].startswith('p'))
+
+    def test_a_lista_nao_passa_do_topo_e_os_grupos_pequenos_vem_inteiros(self):
+        r = self.rec['RR']
+        self.assertLessEqual(len(r['geral']), A.TOPO_RECORTE_GERAL)
+        for pid, lista in r['partido'].items():
+            self.assertLessEqual(len(lista), A.TOPO_RECORTE_PARTIDO)
+            if len(lista) < A.TOPO_RECORTE_PARTIDO:
+                self.assertNotIn(f'p:{pid}', r['fora'])
+        for cargo, lista in r['cargo'].items():
+            self.assertLessEqual(len(lista), A.TOPO_RECORTE_CARGO)
+        pequenas = 0
+        for chave, lista in r['celula'].items():
+            self.assertLessEqual(len(lista), A.TOPO_RECORTE_CELULA)
+            pid, _, cargo = chave.partition(':')
+            if len(lista) < A.TOPO_RECORTE_CELULA:
+                pequenas += 1
+                self.assertNotIn(f'p:{pid}:c:{cargo}', r['fora'])
+        self.assertTrue(pequenas)
 
 
 class TestPontaAPonta(unittest.TestCase):
@@ -1019,7 +1202,7 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIn('RR', meta['ufs'])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
-            self.assertTrue(all(len(l) == 15 for l in uf['c']))
+            self.assertTrue(all(len(l) == 16 for l in uf['c']))
             # A receita por origem saiu da linha do ranking em 17/09: ela
             # alimentava um filtro que lia a coluna errada do TSE (origem em
             # vez de fonte) e custava 100 KB no arquivo do pais. A pergunta
@@ -1028,8 +1211,14 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertNotIn('origem', meta['dic'])
             br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
                                 encoding='utf-8'))
-            self.assertTrue(all(len(l) == 16 for l in br['c']))
-            self.assertTrue(all(l[15] == 'RR' for l in br['c']))
+            self.assertTrue(all(len(l) == 17 for l in br['c']))
+            self.assertTrue(all(l[16] == 'RR' for l in br['c']))
+            # o campo 15 e a receita publica, e entrou para a coluna de cota de
+            # genero na visao por partido: o campo 9 e pagamento, e a fatia de
+            # 30 % que a Constituicao manda medir e sobre a receita
+            self.assertEqual(sum(l[15] for l in br['c']),
+                             sum(l[15] for l in uf['c']))
+            self.assertGreater(sum(l[15] for l in uf['c']), 0)
             # o tipo de gasto por candidatura tambem saiu do arquivo do pais:
             # era 36 % dele, e o painel de tipos passa a ser o agregado
             self.assertTrue(all(l[11] == [] for l in br['c']))
@@ -1042,6 +1231,23 @@ class TestPontaAPonta(unittest.TestCase):
             # ranking em ordem decrescente de gasto
             gastos = [l[6] for l in uf['c']]
             self.assertEqual(gastos, sorted(gastos, reverse=True))
+            # o recorte de fornecedor sai por unidade e para o pais, e com uma
+            # UF so os dois sao a mesma lista
+            rec = os.path.join(site, 'forn-recorte')
+            r_rr = json.load(open(os.path.join(rec, 'RR.json'), encoding='utf-8'))
+            r_br = json.load(open(os.path.join(rec, 'BRASIL.json'),
+                                  encoding='utf-8'))
+            self.assertEqual(r_br['geral'], r_rr['geral'])
+            # e o validador reprova o que quebra a trava do CPF ou o link da
+            # ficha, que e o que este arquivo tem de mais delicado
+            for campo, valor in ((2, '111.444.777-35'), (0, '')):
+                d = json.loads(json.dumps(r_rr))
+                d['geral'][0][campo] = valor
+                d['geral'][0][7] = 1
+                with open(os.path.join(rec, 'RR.json'), 'w',
+                          encoding='utf-8') as f:
+                    json.dump(d, f, ensure_ascii=False)
+                self.assertTrue(V.validar(site))
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

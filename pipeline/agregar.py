@@ -9,6 +9,7 @@ doador que financia dez campanhas.
 Uma passada por arquivo. Nada e lido duas vezes.
 """
 import collections
+import heapq
 
 from .carregar import limpar_nome
 
@@ -21,6 +22,16 @@ CARGOS = {
     '9': '1º Suplente', '10': '2º Suplente',
 }
 CARGOS_PAINEL = ('1', '3', '5', '6', '7', '8')
+
+# Quantos fornecedores cada lista do recorte carrega. A tela de fornecedor
+# obedece aos mesmos filtros das outras, e o recorte por unidade, partido e
+# cargo e a conta que o front nao tem como fazer: a linha do ranking nao diz
+# quem recebeu. Sem corte o arquivo do pais daria 34 MB; com estes topos da
+# 0,6 MB, e cada lista declara quantos ficaram de fora e quanto eles somam.
+TOPO_RECORTE_GERAL = 200
+TOPO_RECORTE_PARTIDO = 60
+TOPO_RECORTE_CARGO = 60
+TOPO_RECORTE_CELULA = 30
 
 # O TSE chama de SG_UF a unidade eleitoral, e para os cargos nacionais ela e
 # 'BR'. Na tela isso precisa ter nome, senao 'BR' parece uma sigla de estado
@@ -378,4 +389,123 @@ def por_uf(aggs):
     saida = collections.defaultdict(list)
     for a in aggs.values():
         saida[a.uf or '??'].append(a)
+    return saida
+
+
+def _funde_no(destino, mapa):
+    """Soma um mapa de fornecedores dentro de outro. [valor, campanhas, lancamentos]."""
+    for doc, e in mapa.items():
+        x = destino.get(doc)
+        if x is None:
+            destino[doc] = [e[0], e[1], e[2]]
+        else:
+            x[0] += e[0]
+            x[1] += e[1]
+            x[2] += e[2]
+
+
+def _celulas(lista):
+    """(partido, cargo) -> {doc: [valor, campanhas, lancamentos]}.
+
+    A celula e a unidade menor do recorte, e partido e cargo saem dela por
+    fusao: uma passada so pelas despesas ja agregadas, em vez de tres.
+    """
+    celulas = collections.defaultdict(dict)
+    for a in lista:
+        alvo = celulas[(a.partido or '', a.cargo or '')]
+        for doc, e in a.por_forn.items():
+            x = alvo.get(doc)
+            if x is None:
+                alvo[doc] = [e[0], 1, e[1]]
+            else:
+                x[0] += e[0]
+                x[1] += 1          # uma candidatura a mais pagou a este
+                x[2] += e[1]
+    return celulas
+
+
+def _topo(mapa, quantos, por_campanhas=False):
+    """Os maiores do mapa, e quantos ficaram de fora somando quanto.
+
+    Devolve (lista ordenada, [n_restantes, soma_restante] ou None). O empate
+    desce pelo documento, para a lista nao mudar de ordem entre rodadas.
+    """
+    def chave(kv):
+        if por_campanhas:
+            return (kv[1][1], kv[1][0], kv[0])
+        return (kv[1][0], kv[0])
+
+    if len(mapa) <= quantos:
+        return sorted(mapa.items(), key=chave, reverse=True), None
+    lista = heapq.nlargest(quantos, mapa.items(), key=chave)
+    resto = sum(e[0] for e in mapa.values()) - sum(e[1][0] for e in lista)
+    return lista, [len(mapa) - quantos, resto]
+
+
+def _cortar_recorte(celulas):
+    """Das celulas para as listas publicaveis, com a conta de quem ficou fora.
+
+    Cada partido e cada cargo e fundido, cortado e descartado antes do
+    seguinte: guardar os tres mapas inteiros ao mesmo tempo dobraria o pico de
+    memoria da rodada nacional sem precisar.
+    """
+    geral = {}
+    for mapa in celulas.values():
+        _funde_no(geral, mapa)
+    fora = {}
+
+    def corta(mapa, quantos, chave, por_campanhas=False):
+        lista, sobra = _topo(mapa, quantos, por_campanhas)
+        if sobra:
+            fora[chave] = sobra
+        return lista
+
+    saida = {
+        'geral': corta(geral, TOPO_RECORTE_GERAL, 'geral'),
+        'geral_por_camp': corta(geral, TOPO_RECORTE_GERAL, 'geral_por_camp',
+                                True),
+        'partido': {},
+        'cargo': {},
+        'celula': {},
+    }
+    del geral
+    for p in sorted({p for p, _ in celulas}):
+        mapa = {}
+        for (pp, _), m in celulas.items():
+            if pp == p:
+                _funde_no(mapa, m)
+        saida['partido'][p] = corta(mapa, TOPO_RECORTE_PARTIDO, ('p', p))
+    for c in sorted({c for _, c in celulas}):
+        mapa = {}
+        for (_, cc), m in celulas.items():
+            if cc == c:
+                _funde_no(mapa, m)
+        saida['cargo'][c] = corta(mapa, TOPO_RECORTE_CARGO, ('c', c))
+    for (p, c), mapa in celulas.items():
+        saida['celula'][(p, c)] = corta(mapa, TOPO_RECORTE_CELULA,
+                                        ('p', p, 'c', c))
+    saida['fora'] = fora
+    return saida
+
+
+def recorte_fornecedores(aggs):
+    """Quem recebeu, por unidade e por recorte de partido e cargo.
+
+    A tela de fornecedor obedece aos mesmos filtros das outras, e a linha do
+    ranking nao diz quem recebeu: sem este agregado o front teria de baixar as
+    fichas de 419 mil fornecedores para responder "quem recebeu do PT no
+    Amazonas". A conta e feita depois de `juntar_candidaturas`, porque so ali o
+    partido de cada candidatura e definitivo.
+
+    Devolve {unidade: recorte}, com 'BRASIL' no mesmo formato. Medido em RR:
+    0,03 s para 10.933 pares.
+    """
+    saida = {}
+    nacional = collections.defaultdict(dict)
+    for uf, lista in por_uf(aggs).items():
+        celulas = _celulas(lista)
+        saida[uf] = _cortar_recorte(celulas)
+        for chave, mapa in celulas.items():
+            _funde_no(nacional[chave], mapa)
+    saida['BRASIL'] = _cortar_recorte(nacional)
     return saida

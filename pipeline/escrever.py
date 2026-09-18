@@ -69,10 +69,16 @@ def grava(caminho, obj):
 def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
     """Uma linha por candidato da UF, para o ranking.
 
-    Quinze campos. O decimo sexto era a receita por origem, e saiu em 17/09:
-    ele existia para um filtro que lia DS_ORIGEM_RECEITA (como o partido
+    Dezesseis campos. Um deles era a receita por origem, e saiu em 17/09: ele
+    existia para um filtro que lia DS_ORIGEM_RECEITA (como o partido
     classificou o repasse) enquanto o numero de capa da pagina, o dinheiro
     publico, vem de DS_FONTE_RECEITA. Os dois se contradiziam na mesma tela.
+
+    O campo 15 e a RECEITA publica, e entrou em 18/09 por causa da coluna de
+    cota de genero na visao por partido. O campo 9 e o que foi PAGO com
+    dinheiro publico, e a Constituicao e o sinal B4 medem a fatia de 30 % sobre
+    a receita, nao sobre o pagamento: sem este campo a tela mediria uma coisa e
+    chamaria pelo nome da outra.
     """
     dtipo, dpart, dfed, dalarme = dics['tipo'], dics['partido'], dics['fed'], dics['alarme']
     linhas = []
@@ -82,7 +88,7 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             # candidato sem nenhum movimento: cabecalho enxuto, para a busca
             linhas.append([a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo,
                            dfed.id(a.fed),
-                           0, 0, 0, 0, 0, [], [], 0, 0])
+                           0, 0, 0, 0, 0, [], [], 0, 0, 0])
             continue
         tipos = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
         linhas.append([
@@ -93,20 +99,37 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             [[dalarme.id(x.codigo), x.grav] for x in al],
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
+            a.receita_publica,
         ])
     return grava(os.path.join(destino, 'uf', f'{uf}.json'),
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
 
 
-def _forn_linha(doc, e, alarmes_do_forn, cnae_nome):
+def _forn_publico(doc, e, com_chave=None):
+    """O que pode ir ao ar sobre um fornecedor: endereco, documento, natureza.
+
+    `e` e a entrada NACIONAL daquele fornecedor, porque o piso da ficha de
+    pessoa fisica e medido na eleicao inteira: quem recebeu R$ 12 mil no pais
+    tem ficha tambem na lista da UF onde recebeu R$ 300.
+
+    O endereco vazio e o que define `tem_ficha` no arquivo. Sao duas contas
+    (o piso, aqui, e a chave do ambiente, no ident) e amarrar a segunda na
+    primeira e o que garante que nenhum nome aponte para pagina que nao existe.
+    """
     from .ident import ident_publico
+    endereco = ident_publico(doc) if tem_ficha(doc, e, com_chave) else ''
+    return (endereco, mascara(doc), 1 if len(doc) == 14 else 0,
+            1 if endereco else 0)
+
+
+def _forn_linha(doc, e, alarmes_do_forn, cnae_nome):
     # o ultimo campo e o endereco da ficha daquele fornecedor: sem ele a lista
     # de quem recebeu seria a unica da tela que nao abre nada
-    return [mascara(doc), curto(e[2] or 'Não informado'), e[0], e[1],
-            1 if len(doc) == 14 else 0,
+    endereco, documento, pj, _ = _forn_publico(doc, e)
+    return [documento, curto(e[2] or 'Não informado'), e[0], e[1], pj,
             (cnae_nome.get(e[4]) or '')[:44],
             sorted(alarmes_do_forn),
-            ident_publico(doc) if tem_ficha(doc, e) else '']
+            endereco]
 
 
 def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None):
@@ -185,6 +208,7 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
             [[dalarme.id(x.codigo), x.grav] for x in al],
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
+            a.receita_publica,
             a.uf,
         ])
     sem_movimento = sum(1 for a in aggs if not a.movimento)
@@ -363,6 +387,52 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
             'colisoes': esperadas - escritas,
             'pessoas_fora': pessoas_fora, 'pessoas_pequenas': pessoas_pequenas,
             'piso_pf': PISO_FICHA_PF, 'bytes': total}
+
+
+def _chave_fora(chave, dpart):
+    """A chave de quem ficou fora, no mesmo endereco que o front monta."""
+    if isinstance(chave, str):
+        return chave
+    if chave[0] == 'p' and len(chave) == 2:
+        return f'p:{dpart.id(chave[1])}'
+    if chave[0] == 'c':
+        return f'c:{chave[1]}'
+    return f'p:{dpart.id(chave[1])}:c:{chave[3]}'
+
+
+def escrever_forn_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
+    """Quem recebeu, na unidade e em cada recorte de partido e cargo.
+
+    Uma entrada e [endereco, nome, documento, pj, valor, campanhas,
+    lancamentos, tem_ficha]. O valor, as campanhas e os lancamentos sao os DO
+    RECORTE; o nome, o documento e a ficha vem do cadastro nacional, que e onde
+    o piso da ficha de pessoa fisica e medido.
+
+    O partido entra pelo indice do dicionario do meta, o mesmo numero que a
+    linha do ranking carrega: o front cruza os dois sem tabela no meio.
+    """
+    dpart = dics['partido']
+
+    def entrada(doc, e):
+        cad = nac.fornecedores.get(doc) or [0, 0, '']
+        endereco, documento, pj, tem = _forn_publico(doc, cad, com_chave)
+        return [endereco, curto(cad[2] or 'Não informado'), documento, pj,
+                e[0], e[1], e[2], tem]
+
+    def lista(itens):
+        return [entrada(d, e) for d, e in itens]
+
+    return grava(os.path.join(destino, 'forn-recorte', f'{unidade}.json'), {
+        'uf': unidade,
+        'geral': lista(recorte['geral']),
+        'geral_por_camp': lista(recorte['geral_por_camp']),
+        'partido': {str(dpart.id(p)): lista(v)
+                    for p, v in recorte['partido'].items()},
+        'cargo': {c: lista(v) for c, v in recorte['cargo'].items()},
+        'celula': {f'{dpart.id(p)}:{c}': lista(v)
+                   for (p, c), v in recorte['celula'].items()},
+        'fora': {_chave_fora(k, dpart): v for k, v in recorte['fora'].items()},
+    })
 
 
 # As faixas sao lidas por gente, entao os cortes sao redondos em reais, nunca

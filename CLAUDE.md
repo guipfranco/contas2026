@@ -55,7 +55,7 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 
 - **O validador é a porta.** `python -m pipeline.validar site/dados` roda antes de publicar, e a rodada falha se ele apontar qualquer coisa. Melhor o site de ontem no ar do que número errado.
 - **Teste antes de mexer em número.** `python -m unittest discover -s tests`. A fixture é dado real, então um teste que quebra costuma ser um fato sobre o TSE, não um bug seu.
-- **Mudou a forma da linha do ranking?** Mude `validar.py` junto, e o front. A linha da UF tem 15 campos e a do Brasil tem 16.
+- **Mudou a forma da linha do ranking?** Mude `validar.py` junto, e o front. A linha da UF tem 16 campos e a do Brasil tem 17.
 - **Layout do TSE muda sem aviso.** `carregar.py` falha alto listando as colunas que sumiram. Quando isso acontecer, rode `python -m ferramentas.inspecionar` no Actions antes de adivinhar.
 - **Não commite `site/dados/`.** É gerado.
 - **A ficha de fornecedor mora em blocos, e o endereço dela não é o documento.** São 419.531 fornecedores no país, 92 % deles com um único lançamento: um arquivo para cada derrubaria a publicação do Pages. Eles vão em blocos de cerca de 120 fichas, e o front acha o bloco refazendo a conta de `ident.bloco` em JavaScript. **Se mexer numa das duas contas, mexa na outra**, e confira com 200 identificadores reais.
