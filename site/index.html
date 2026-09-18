@@ -53,6 +53,7 @@
          segmento ativo das dimensões. Ele não diz nada sobre o dado, só separa
          o que é navegação do que é dinheiro. --- */
   --ac2:#4F46B8;
+  --ac2tx:#FFFFFF;    /* a tinta sobre o segundo acento cheio: ela troca de lado no escuro */
   --chip:#EEF0F6;     /* fundo do chip de atributo, que é leitura e não filtro */
 
   /* --- A escala de intensidade do sinal: amarelo, âmbar e laranja queimado.
@@ -95,7 +96,7 @@
     --ink:#E8EBF2; --mut:#9AA3B5; --b:#2A3040; --b2:#3A4256;
     --ac:#5CC4CC; --acsf:#123036; --acink:#0B1014;
     --faixa:#0B3A40; --faixatx:#D7E8EA;
-    --ac2:#9B94F0; --chip:#222838;
+    --ac2:#9B94F0; --ac2tx:#0B1014; --chip:#222838;
     --cs:#171B24;
     /* no escuro a escala sobe do mesmo jeito: a superfície ganha calor e
        saturação do grau 1 para o 3, e a tinta acompanha */
@@ -174,7 +175,7 @@ input{font:inherit}
    O ativo leva o segundo acento, o mesmo do numeral de posição: ele é navegação, e
    não dado. Nenhuma dimensão tem cor própria, e nenhum partido tem cor nenhuma. */
 .dimwrap{max-width:1180px;margin:14px auto 0;padding:0 var(--gut)}
-body.ficha .dimwrap,body.buscando .dimwrap{display:none}
+body.semdim .dimwrap,body.buscando .dimwrap{display:none}
 
 /* ---------- a barra presa: busca e filtros ---------- */
 header.barra{position:sticky;top:0;z-index:30;background:var(--pap);border-top:1px solid var(--b);border-bottom:1px solid var(--b2)}
@@ -701,7 +702,7 @@ footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   border-right:1px solid var(--b)}
 .abas button:last-child{border-right:0}
-.abas button[aria-current="page"]{background:var(--ac2);color:#FFFFFF;font-weight:700}
+.abas button[aria-current="page"]{background:var(--ac2);color:var(--ac2tx);font-weight:700}
 .abas button[disabled]{opacity:.4;cursor:default}
 @media(max-width:399px){.abas button{padding:0 2px;font-size:12px}}
 @media(hover:hover){.abas button:not([disabled]):not([aria-current="page"]):hover{color:var(--ink);background:var(--sf2)}}
@@ -2440,7 +2441,10 @@ function blocoPares(f){
   var linhas = [];
   marcas.slice().sort(function(a,b){ return a.p - b.p; }).forEach(function(m){
     var i = 0;
-    while(linhas[i] != null && (m.p - linhas[i]) < 30) i++;
+    /* O limiar sobe de 30 para 36 pontos percentuais, e a linha de 18 para 19 px,
+       porque o rotulo subiu de 12,5 para 13 px: no celular, a 34 % de distancia,
+       "p90 R$ 246 mil" e "esta candidatura R$ 370 mil" ficavam um sobre o outro. */
+    while(linhas[i] != null && (m.p - linhas[i]) < 36) i++;
     linhas[i] = m.p; m.lin = i;
   });
   var regua = '<div class="rv" aria-hidden="true"><div class="eixo"></div>' +
@@ -2448,10 +2452,10 @@ function blocoPares(f){
       return m.eu ? '<div class="eu" style="left:' + m.p + '%"></div>'
                   : '<div class="mc" style="left:' + m.p + '%"></div>';
     }).join('') + '</div>';
-  regua += '<div class="rleg" style="height:' + (linhas.length * 18 + 8) + 'px">' +
+  regua += '<div class="rleg" style="height:' + (linhas.length * 19 + 8) + 'px">' +
     marcas.map(function(m){
       var lado = m.p < 14 ? 'left:0' : (m.p > 86 ? 'right:0' : 'left:' + m.p + '%;transform:translateX(-50%)');
-      return '<span class="rl" style="' + lado + ';top:' + (m.lin * 18 + 5) + 'px">' +
+      return '<span class="rl" style="' + lado + ';top:' + (m.lin * 19 + 5) + 'px">' +
         esc(m.r) + ' <b>' + moeda(m.v) + '</b></span>';
     }).join('') + '</div>';
   regua += '<div class="rext"><span>R$ 0</span><span>topo da escala <b class="num">' + moeda(teto) + '</b></span></div>';
@@ -2827,10 +2831,11 @@ function render(){
   /* o botao que ancora o dropdown acabou de ser refeito: o menu nao pode ficar solto */
   if(menuBt && !document.body.contains(menuBt)) fecharMenu(true);
   var chave = S.view + '|' + S.v + '|' + S.cand + '|' + S.forn;
-  /* O segmentado das dimensões só existe onde há lista para trocar de dimensão: numa
-     ficha ele apontaria para uma tela que não está desenhada. A busca já tinha a sua
-     regra, pela classe que o foco do campo põe. */
-  document.body.classList.toggle('ficha', S.view === 'cand' || S.view === 'forn');
+  /* O segmentado das dimensões só existe onde há lista para trocar de dimensão. Numa
+     ficha ele apontaria para uma tela que não está desenhada, e o resultado da busca é
+     do país inteiro, sem dimensão: trocar para Partido ali não recortaria nada. A
+     classe do foco do campo continua valendo, para o teclado virtual. */
+  document.body.classList.toggle('semdim', S.view !== 'lista');
   /* A banda começa sem quadros a cada render: quem os escreve é a visão de lista que
      tem um recorte para resumir, e a ficha e a busca não têm. */
   porResumo('');
