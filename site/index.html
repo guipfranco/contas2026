@@ -119,8 +119,6 @@ body{
      sistema cai em Georgia, que tem algarismo antigo, e o numeral de posição do ranking
      afundava e subia linha a linha em vez de fazer coluna. */
   font-variant-numeric:lining-nums tabular-nums;
-  /* o rodape e fixo e muda de altura com a largura: a altura dele e medida, nunca chutada */
-  padding-bottom:calc(var(--fh,84px) + 8px);
 }
 h1,h2,h3{margin:0;font-size:1em;font-weight:700}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
@@ -131,36 +129,52 @@ input{font:inherit}
 .pular{position:absolute;left:-9999px;top:0;background:var(--pap);border:1px solid var(--ink);padding:10px;z-index:99}
 .pular:focus{left:8px;top:8px}
 
-/* ---------- a testeira: diz o que isto é, e depois o que esta tela é ----------
-   Ela rola com a página, em vez de encolher presa no alto. Encolher um cabeçalho
-   grudado muda a altura dele no meio da rolagem, e o conteúdo salta junto; aqui
-   quem fica preso é só a barra de busca e filtros, que já nasce compacta.
-   A linha fina desce para baixo do título, na mesma medida dele, e a terceira linha
-   é o recorte, que muda com a tela: numa página de dados de jornal o recorte
-   pertence à testeira, não a um chip cem pixels abaixo. */
-.masthead{border-top:3px solid var(--ac);background:var(--pap)}
-.mwrap{max-width:1180px;margin:0 auto;padding:14px var(--gut) 11px}
-.masthead h1{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:-.02em}
-.mlinha{margin:4px 0 0;max-width:560px;font-size:13px;line-height:1.45;color:var(--mut)}
+/* ---------- A BANDA DO TOPO: diz o que isto é, o que esta tela é, e mostra o
+   recorte em números ----------
+   Ela é a única superfície de cor cheia da página, de borda a borda, e por isso
+   todo o resto pode ficar quieto. Ela rola com a página, em vez de encolher presa
+   no alto: encolher um cabeçalho grudado muda a altura dele no meio da rolagem, e
+   o conteúdo salta junto. Quem fica preso é só a barra de busca e filtros. */
+.masthead{background:var(--faixa);color:var(--faixatx)}
+.mwrap{max-width:1180px;margin:0 auto;padding:16px var(--gut) 16px}
+.masthead h1{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:-.02em;color:var(--faixatx)}
+.mlinha{margin:5px 0 0;max-width:620px;font-size:13px;line-height:1.45;color:var(--faixatx);opacity:.82}
 /* A terceira linha da testeira repete o recorte que a barra presa da lista ja
    escreve, e no celular ela custava 36 px antes de qualquer dado. Ela fica de
    900 px para cima, onde a lista divide a tela com a coluna do lado. Ela segue
    no DOM em toda largura, porque e ela que anuncia a troca de tela para quem
    usa leitor de tela. */
-.mrec{margin:10px 0 0;padding-top:8px;border-top:1px solid var(--b);
-  font-size:13px;font-weight:600;color:var(--ink);line-height:1.4}
+.mrec{margin:10px 0 0;font-size:13px;font-weight:600;color:var(--faixatx);line-height:1.4}
 /* No celular ela sai do desenho, não do documento: é ela que carrega o
    role=status e anuncia a troca de tela para quem usa leitor de tela. */
 @media(max-width:899px){
   .mrec{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
     overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 }
-.mrec .rot{font-size:11.5px;letter-spacing:.01em;color:var(--mut);margin-right:7px}
+.mrec .rot{font-size:11.5px;letter-spacing:.01em;color:var(--faixatx);opacity:.7;margin-right:7px}
 @media(min-width:900px){
   :root{--gut:20px}
-  .mwrap{padding:18px var(--gut) 13px}
+  .mwrap{padding:22px var(--gut) 20px}
   .masthead h1{font-size:34px}
 }
+/* Os quadros do recorte moram dentro da banda, brancos sobre o escuro. No celular
+   eles viram uma fileira que rola de lado, de cerca de 88 px de altura, porque a
+   primeira candidatura precisa continuar visível sem rolar: empilhados em duas
+   colunas eles empurravam a lista para baixo da dobra. */
+.masthead .tiles{margin-top:14px;padding:0;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.masthead .tiles:empty{display:none}
+@media(max-width:719px){
+  .masthead .tiles{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .masthead .tiles>.tile{flex:0 0 150px;scroll-snap-align:start;min-height:88px}
+}
+
+/* ---------- as cinco dimensões, no alto da lista ----------
+   Um segmentado de cinco fatias iguais, no lugar onde antes ficava a barra "Ordem".
+   O ativo leva o segundo acento, o mesmo do numeral de posição: ele é navegação, e
+   não dado. Nenhuma dimensão tem cor própria, e nenhum partido tem cor nenhuma. */
+.dimwrap{max-width:1180px;margin:14px auto 0;padding:0 var(--gut)}
+body.ficha .dimwrap,body.buscando .dimwrap{display:none}
 
 /* ---------- a barra presa: busca e filtros ---------- */
 header.barra{position:sticky;top:0;z-index:30;background:var(--pap);border-top:1px solid var(--b);border-bottom:1px solid var(--b2)}
@@ -637,60 +651,36 @@ details[open]>summary::after{border-top:0;border-bottom:6px solid var(--mut)}
 .menu .rot{margin:0;padding:13px 14px 3px;font-size:11.5px;letter-spacing:.01em;font-weight:600;color:var(--mut)}
 .menu .opt[aria-pressed="true"]{color:var(--ac);font-weight:700;background:var(--acsf)}
 
-/* as três seções, presas ao conteúdo pelo alto: a que está aberta leva o fio de acento */
-footer{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--pap);border-top:1px solid var(--b2);
-  padding:0 var(--gut);padding-bottom:env(safe-area-inset-bottom,0px);
-}
-.fwrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:0}
+/* O rodapé no fim da página, como rodapé de página: ele não é mais uma barra presa
+   ao pé da tela cobrando de 84 a 111 px de toda visita para repetir uma frase que
+   não muda. */
+footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
+  padding:14px var(--gut);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.fwrap{max-width:1180px;margin:0 auto}
 /* Cinco dimensões da mesma lista, e não cinco telas: candidato, partido, estado, cargo
-   e fornecedor. No celular os cinco rótulos dividem 352 px, então eles descem para 11 px,
-   o degrau mais baixo da escala. A caixa alta ficou de fora por medida: a 11 px
-   "FORNECEDOR" pede 76 px e a fatia tem 70, e abreviar o nome de uma dimensão para caber
-   custa mais do que ela custa em caixa baixa. De 560 px para cima o rótulo volta ao
-   tamanho do resto da barra. */
-.abas{display:flex;gap:0}
-.abas button{flex:1;min-width:0;min-height:46px;padding:0 2px;font-size:11.5px;font-weight:600;
-  letter-spacing:.01em;color:var(--mut);
+   e fornecedor. Um segmentado de cinco fatias iguais, de 44 px de altura, com o ativo
+   preenchido: um filete de 2 px no alto de um rótulo cinza não dizia em que tela a
+   pessoa estava. O rótulo fica em 13 px, que é o que cabe em cinco fatias de 70 px sem
+   abreviar o nome de uma dimensão. */
+.abas{display:flex;gap:0;background:var(--cs);border:1px solid var(--b);border-radius:var(--raio);
+  overflow:hidden;overflow:clip}
+.abas button{flex:1;min-width:0;min-height:44px;padding:0 4px;font-size:13px;font-weight:600;
+  letter-spacing:-.01em;color:var(--mut);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  border-top:2px solid transparent;margin-top:-1px}
-.abas button[aria-current="page"]{color:var(--ac);border-top-color:var(--ac)}
+  border-right:1px solid var(--b)}
+.abas button:last-child{border-right:0}
+.abas button[aria-current="page"]{background:var(--ac2);color:#FFFFFF;font-weight:700}
 .abas button[disabled]{opacity:.4;cursor:default}
-@media(max-width:559px){
-  /* no celular os cinco rótulos dividem a tela inteira: o recuo lateral do rodapé sai
-     de 16 px para 4 px, senão "Candidato" e "Fornecedor" saem cortados */
-  footer{padding:0 4px}
-  .abas button{padding:0 1px;letter-spacing:0}
-}
-@media(min-width:560px){
-  .abas button{font-size:13px;letter-spacing:0;padding:0 6px}
-}
-@media(hover:hover){.abas button:not([disabled]):hover{color:var(--ink)}}
-.legal{margin:0;font-size:11.5px;line-height:1.35;color:var(--mut);text-align:center;padding:0 0 5px}
+@media(max-width:399px){.abas button{padding:0 2px;font-size:12px}}
+@media(hover:hover){.abas button:not([disabled]):not([aria-current="page"]):hover{color:var(--ink);background:var(--sf2)}}
+.legal{margin:0;font-size:13px;line-height:1.45;color:var(--mut);text-align:center}
 .legal b{color:var(--ink);font-weight:600}
-/* A frase legal fica presa em toda tela, porque a ressalva é parte do produto.
-   O que muda com a largura é o tamanho dela: no celular ela quebrava em três
-   linhas e o rodapé prendia 107 px, e a versão curta diz o mesmo em uma. */
-.so-larga{display:none}
-@media(min-width:560px){.so-larga{display:inline}.so-estreita{display:none}}
-/* Com o teclado virtual aberto sobram cerca de 240 px para o resultado da
-   busca. Enquanto o campo tem foco, as abas saem da frente e voltam no blur. */
-body.buscando footer{display:none}
-/* a porta da metodologia e do contato está em toda tela: a caixa continua com 26px de
-   desenho e a área de toque vai a 44px por um ::after, que não engorda o rodapé */
+/* a porta da metodologia e do contato: a caixa continua com 26px de desenho e a área
+   de toque vai a 44px por um ::after, que não engorda a linha */
 .legalbt{position:relative;font-size:inherit;color:var(--ac);font-weight:600;text-decoration:underline;min-height:26px;padding:0 2px}
 .legalbt::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-4px;right:-4px}
 .legalbt[disabled]{color:var(--mut);text-decoration:none;cursor:default}
 .legalbt[disabled]::after{content:none}
-@media(min-width:720px){
-  .fwrap{flex-direction:row;align-items:stretch;gap:16px}
-  /* Com cinco dimensões a fileira deixa de ter medida fixa: 340 px punha "Fornecedor"
-     em 68 px enquanto sobrava meia tela vazia à direita. Ela também não encolhe: a
-     frase legal ao lado é que cede espaço, senão os rótulos saem cortados. */
-  .abas{width:auto;flex:none}
-  .abas button{flex:0 0 auto;padding:0 12px}
-  .legal{flex:1;text-align:right;font-size:13px;align-self:center;padding:6px 0}
-}
 .ocul{display:none}
 .ocultavisual{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
@@ -698,15 +688,17 @@ body.buscando footer{display:none}
 <body>
 <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
-<!-- A testeira diz o que isto é para quem abre o link sem contexto nenhum: o nome, o que a
-     página faz e, na terceira linha, que recorte esta tela mostra. A fonte e a data desceram
-     para o rodapé, que está em toda tela. Ela rola com a página; quem fica preso no alto é só
-     a barra de busca e filtros, que já nasce compacta. -->
-<header class="masthead">
+<!-- A BANDA DO TOPO, o único lugar da página que recebe a ousadia: o nome, o que a página
+     faz, o recorte desta tela e os quadros do recorte, todos dentro dela. Os quadros moravam
+     na coluna da direita, onde no celular eles vinham depois da lista inteira e no laptop
+     competiam com ela; aqui eles são a capa. Ela rola com a página; quem fica preso no alto
+     é só a barra de busca e filtros, que já nasce compacta. -->
+<header class="masthead faixa">
   <div class="mwrap">
     <h1>Contas de campanha 2026</h1>
     <p class="mlinha">O que cada candidatura declarou ao TSE que arrecadou e gastou, com o que vale conferir apontado ao lado.</p>
     <p class="mrec"><span class="rot">Nesta tela</span><span id="mrec" role="status">carregando</span></p>
+    <div id="resumo" class="tiles"></div>
   </div>
 </header>
 
@@ -726,22 +718,32 @@ body.buscando footer{display:none}
   </div>
 </header>
 
-<!-- o rodape vem antes do conteudo no DOM, e o CSS o fixa embaixo: quem navega por
-     teclado alcanca as secoes sem atravessar a lista inteira -->
-<footer id="rodape">
-  <div class="fwrap">
-    <nav class="abas" aria-label="Dimensões do painel">
-      <button id="ab-candidato" data-act="aba" data-v="candidato" aria-current="page">Candidato</button>
-      <button id="ab-partido" data-act="aba" data-v="partido">Partido</button>
-      <button id="ab-estado" data-act="aba" data-v="estado">Estado</button>
-      <button id="ab-cargo" data-act="aba" data-v="cargo">Cargo</button>
-      <button id="ab-fornecedor" data-act="aba" data-v="fornecedor">Fornecedor</button>
-    </nav>
-    <p class="legal"><span class="so-larga">Fonte: TSE, dados abertos da prestação de contas 2026 · dados de </span><span class="so-estreita">TSE · </span><b id="dtger">carregando</b><span class="so-larga"> · sinal automático, não é conclusão sobre ninguém</span><span class="so-estreita"> · sinal não é conclusão</span> · <button class="legalbt" id="btajuda2" data-act="ajuda" disabled>contato e metodologia</button></p>
-  </div>
-</footer>
+<!-- As cinco dimensões da mesma lista, no alto, onde antes ficava a barra "Ordem". Elas
+     moravam numa barra presa ao pé da tela, longe da lista que elas trocam e disputando o
+     polegar com o teclado virtual. Aqui elas abrem a lista, e o que elas trocam começa
+     logo abaixo. Na ficha e na busca o segmentado sai da tela: ali não há lista para
+     trocar de dimensão. -->
+<div class="dimwrap">
+  <nav class="abas" aria-label="Dimensões do painel">
+    <button id="ab-candidato" data-act="aba" data-v="candidato" aria-current="page">Candidato</button>
+    <button id="ab-partido" data-act="aba" data-v="partido">Partido</button>
+    <button id="ab-estado" data-act="aba" data-v="estado">Estado</button>
+    <button id="ab-cargo" data-act="aba" data-v="cargo">Cargo</button>
+    <button id="ab-fornecedor" data-act="aba" data-v="fornecedor">Fornecedor</button>
+  </nav>
+</div>
 
 <main id="conteudo" tabindex="-1"></main>
+
+<!-- O rodapé deixou de ser preso ao pé da tela. Preso, ele cobrava de 84 a 111 px de toda
+     tela para repetir uma frase que não muda, e o corpo da página precisava reservar essa
+     altura medida. Ele volta a ser rodapé: fica no fim da página, depois do conteúdo, e a
+     frase da fonte cabe numa linha só em qualquer largura. -->
+<footer id="rodape">
+  <div class="fwrap">
+    <p class="legal">Fonte: TSE, dados abertos da prestação de contas 2026 · dados de <b id="dtger">carregando</b> · sinal automático, não é conclusão sobre ninguém · <button class="legalbt" id="btajuda2" data-act="ajuda" disabled>contato e metodologia</button></p>
+  </div>
+</footer>
 
 <div id="folha"></div>
 
@@ -1538,13 +1540,12 @@ function renderChips(){
   });
   medirBarras();
 }
-/* As duas barras fixas mudam de altura com a largura da tela e com o número de filtros
-   ligados: no celular a frase legal do rodapé quebra em três linhas e ele passa de 84px
-   para 111px. As duas alturas são medidas e o CSS reserva o espaço a partir delas. */
+/* Sobrou uma barra presa, a de busca e filtros, e ela muda de altura com a largura da
+   tela e com o número de filtros ligados. A altura dela é medida, nunca chutada: é ela
+   que diz onde o rótulo da lista gruda. O rodapé saiu daqui quando deixou de ser preso. */
 function medirBarras(){
-  var hd = document.querySelector('header.barra'), pe = document.getElementById('rodape');
+  var hd = document.querySelector('header.barra');
   if(hd) document.documentElement.style.setProperty('--hh', hd.offsetHeight + 'px');
-  if(pe) document.documentElement.style.setProperty('--fh', pe.offsetHeight + 'px');
 }
 
 /* ---------- blocos reutilizados ---------- */
@@ -2771,6 +2772,10 @@ function render(){
   /* o botao que ancora o dropdown acabou de ser refeito: o menu nao pode ficar solto */
   if(menuBt && !document.body.contains(menuBt)) fecharMenu(true);
   var chave = S.view + '|' + S.v + '|' + S.cand + '|' + S.forn;
+  /* O segmentado das dimensões só existe onde há lista para trocar de dimensão: numa
+     ficha ele apontaria para uma tela que não está desenhada. A busca já tinha a sua
+     regra, pela classe que o foco do campo põe. */
+  document.body.classList.toggle('ficha', S.view === 'cand' || S.view === 'forn');
   /* Primeiro o que está aberto por cima da lista (uma ficha, uma busca), e só depois a
      dimensão: uma ficha é uma ficha em qualquer dimensão. */
   if(S.view === 'cand') viewCand();
