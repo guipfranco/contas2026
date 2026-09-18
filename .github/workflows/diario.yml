@@ -5,9 +5,14 @@ name: rodada diaria
 # anunciada: o observado em 17/09 foi por volta das 04h de Brasilia.
 
 on:
-  schedule:
-    - cron: '30 9 * * *'    # 06:30 em Brasilia
-    - cron: '0 15 * * *'    # 12:00 em Brasilia
+  # O AGENDAMENTO ESTA PAUSADO desde 18/09, a pedido do dono, enquanto a tela nova
+  # esta sendo fechada: o site fica parado no que foi publicado a mao, em vez de se
+  # atualizar sozinho no meio de uma mudanca. O disparo manual continua valendo, e o
+  # `workflow_dispatch` abaixo e o que publica enquanto isso. Para voltar ao
+  # automatico, descomente os dois cron; nao e preciso reabilitar workflow nenhum.
+  # schedule:
+  #   - cron: '30 9 * * *'    # 06:30 em Brasilia
+  #   - cron: '0 15 * * *'    # 12:00 em Brasilia
   workflow_dispatch:
     inputs:
       ufs:

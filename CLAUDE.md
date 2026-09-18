@@ -66,9 +66,16 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 
 ## O estado da publicacao, em 18/09/2026
 
-**A rodada diaria esta no ar de novo** (`gh workflow list --all` mostra `active`) e o
-painel nacional foi publicado em 18/09 com o codigo novo. O secret `CONTAS_SAL` existe
-no repositorio desde 18/09.
+**O agendamento está pausado, e a publicação é à mão** `[decidido, Guilherme
+18/09/2026]`. Os dois `cron` de `diario.yml` estão comentados enquanto a tela das cinco
+dimensões está sendo fechada: o site não se atualiza sozinho no meio de uma mudança. O
+workflow continua **habilitado**, porque quem publica agora é `gh workflow run
+diario.yml`, e voltar ao automático é descomentar os dois `cron`, sem reabilitar nada.
+
+Com `sem_receita=true` a rodada leva dois minutos e usa o cache de CNPJ já coletado; sem
+a opção, ela gasta 80 minutos consultando a Receita e só então publica. **O cache só é
+gravado na branch `dados` no fim da rodada**: cancelar uma rodada no meio perde o que ela
+consultou até ali. O secret `CONTAS_SAL` existe no repositório desde 18/09.
 
 Ela passou a madrugada desabilitada a mao, por um motivo que vale guardar: a branch
 `dados` ja havia sido recriada no formato novo, sem CPF em texto puro, e uma rodada com
