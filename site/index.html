@@ -284,7 +284,12 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
 /* duas colunas so na coluna estreita do lado; na ficha, que ocupa a largura toda,
    quatro celulas de 300px cada viram quatro cartazes */
 @media(min-width:960px){.lado .tiles{grid-template-columns:repeat(2,1fr)}}
-.tile{padding:10px 12px 12px;min-width:0}
+/* Os quadros do resumo subiram para a banda do topo. No celular eles vinham depois da
+   lista inteira, e no laptop competiam com ela na coluna da direita; na banda eles são
+   a capa da tela, e a coluna do lado fica só com o painel de gasto por tipo. */
+/* O quadro é branco em toda parte, inclusive dentro da banda escura: a tinta dele é
+   declarada aqui, senão ele herdaria a tinta clara da banda e o número sumiria. */
+.tile{padding:11px 13px 13px;min-width:0;color:var(--ink)}
 /* Dentro de uma ficha os quadros já estão num cartão, e cartão dentro de cartão seriam
    duas bordas concêntricas em volta do mesmo número: ali eles voltam a ser a tabela de
    razão separada por fios, que é o desenho que a ficha sempre teve. */
@@ -325,8 +330,9 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
 .row{position:relative}
 .rowmain{
   display:grid;grid-template-columns:var(--calha) minmax(0,1fr) auto;
-  grid-template-areas:"pos nome val" "pos meta meta" "pos fio fio" "pos pub pub";
-  gap:1px 10px;padding:12px var(--gut) 13px;text-decoration:none;color:inherit;
+  grid-template-areas:"pos nome val" "pos meta meta" "pos chips chips"
+                      "pos fio fio" "pos pub pub" "pos cel cel";
+  gap:1px 10px;padding:14px var(--gut) 15px;text-decoration:none;color:inherit;
 }
 /* Com o selo do índice na linha, ele ganha coluna própria na grade e sobe para a altura
    do valor. Antes ele ficava centrado na altura do fio do dinheiro público e a 5px do fim
@@ -336,7 +342,8 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
    inteira, e não termina onde nada começa. */
 .row.temix .rowmain{
   grid-template-columns:var(--calha) minmax(0,1fr) auto var(--ixc);
-  grid-template-areas:"pos nome val ix" "pos meta meta ix" "pos fio fio fio" "pos pub pub pub";
+  grid-template-areas:"pos nome val ix" "pos meta meta ix" "pos chips chips chips"
+                      "pos fio fio fio" "pos pub pub pub" "pos cel cel cel";
 }
 .r-ixgap{grid-area:ix}
 .rowmain:active{background:var(--sf2)}
@@ -362,7 +369,28 @@ details summary:focus-visible{outline-offset:-3px;border-radius:0}
    do texto, unidade logo depois, e o resto (número, federação) em cinza */
 .r-meta .r-part{color:var(--ink);font-weight:600}
 .r-meta .r-uf{color:var(--ink)}
-.r-fio{grid-area:fio;margin-top:9px}
+/* CHIPS DE ATRIBUTO. Quem é a candidatura antes do nome ser conhecido: partido,
+   cargo e unidade, número de urna, federação. Eram cinco itens cinza separados por
+   pontos, na mesma linha e com o mesmo peso, e ninguém os lia. Agora cada um é uma
+   pastilha com fundo próprio, a 13 px.
+   **Eles são leitura, e não filtro**: não têm data-act e não abrem nada. E todos têm
+   a mesma cor, para qualquer partido e qualquer cargo: neste repositório nenhuma cor
+   depende do dado. */
+.chips-attr{grid-area:chips;display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;min-width:0}
+.attr{display:inline-block;max-width:100%;padding:2px 8px;border-radius:var(--raio);
+  background:var(--chip);color:var(--ink);font-size:13px;font-weight:600;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* CÉLULAS. Partido, estado e cargo não têm ficha para guardar as contas deles, então
+   as contas ficam na linha, em pares de número e rótulo, e não em prosa separada por
+   pontos: uma conta pela metade não é conta, e uma fileira de contas em prosa é uma
+   frase que ninguém termina de ler. */
+.celulas{grid-area:cel;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:8px 12px;margin-top:11px;padding-top:11px;border-top:1px solid var(--b);min-width:0}
+.cel{min-width:0}
+.cel b{display:block;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;
+  font-variant-numeric:lining-nums tabular-nums}
+.cel span{display:block;font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-fio{grid-area:fio;margin-top:11px}
 .magn{display:block;grid-area:fio;margin-top:9px;max-width:260px}
 .r-pub{grid-area:pub;font-size:13px;color:var(--mut);margin-top:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* A linha de um grupo (partido, estado, cargo) carrega mais conta que a de uma
@@ -378,8 +406,11 @@ details summary:focus-visible{outline-offset:-3px;border-radius:0}
    cortados com reticências. Numa página pública de prestação de contas, dois homônimos
    parciais viravam a mesma linha na tela: o nome passa a ter a linha inteira. */
 @media(max-width:480px){
-  .rowmain{grid-template-areas:"pos nome nome" "pos val val" "pos meta meta" "pos fio fio" "pos pub pub"}
-  .row.temix .rowmain{grid-template-areas:"pos nome nome ix" "pos val val ix" "pos meta meta meta" "pos fio fio fio" "pos pub pub pub"}
+  .rowmain{grid-template-areas:"pos nome nome" "pos val val" "pos meta meta"
+                              "pos chips chips" "pos fio fio" "pos pub pub" "pos cel cel"}
+  .row.temix .rowmain{grid-template-areas:"pos nome nome ix" "pos val val ix" "pos meta meta meta"
+                                          "pos chips chips chips" "pos fio fio fio"
+                                          "pos pub pub pub" "pos cel cel cel"}
   .r-nome{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .r-val{justify-self:start;margin-top:3px}
 }
@@ -423,9 +454,8 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
    nu ao lado de um nome le como nota dada a pessoa; (3) nao ha cor por faixa nem regua na
    lista, porque duas cores sem legenda viram semaforo. A palavra da faixa esta no rotulo
    de acessibilidade, na folha e na ficha.
-   Quando o índice é o critério de ordenação, ele ganha peso e o fio de acento, para a
-   tela mudar de peso quando muda de critério. O que ele nunca faz é tomar o lugar da
-   cifra: o assunto da página é o dinheiro. */
+   O que ele nunca faz é tomar o lugar da cifra: o assunto da página é o dinheiro, e a
+   lista tem uma ordem só, que é a receita declarada. */
 .ixbt{
   position:absolute;right:calc(var(--gut) - 2px);top:10px;
   width:44px;min-height:38px;padding:3px 0;border:1px solid var(--b);border-radius:var(--raio);
@@ -438,8 +468,6 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .ixbt .n{font-size:15px;font-weight:700;line-height:1.05;color:var(--ink)}
 .ixbt .de{font-size:11.5px;font-weight:600;line-height:1;color:var(--mut)}
 .ixbt[data-f="0"] .n{color:var(--mut)}
-.ixbt[data-ord="1"]{border-color:var(--ac);box-shadow:inset 0 -2px 0 var(--ac)}
-.ixbt[data-ord="1"] .n{font-size:18px;color:var(--ink)}
 .ixficha{
   padding:14px var(--gut);border-top:1px solid var(--b);display:grid;
   grid-template-columns:auto minmax(0,1fr);gap:3px 16px;align-items:center;
@@ -452,32 +480,34 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .ixficha .ixs{display:block;color:var(--mut);font-size:13px;margin-top:3px;line-height:1.45}
 .ixficha .nao{grid-column:1/-1;margin-top:0}
 
-/* Ordenacao sempre a vista, desenhada como a linha de colunas de uma tabela: o critério
-   em vigor troca o fio de 1px por um fio de 2px no acento. É um desenho só para as três
-   abas: quem aprendeu a ordenar no ranking reconhece o controle nas outras duas. */
-.ordwrap{display:flex;align-items:center;gap:4px 14px;padding:5px var(--gut) 0;border-bottom:1px solid var(--b);flex-wrap:wrap}
-/* O rótulo "ORDENAR POR" media 85 px e não cabia: com os quatro critérios em 269 px,
-   ele empurrava a fileira para uma segunda linha e a barra custava 96 px de altura.
-   A saída de 17/09 foi escondê-lo no celular, apostando que "os critérios sozinhos já
-   dizem que são critérios de ordem". A aposta perdeu no primeiro teste com gente: sem
-   rótulo, quatro palavras com filete embaixo, logo acima de uma lista e com a mesma
-   voz visual das abas do rodapé, foram lidas como abas de conteúdo. O rótulo volta
-   curto, medido: "ORDEM" custa 43 px, e a barra fecha em 332 px dos 358 úteis. */
+/* A BARRA "ORDEM" SAIU. Ela ocupava o lugar mais visível da tela, logo acima da lista,
+   com quatro critérios que trocavam a cifra da linha, e o lugar dela agora é das cinco
+   dimensões. A lista tem uma ordem só, a receita declarada; contratado, a conferir e
+   pago moram na ficha da candidatura, que é onde eles são a conta de alguém.
+   O que sobrou é um controle discreto, dentro do rótulo da lista, e só na dimensão
+   Fornecedor: ali "Valor" e "Campanhas" são duas leituras da mesma lista, e não duas
+   listas. Ele tem dois botões de 32 px e um rótulo em caixa baixa, para não voltar a
+   ser lido como aba de conteúdo. */
+.ordc{display:flex;align-items:center;gap:6px;flex:none}
 .ordrot{font-size:11.5px;letter-spacing:.01em;font-weight:600;color:var(--mut);flex:none}
-.ord{display:flex;gap:2px;flex:1 1 240px;flex-wrap:wrap}
-.ord button{flex:0 1 auto;min-height:44px;padding:0 10px;font-size:13px;font-weight:600;color:var(--mut);
-  border-bottom:2px solid transparent;white-space:nowrap}
-.ord button[aria-pressed="true"]{color:var(--ac);border-bottom-color:var(--ac)}
-@media(hover:hover){.ord button:hover{color:var(--ink)}}
-/* no celular os critérios ganham folga lateral menor: com cinco deles nas visões
-   agregadas, 10 px de cada lado punham dois numa segunda linha por 8 px */
-@media(max-width:480px){.ordwrap{gap:2px 10px}.ord button{padding:0 7px}}
+.ordc .ord{display:flex;gap:0;border:1px solid var(--b);border-radius:var(--raio);
+  overflow:hidden;overflow:clip;background:var(--cs)}
+.ordc .ord button{min-height:32px;padding:0 10px;font-size:13px;font-weight:600;color:var(--mut);
+  white-space:nowrap;border-right:1px solid var(--b)}
+.ordc .ord button:last-child{border-right:0}
+.ordc .ord button[aria-pressed="true"]{background:var(--ac);color:var(--acink);font-weight:700}
+@media(hover:hover){.ordc .ord button:not([aria-pressed="true"]):hover{color:var(--ink);background:var(--sf2)}}
+/* O botão que diz que um tipo de gasto está mandando na ordem da lista. Ele morava na
+   barra "Ordem"; agora mora no rótulo da lista, que é onde se lê o que a lista é. */
+.status .tipobt{min-height:32px;padding:0 10px;border:1px solid var(--ac);border-radius:var(--raio);
+  background:var(--ac);color:var(--acink);font-size:13px;font-weight:700;white-space:nowrap;flex:none}
 
 /* O botao da direita e, ao mesmo tempo, o rotulo da coluna de indice. Solto, ele saia da
    tela na primeira rolada e sobravam numeros de 0 a 100 sem uma palavra que os explicasse. */
-.status{margin:0;padding:0 var(--gut);min-height:42px;font-size:13px;font-weight:600;letter-spacing:.01em;
-  color:var(--mut);border-bottom:1px solid var(--b2);display:flex;align-items:center;
-  justify-content:space-between;gap:8px;position:sticky;top:var(--hh,132px);z-index:5;background:var(--sf)}
+.status{margin:0;padding:6px var(--gut);min-height:46px;font-size:13px;font-weight:600;letter-spacing:.01em;
+  color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;
+  justify-content:space-between;gap:8px 12px;flex-wrap:wrap;
+  position:sticky;top:var(--hh,132px);z-index:5;background:var(--pap)}
 .status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status .ordbt{min-height:44px;padding:0 2px;color:var(--ac);font-weight:600;font-size:13px;text-align:right;white-space:nowrap}
 @media(hover:hover){.status .ordbt:hover{text-decoration:underline}}
@@ -989,10 +1019,9 @@ function indiceDe(r){ return temIndice(r) ? r[14] : 0; }
    abaixo de 20: quem comparasse barra com barra via distância onde havia sinal fraco.
    No lugar dela entra a escala escrita, que é o que faltava para o número não ser lido
    como nota dada à pessoa. A palavra da faixa continua no rótulo de acessibilidade. */
-function botaoIndice(v, emVigor){
+function botaoIndice(v){
   var fx = faixaDe(v);
-  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '"' +
-    (emVigor ? ' data-ord="1"' : '') + ' ' +
+  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '" ' +
     'aria-label="Índice de conferência ' + v + ' de 100' + (fx.t ? ', ' + esc(fx.t) : '') +
     '. Ver o que o índice é e o que ele não é">' +
     '<span class="n">' + v + '</span>' +
@@ -1630,8 +1659,10 @@ function blocoResumo(lista){
     ct = u.contratado || 0; pg = u.pago || 0; rc = u.receita || 0; sn = u.alarmes || 0;
     comGasto = u.com_gasto || 0; pb = null;
   }
-  var h = '<section class="secao"><h2 class="ocultavisual">Resumo do recorte · ' +
-          esc(nomeUnidade(ufDaTela())) + '</h2><div class="tiles">';
+  /* Os quadros saem sem seção e sem grade em volta: quem é a seção e a grade é a
+     própria banda do topo, que os recebe. */
+  var h = '<h2 class="ocultavisual">Resumo do recorte · ' +
+          esc(nomeUnidade(ufDaTela())) + '</h2>';
   /* Quantas candidaturas, e quantas não declararam nada: era uma nota em prosa. No país
      a lista traz só quem declarou movimento, e o que ficou fora dela vai no sub-rótulo,
      com o número que o pipeline conta, que é do país inteiro e de todos os cargos. */
@@ -1662,7 +1693,14 @@ function blocoResumo(lista){
   }
   h += quadroMediana();
   h += quadro('Sinais', inteiro(sn), temLista ? 'para conferir' : 'na unidade', 'sin');
-  return h + '</div></section>';
+  return h;
+}
+/* A banda do topo é escrita por fora das visões, porque ela não mora dentro de `main`:
+   cada visão de lista manda para cá o resumo do seu recorte, e a ficha e a busca deixam
+   a banda sem quadros, porque ali não há recorte para resumir. */
+function porResumo(html){
+  var el = document.getElementById('resumo');
+  if(el) el.innerHTML = html || '';
 }
 /* A régua do grupo, que responde "isso é muito?". Ela só existe com um cargo escolhido,
    porque somar cargos diferentes inventaria um agregado que ninguém calculou, e só
@@ -1741,11 +1779,31 @@ function barraMagnitude(v, max){
   return '<span class="magn" aria-hidden="true"><span class="bar"><i style="width:' +
          larg + '%"></i></span></span>';
 }
+/* Os chips de atributo de uma linha, a partir de uma lista de textos. Ele é componente
+   de leitura, e não de filtro: não há data-act aqui, e nada abre ao toque. Todos os
+   chips saem com a mesma cor, para qualquer partido e para qualquer cargo. */
+function chipsAttr(lista){
+  var itens = (lista || []).filter(Boolean);
+  if(!itens.length) return '';
+  return '<span class="chips-attr">' + itens.map(function(t){
+    return '<span class="attr">' + esc(String(t)) + '</span>';
+  }).join('') + '</span>';
+}
+/* As células de uma linha de grupo: pares de número e rótulo. `lista` é uma lista de
+   [valor já formatado, rótulo], e o que for falso sai fora. */
+function celulas(lista){
+  var itens = (lista || []).filter(Boolean);
+  if(!itens.length) return '';
+  return '<span class="celulas">' + itens.map(function(c){
+    return '<span class="cel"><b>' + esc(String(c[0])) + '</b><span>' + esc(String(c[1])) + '</span></span>';
+  }).join('') + '</span>';
+}
 /* UMA LINHA, UM CARTÃO. A mesma função monta a candidatura, o grupo (partido, estado,
    cargo), o fornecedor e a linha de quem pagou, na ficha. Eram quatro desenhos com a
    mesma anatomia e diferenças que ninguém tinha decidido, e agora a tela mostra cinco
    dimensões da mesma lista: uma entrada tem de parecer uma entrada em todas elas.
-   `meta`, `pub` e `medida` chegam prontos, porque quem escreve a conta é quem a soma. */
+   `chips`, `celulas`, `pub` e `medida` chegam prontos, porque quem escreve a conta é
+   quem a soma. */
 function linhaCartao(o){
   var tag = o.href ? 'a' : 'div';
   var cls = 'row cartao' + (o.ix == null ? '' : ' temix') + (o.classe ? ' ' + o.classe : '');
@@ -1759,55 +1817,44 @@ function linhaCartao(o){
       (o.valorCheio ? ' title="' + esc(o.valorCheio) + '"' : '') + '>' +
       esc(o.valor == null ? '' : o.valor) + '</span>' +
     (o.meta ? '<span class="r-meta">' + o.meta + '</span>' : '') +
+    (o.chips || '') +
     (o.medida || '') +
     (o.pub ? '<span class="r-pub">' + o.pub + '</span>' : '') +
+    (o.celulas || '') +
     (o.ix == null ? '' : '<span class="r-ixgap" aria-hidden="true"></span>') +
     '</' + tag + '>' +
     (o.selos || '') +
-    (o.ix == null ? '' : botaoIndice(o.ix, !!o.ixOrd)) +
+    (o.ix == null ? '' : botaoIndice(o.ix)) +
   '</li>';
 }
 function linhaRanking(r, i){
   /* a contagem escrita na linha usa a mesma régua do quadro do resumo e da
      ficha: não conta o que o próprio pipeline tira da fila de conferência */
   var sq = r[0], sinais = sinaisParaConferir(r, foraDoIndice());
-  var porSinal = (S.ord === 'sinais' && !noTipo());
-  var porIndice = (S.ord === 'indice' && !noTipo());
-  var v = valorDe(r);
-  /* O slot de destaque da linha é do dinheiro em todas as ordenações. Ordenado por número
-     de sinais, ele exibia a contagem em caixa preta grossa ao lado do nome da pessoa, e o
-     dinheiro virava nota de rodapé: a lista lia como placar de sinais por candidatura, que
-     é a leitura que as travas proíbem construir. Ordenado pelo índice, o valor também
-     continua sendo dinheiro, e quem ganha peso é o selo do índice, na coluna dele. */
-  var vm = (porIndice || porSinal) ? r[6] : v;
+  /* A cifra da linha é a receita declarada, e só ela. A lista trocava de grandeza com o
+     seletor de ordem, e o mesmo nome aparecia com quatro números diferentes conforme a
+     tela; contratado, a conferir e pago moram na ficha da candidatura, que é onde eles
+     são a conta de alguém. Com um tipo de gasto escolhido, a cifra é o gasto no tipo,
+     que é o recorte que a pessoa pediu. */
+  var vm = noTipo() ? valorTipo(r) : r[8];
   var rot = moeda(vm);
-  /* O traço de magnitude saiu da linha do ranking nesta rodada. Com o fio do dinheiro
-     público logo acima dele, a linha ficava com dois traços quase da mesma cor, quase da
-     mesma largura e sem rótulo nenhum, medindo coisas diferentes: um a fatia pública do
-     que foi pago, o outro o tamanho desta candidatura na maior da lista. O tamanho já está
-     escrito em algarismo grande à direita, e a lista já vem ordenada por ele. O traço
-     continua onde ele é a única medida visual, que é a lista de fornecedores. */
-  /* Partido, cargo e unidade eram cinco itens cinza de 12,5 px numa linha só, com
-     o mesmo peso do número do candidato e da federação. São eles que dizem quem
-     é a pessoa antes do nome ser conhecido, então o partido e o cargo passam a
-     ter a tinta do texto e peso de negrito, e a federação, que é agrupamento de
-     partidos e repete o que o partido já diz, cai para o fim. */
+  /* O traço de magnitude saiu da linha do ranking. Com o fio do dinheiro público logo
+     acima dele, a linha ficava com dois traços quase da mesma cor, quase da mesma largura
+     e sem rótulo nenhum, medindo coisas diferentes. O traço continua onde ele é a única
+     medida visual, que é a lista de fornecedores. */
+  /* Partido, cargo, unidade, número de urna e federação eram cinco itens cinza de 12,5 px
+     numa linha só, separados por pontos, e ninguém os lia. Cada um vira um chip com fundo
+     próprio, e todos com a mesma cor: uma cor por partido seria cor dependente do dado. */
   var co = cargoOnde(META.cargos[r[4]] || '', ufDaLinha(r));
   var part = META.dic.partido[r[3]] || '';
   var fed = fedCurta(META.dic.fed[r[5]] || '');
-  var meta = '<b class="r-part">' + esc([part, co.cargo].filter(Boolean).join(' · ')) + '</b>' +
-             (co.onde ? ' <span class="r-uf">' + esc(co.onde) + '</span>' : '') +
-             (r[2] ? ' · nº ' + esc(r[2]) : '') +
-             (fed ? ' · ' + esc(fed) : '');
+  var chips = chipsAttr([part, co.cargo + (co.onde ? ' · ' + co.onde : ''),
+                         r[2] ? 'nº ' + r[2] : '', fed]);
   /* A base do percentual é o que foi pago, e o número grande da linha logo acima dele
-     é a grandeza da ordem, que pode ser a receita. Sem a base escrita, quem aplicava
-     os 99 % ao número que via errava R$ 1,35 mi na primeira linha de Roraima. */
+     é a receita. Sem a base escrita, quem aplicava os 99 % ao número que via errava
+     R$ 1,35 mi na primeira linha de Roraima. */
   var pub = (r[7] > 0 ? pct(r[9], r[7]) + ' % do pago é público' : 'sem pagamento declarado') +
-    ' · ' + inteiro(r[10]) + (r[10] === 1 ? ' fornecedor' : ' fornecedores') +
-    /* ordenado por sinal, a contagem entra aqui, no peso da linha de apoio: ela nunca
-       ocupa a posição do dinheiro */
-    (porSinal ? ' · ' + inteiro(sinais) +
-       (sinais === 1 ? ' sinal a conferir' : ' sinais a conferir') : '');
+    ' · ' + inteiro(r[10]) + (r[10] === 1 ? ' fornecedor' : ' fornecedores');
   /* quem nao declarou nada nao tem o nome esmaecido: o estado ja esta escrito na linha,
      e apagar um nome numa lista de nomes le como categoria inferior */
   /* O selo do índice só aparece quando há número. Ele vinha em 80 % das linhas
@@ -1817,41 +1864,32 @@ function linhaRanking(r, i){
   var ix = (temIndice(r) && indiceDe(r) > 0) ? indiceDe(r) : null;
   return linhaCartao({
     pos:i + 1, nome:r[1], href:hashCom({cand:sq}),
-    valor:rot, valorCheio:moedaCheia(vm), meta:meta,
-    medida:fioPublico(r[9], r[7]), pub:esc(pub), ix:ix, ixOrd:porIndice,
+    valor:rot, valorCheio:moedaCheia(vm), chips:chips,
+    medida:fioPublico(r[9], r[7]), pub:esc(pub), ix:ix,
     selos:sinais ? '<span class="selos">' + selosDe(r[12]) + '</span>' : ''
   });
 }
-/* Um só desenho de ordenação para as três abas: o segmentado com o rótulo "ORDENAR POR".
-   Antes cada tela tinha inventado a sua (segmentado no ranking, texto solto nos sinais,
-   texto com seta no dinheiro), e quem aprendia a ordenar numa não reconhecia o controle
-   nas outras. `segs` é uma lista de [valor, rótulo curto, rótulo por extenso]. */
-function barraOrd(id, segs, atual, act, extraBt){
-  var h = '<div class="ordwrap"><span class="ordrot" id="rot' + id + '">Ordem</span>' +
-    '<div class="ord" role="group" aria-labelledby="rot' + id + '">';
+/* O controle compacto de organização, dentro do rótulo da lista. Ele existe numa
+   dimensão só, a de Fornecedor, onde "Valor" e "Campanhas" são duas leituras da mesma
+   lista. `segs` é uma lista de [valor, rótulo curto, rótulo por extenso]. */
+function ordCompacta(segs, atual){
+  var h = '<span class="ordc"><span class="ordrot" id="rotord">organizar por</span>' +
+    '<span class="ord" role="group" aria-labelledby="rotord">';
   h += segs.map(function(sg){
-    return '<button data-act="' + act + '" data-v="' + esc(sg[0]) + '" aria-pressed="' +
-      (String(atual) === String(sg[0])) + '" aria-label="Ordenar por ' + esc(sg[2] || sg[1]) + '">' +
+    return '<button data-act="ord" data-v="' + esc(sg[0]) + '" aria-pressed="' +
+      (String(atual) === String(sg[0])) + '" aria-label="Organizar por ' + esc(sg[2] || sg[1]) + '">' +
       esc(sg[1]) + '</button>';
   }).join('');
-  if(extraBt) h += extraBt;
-  return h + '</div></div>';
+  return h + '</span></span>';
 }
-/* A ordem fica sempre à vista, e a fileira é a da dimensão: partido, estado e cargo não
-   ordenam por índice de conferência, porque a fila de conferência é da candidatura. */
-function barraOrdem(){
-  var segs = ordsDaDimensao().map(function(k){ return [k, ORD_CURTO[k] || k, ORDS[k] || k]; });
-  /* Na dimensão Candidato, um tipo de gasto escolhido passa a mandar na ordem (veja
-     valorDe), e o segmentado dizia o contrário: marcava como pressionado um critério que
-     não estava valendo, e quem usa leitor de tela só ouvia isso. Nas visões agregadas o
-     tipo só troca o que entra no contratado, e a ordem continua sendo a escolhida. */
-  var porTipo = noTipo() && S.v === 'candidato';
-  var extra = porTipo
-    ? '<button data-act="limpatipo" aria-pressed="true" aria-label="Em vigor: ordem pelo gasto no ' +
-      'tipo escolhido. Tocar para limpar o tipo e voltar a ordenar por ' + esc(ORDS[S.ord] || '') +
-      '">Gasto neste tipo</button>'
-    : '';
-  return barraOrd('ord', segs, porTipo ? '' : S.ord, 'ord', extra);
+/* O botão que diz que um tipo de gasto está mandando na cifra da lista. Ele morava na
+   barra "Ordem", que saiu; agora fica no rótulo da lista, ao lado da contagem, com o
+   mesmo data-act e o mesmo rótulo de acessibilidade. */
+function botaoTipo(){
+  if(!(noTipo() && S.v === 'candidato')) return '';
+  return '<button class="tipobt" data-act="limpatipo" aria-label="Em vigor: a lista mostra o ' +
+    'gasto no tipo escolhido. Tocar para limpar o tipo e voltar à receita declarada">' +
+    'Gasto neste tipo ✕</button>';
 }
 function viewRanking(){
   var m = document.getElementById('conteudo');
@@ -1873,13 +1911,12 @@ function viewRanking(){
   /* UFD nulo sem nada em voo ficava preso no esqueleto para sempre */
   if(!UFD || UFD.uf !== uf){
     if(ufEmVoo !== uf) carregarUF();
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) +
-                  '</div><div class="lado">' + blocoResumo([]) + '</div></div>';
+    porResumo(blocoResumo([]));
+    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var lista = filtradas();
   var vis = lista.slice(0, S.limite);
-  var porIndice = (S.ord === 'indice' && !noTipo());
   /* A LISTA VEM PRIMEIRO. Acima de 960 px as duas colunas são posicionadas pela
      grade, então a ordem do DOM não muda nada no laptop. Abaixo disso a grade
      vira uma coluna só e vale a ordem daqui: com o resumo escrito antes, a
@@ -1896,7 +1933,8 @@ function viewRanking(){
           tempo, o rótulo da coluna de índice e a porta da ressalva dela. */
        '<div class="status"><span>' + inteiro(lista.length) + ' candidatura' +
        (lista.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(uf)) + '</span>' +
-       '<button class="ordbt" data-act="oindice">índice de conferência ›</button></div>' + barraOrdem();
+       botaoTipo() +
+       '<button class="ordbt" data-act="oindice">índice de conferência ›</button></div>';
   if(!lista.length){
     h += '<div class="vazio">Nenhuma candidatura com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
@@ -1906,8 +1944,9 @@ function viewRanking(){
            ' · faltam ' + inteiro(lista.length - S.limite) + '</button>';
     }
   }
+  porResumo(lista.length ? blocoResumo(lista) : blocoResumo([]));
   h += '</section></div><div class="lado">' +
-       (lista.length ? blocoResumo(lista) + blocoTipos(lista) : '') +
+       (lista.length ? blocoTipos(lista) : '') +
        '</div></div>';
   m.innerHTML = h;
 }
@@ -1961,13 +2000,7 @@ function pisoCota(){
   var c = (META && META.cota) || {};
   return typeof c.piso === 'number' ? c.piso : 100000000;
 }
-function valorDoGrupo(g){
-  if(S.ord === 'n') return g.n;
-  if(S.ord === 'publico') return g.publico;
-  if(S.ord === 'pago') return g.pago;
-  if(S.ord === 'contratado') return g.contratado;
-  return g.receita;
-}
+
 function viewGrupos(){
   var m = document.getElementById('conteudo');
   var uf = ufDaTela();
@@ -1979,14 +2012,17 @@ function viewGrupos(){
   }
   if(!UFD || UFD.uf !== uf){
     if(ufEmVoo !== uf) carregarUF();
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) +
-                  '</div><div class="lado">' + blocoResumo([]) + '</div></div>';
+    porResumo(blocoResumo([]));
+    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var lista = filtradas();
   var grupos = agrupar(lista, S.v);
+  /* Uma lista só por nível, ordenada pela receita declarada, com desempate pelo gasto
+     contratado. "Candidaturas" era uma das ordens, e deixou de ser: ela é atributo do
+     grupo, e está escrita na linha, em célula própria. */
   grupos.sort(function(a, b){
-    var d = valorDoGrupo(b) - valorDoGrupo(a);
+    var d = b.receita - a.receita;
     return d !== 0 ? d : b.contratado - a.contratado;
   });
   var vis = grupos.slice(0, S.limite);
@@ -1996,13 +2032,12 @@ function viewGrupos(){
   var h = '<div class="wrap"><div class="lista"><section class="secao">' +
     '<h2 class="ocultavisual">Por ' + esc(rot) + ' · ' + esc(nomeUnidade(uf)) + '</h2>' +
     '<div class="status"><span>' + inteiro(grupos.length) + ' ' + esc(rot) +
-    (grupos.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(uf)) + '</span></div>' +
-    barraOrdem();
+    (grupos.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(uf)) + '</span></div>';
   if(!grupos.length){
     h += '<div class="vazio">Nenhum ' + esc(rot) + ' com esses filtros.<br>' +
          '<button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
-    var maior = valorDoGrupo(vis[0]) || 1;
+    var maior = vis[0].receita || 1;
     h += '<ul class="l">' + vis.map(function(g, i){
       return linhaGrupoCartao(g, i, maior);
     }).join('') + '</ul>';
@@ -2012,30 +2047,33 @@ function viewGrupos(){
            inteiro(grupos.length - S.limite) + '</button>';
     }
   }
+  porResumo(lista.length ? blocoResumo(lista) : blocoResumo([]));
   h += '</section></div><div class="lado">' +
-       (lista.length ? blocoResumo(lista) + blocoTipos(lista) : '') + '</div></div>';
+       (lista.length ? blocoTipos(lista) : '') + '</div></div>';
   m.innerHTML = h;
 }
 function linhaGrupoCartao(g, i, maior){
   var porTipo = noTipo();
-  var v = valorDoGrupo(g);
-  var valor = (S.ord === 'n') ? inteiro(g.n) : moeda(v);
-  var meta = esc(inteiro(g.n) + ' candidatura' + (g.n === 1 ? '' : 's') + ' · ' +
-                 inteiro(g.comGasto) + ' com gasto · mediana ' + moeda(g.mediana));
-  var pub = porTipo
-    ? esc('contratado no tipo ' + moeda(g.contratado))
-    : esc((g.pago > 0 ? pct(g.publico, g.pago) + ' % do pago é público'
-                      : 'sem pagamento declarado') +
-          ' · contratado ' + moeda(g.contratado) + ' · pago ' + moeda(g.pago));
-  /* A cota de gênero virou coluna do partido, e ela mede a receita pública, que é o que
+  var v = g.receita;
+  /* As contas do grupo eram duas frases cinza separadas por pontos, e ninguém as lia
+     até o fim. Agora são células, cada uma com o número em cima e o rótulo embaixo.
+     Contratado e pago ficam aqui porque partido, estado e cargo não têm ficha para
+     guardá-los: quem tem ficha é a candidatura. */
+  var cels = [[inteiro(g.n), 'Candidaturas'], [inteiro(g.comGasto), 'Com gasto'],
+              [moeda(g.mediana), 'Mediana'],
+              [moeda(g.contratado), porTipo ? 'Contratado no tipo' : 'Contratado']];
+  if(!porTipo) cels.push([moeda(g.pago), 'Pago']);
+  if(g.pago > 0) cels.push([pct(g.publico, g.pago) + ' %', 'Público do pago']);
+  /* A cota de gênero é coluna do partido, e ela mede a receita pública, que é o que
      a lei reserva: no mínimo 30 % do dinheiro público de campanha para candidaturas de
      mulheres. A conta é do que foi declarado até agora, e a regra é aferida no fim.
      O piso é o mesmo do sinal B4, e vem do meta: abaixo dele a fatia é aritmética e não
      escolha, porque o dinheiro se divide entre uma ou duas candidaturas e a conta só
      pode fechar em 0 % ou 100 %. */
   if(S.v === 'partido' && g.recPub >= pisoCota()){
-    pub += ' · ' + esc(pct(g.recPubF, g.recPub) + ' % da receita pública foi a candidatas');
+    cels.push([pct(g.recPubF, g.recPub) + ' %', 'Receita pública a candidatas']);
   }
+  var pub = g.pago > 0 ? '' : esc('sem pagamento declarado');
   var destino = S.v === 'partido' ? {v:'candidato', partido:g.k, fed:''}
               : (S.v === 'cargo' ? {v:'candidato', cargo:g.k}
                                  : {v:'candidato', uf:g.k});
@@ -2044,8 +2082,9 @@ function linhaGrupoCartao(g, i, maior){
      melhor que link que leva para outro lugar. */
   return linhaCartao({
     pos:i + 1, nome:g.nome, href:g.k ? hashCom(destino) : '', classe:'grupo',
-    valor:valor, valorCheio:(S.ord === 'n') ? '' : moedaCheia(v), meta:meta,
-    medida:porTipo ? barraMagnitude(v, maior) : fioPublico(g.publico, g.pago), pub:pub
+    valor:moeda(v), valorCheio:moedaCheia(v),
+    medida:porTipo ? barraMagnitude(v, maior) : fioPublico(g.publico, g.pago),
+    pub:pub, celulas:celulas(cels)
   });
 }
 
@@ -2164,8 +2203,8 @@ function viewFornRecorte(){
   if(!UFD || UFD.uf !== uf || !FRC || FRC.uf !== uf){
     if((!UFD || UFD.uf !== uf) && ufEmVoo !== uf) carregarUF();
     if((!FRC || FRC.uf !== uf) && frcEmVoo !== uf) carregarFornRecorte();
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) +
-                  '</div><div class="lado">' + blocoResumo([]) + '</div></div>';
+    porResumo(blocoResumo([]));
+    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var d = listaDoRecorte();
@@ -2185,7 +2224,8 @@ function viewFornRecorte(){
   var h = '<div class="wrap"><div class="lista"><section class="secao">' +
     '<h2 class="ocultavisual">Quem recebeu · ' + esc(nomeUnidade(uf)) + '</h2>' +
     '<div class="status"><span>' + esc(conta) + ' · ' + esc(nomeUnidade(uf)) +
-    '</span></div>' + barraOrdem();
+    '</span>' + ordCompacta([['valor', 'Valor', ORDS.valor],
+                             ['campanhas', 'Campanhas', ORDS.campanhas]], S.ord) + '</div>';
   if(!d.lista.length){
     h += '<div class="vazio">Nenhum fornecedor neste recorte.<br>' +
          '<button class="bt" data-act="limpar">Limpar filtros</button></div>';
@@ -2199,10 +2239,12 @@ function viewFornRecorte(){
         href:f[7] ? hashCom({forn:f[0]}) : '',
         valor:porCamp ? inteiro(f[5]) : moeda(f[4]),
         valorCheio:moedaCheia(f[4]),
-        meta:esc(f[2] + ' · ' + (f[3] ? 'empresa' : 'pessoa física')),
+        /* o documento já vem mascarado do pipeline, e é ele que distingue dois
+           fornecedores de mesmo nome */
+        chips:chipsAttr([f[3] ? 'empresa' : 'pessoa física', f[2]]),
         medida:barraMagnitude(v, max),
-        pub:esc(inteiro(f[6]) + ' lançamento' + (f[6] === 1 ? '' : 's') + ' · ' +
-                inteiro(f[5]) + ' campanha' + (f[5] === 1 ? '' : 's'))
+        celulas:celulas([[inteiro(f[6]), f[6] === 1 ? 'Lançamento' : 'Lançamentos'],
+                         [inteiro(f[5]), f[5] === 1 ? 'Campanha' : 'Campanhas']])
       });
     }).join('');
     /* quem não caberia na lista continua contado: sem esta linha, a lista dos maiores
@@ -2225,7 +2267,8 @@ function viewFornRecorte(){
            inteiro(d.lista.length - S.limite) + '</button>';
     }
   }
-  h += '</section></div><div class="lado">' + blocoResumo(lista) + '</div></div>';
+  porResumo(blocoResumo(lista));
+  h += '</section></div></div>';
   m.innerHTML = h;
 }
 
@@ -2776,6 +2819,9 @@ function render(){
      ficha ele apontaria para uma tela que não está desenhada. A busca já tinha a sua
      regra, pela classe que o foco do campo põe. */
   document.body.classList.toggle('ficha', S.view === 'cand' || S.view === 'forn');
+  /* A banda começa sem quadros a cada render: quem os escreve é a visão de lista que
+     tem um recorte para resumir, e a ficha e a busca não têm. */
+  porResumo('');
   /* Primeiro o que está aberto por cima da lista (uma ficha, uma busca), e só depois a
      dimensão: uma ficha é uma ficha em qualquer dimensão. */
   if(S.view === 'cand') viewCand();
