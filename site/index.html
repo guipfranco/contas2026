@@ -175,7 +175,13 @@ input{font:inherit}
    O ativo leva o segundo acento, o mesmo do numeral de posição: ele é navegação, e
    não dado. Nenhuma dimensão tem cor própria, e nenhum partido tem cor nenhuma. */
 .dimwrap{max-width:1180px;margin:14px auto 0;padding:0 var(--gut)}
-body.semdim .dimwrap,body.buscando .dimwrap{display:none}
+/* O segmentado sai da tela quando não há lista para trocar de dimensão. Ele saía
+   também enquanto o campo de busca tinha foco, para abrir espaço com o teclado
+   virtual, e isso era de graça enquanto quem sumia era um rodapé preso: aqui ele
+   está no fluxo, e a lista inteira saltava 60 px no instante do toque no campo, sem
+   nada ter sido digitado ainda. Digitado o primeiro caractere, a visão vira busca e
+   ele sai por semdim, junto com a tela toda. */
+body.semdim .dimwrap{display:none}
 
 /* ---------- a barra presa: busca e filtros ---------- */
 header.barra{position:sticky;top:0;z-index:30;background:var(--pap);border-top:1px solid var(--b);border-bottom:1px solid var(--b2)}
@@ -240,6 +246,10 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
 @media(min-width:960px){
   :root{--calha:40px}
   .wrap{grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"lista lado"}
+  /* Sem nada na coluna do lado, a grade volta a uma coluna: a dimensão Fornecedor não
+     tem painel de tipos, e o resumo subiu para a banda, então ali sobrava um vão de
+     340 px em branco à direita de uma lista mais estreita que todas as outras. */
+  .wrap.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"lista"}
   .lista{grid-area:lista}
   /* A coluna do lado rola junto com a página. Ela era presa, com altura máxima e
      rolagem própria, e isso punha uma segunda barra de rolagem dentro da tela,
@@ -349,9 +359,14 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
 .r-ixgap{grid-area:ix}
 .rowmain:active{background:var(--sf2)}
 @media(hover:hover){.rowmain:hover{background:var(--sf2)}}
-/* o cartao recorta o que passa da borda: o anel de foco desenha por dentro */
+/* Todo container que recorta o que passa da borda precisa do anel de foco desenhado
+   por dentro. O anel padrão fica 2 px FORA da caixa do botão, que aqui é a caixa de
+   dentro do container: com overflow:clip ele some inteiro, e quem navega por teclado
+   não vê onde está. Vale para o cartão, para o segmentado das dimensões e para o
+   controle de organizar por, que são as três superfícies recortadas da página. */
 .rowmain:focus-visible,.mais:focus-visible,.status .ordbt:focus-visible,
-details summary:focus-visible{outline-offset:-3px;border-radius:0}
+details summary:focus-visible,.abas button:focus-visible,
+.ordc .ord button:focus-visible{outline-offset:-3px;border-radius:0}
 /* O numeral de posição, na calha da esquerda: ele é o metrônomo da lista. Cinza
    e leve, ele sumia; agora é grande e leva o segundo acento, que é frio e não
    diz nada sobre o dado, só separa a navegação do dinheiro. */
@@ -1909,7 +1924,7 @@ function viewRanking(){
   if(!UFD || UFD.uf !== uf){
     if(ufEmVoo !== uf) carregarUF();
     porResumo(blocoResumo([]));
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
+    m.innerHTML = '<div class="wrap solo"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var lista = filtradas();
@@ -1919,7 +1934,10 @@ function viewRanking(){
      vira uma coluna só e vale a ordem daqui: com o resumo escrito antes, a
      primeira candidatura começava no pixel 1.236 de uma tela de 844, ou seja,
      ninguém via uma linha da lista sem rolar. */
-  var h = '<div class="wrap"><div class="lista">';
+  /* A coluna do lado só existe quando há painel de tipos para pôr nela: sem ele, a
+     grade volta a uma coluna, em vez de deixar 340 px em branco à direita. */
+  var lado = lista.length ? blocoTipos(lista) : '';
+  var h = '<div class="wrap' + (lado ? '' : ' solo') + '"><div class="lista">';
   if(avisoDic) h += '<div class="cartao"><div class="nota">' + esc(avisoDic) + '</div></div>';
   recorteTela = descreverRecorte() + ' · ' + inteiro(lista.length) +
                 (lista.length === 1 ? ' candidatura' : ' candidaturas');
@@ -1941,10 +1959,8 @@ function viewRanking(){
            ' · faltam ' + inteiro(lista.length - S.limite) + '</button>';
     }
   }
-  porResumo(lista.length ? blocoResumo(lista) : blocoResumo([]));
-  h += '</section></div><div class="lado">' +
-       (lista.length ? blocoTipos(lista) : '') +
-       '</div></div>';
+  porResumo(blocoResumo(lista));
+  h += '</section></div>' + (lado ? '<div class="lado">' + lado + '</div>' : '') + '</div>';
   m.innerHTML = h;
 }
 
@@ -2010,7 +2026,7 @@ function viewGrupos(){
   if(!UFD || UFD.uf !== uf){
     if(ufEmVoo !== uf) carregarUF();
     porResumo(blocoResumo([]));
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
+    m.innerHTML = '<div class="wrap solo"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var lista = filtradas();
@@ -2026,7 +2042,9 @@ function viewGrupos(){
   var rot = ROT_DIM[S.v];
   recorteTela = descreverRecorte() + ' · ' + inteiro(grupos.length) + ' ' + rot +
                 (grupos.length === 1 ? '' : 's');
-  var h = '<div class="wrap"><div class="lista"><section class="secao">' +
+  var lado = lista.length ? blocoTipos(lista) : '';
+  var h = '<div class="wrap' + (lado ? '' : ' solo') + '"><div class="lista">' +
+    '<section class="secao">' +
     '<h2 class="ocultavisual">Por ' + esc(rot) + ' · ' + esc(nomeUnidade(uf)) + '</h2>' +
     '<div class="status"><span>' + inteiro(grupos.length) + ' ' + esc(rot) +
     (grupos.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(uf)) + '</span></div>';
@@ -2044,9 +2062,8 @@ function viewGrupos(){
            inteiro(grupos.length - S.limite) + '</button>';
     }
   }
-  porResumo(lista.length ? blocoResumo(lista) : blocoResumo([]));
-  h += '</section></div><div class="lado">' +
-       (lista.length ? blocoTipos(lista) : '') + '</div></div>';
+  porResumo(blocoResumo(lista));
+  h += '</section></div>' + (lado ? '<div class="lado">' + lado + '</div>' : '') + '</div>';
   m.innerHTML = h;
 }
 function linhaGrupoCartao(g, i, maior){
@@ -2059,8 +2076,14 @@ function linhaGrupoCartao(g, i, maior){
   var cels = [[inteiro(g.n), 'Candidaturas'], [inteiro(g.comGasto), 'Com gasto'],
               [moeda(g.mediana), 'Mediana'],
               [moeda(g.contratado), porTipo ? 'Contratado no tipo' : 'Contratado']];
-  if(!porTipo) cels.push([moeda(g.pago), 'Pago']);
-  if(g.pago > 0) cels.push([pct(g.publico, g.pago) + ' %', 'Público do pago']);
+  /* Com um tipo de gasto escolhido, pago e dinheiro público não existem por tipo: o
+     pipeline só soma o contratado. A fatia pública sairia calculada sobre o pagamento
+     inteiro do grupo, ao lado de um contratado que é só do tipo, e o denominador dela
+     não estaria em lugar nenhum do cartão. É a mesma regra do resumo do recorte. */
+  if(!porTipo){
+    cels.push([moeda(g.pago), 'Pago']);
+    if(g.pago > 0) cels.push([pct(g.publico, g.pago) + ' %', 'Público do pago']);
+  }
   /* A cota de gênero é coluna do partido, e ela mede a receita pública, que é o que
      a lei reserva: no mínimo 30 % do dinheiro público de campanha para candidaturas de
      mulheres. A conta é do que foi declarado até agora, e a regra é aferida no fim.
@@ -2201,7 +2224,7 @@ function viewFornRecorte(){
     if((!UFD || UFD.uf !== uf) && ufEmVoo !== uf) carregarUF();
     if((!FRC || FRC.uf !== uf) && frcEmVoo !== uf) carregarFornRecorte();
     porResumo(blocoResumo([]));
-    m.innerHTML = '<div class="wrap"><div class="lista">' + esqueleto(7) + '</div></div>';
+    m.innerHTML = '<div class="wrap solo"><div class="lista">' + esqueleto(7) + '</div></div>';
     return;
   }
   var d = listaDoRecorte();
@@ -2218,7 +2241,9 @@ function viewFornRecorte(){
     : inteiro(total) + (total === 1 ? ' fornecedor' : ' fornecedores');
   if(d.escopo !== 'geral' && porCamp)
     conta += ' · entre os ' + inteiro(d.lista.length) + ' maiores por valor';
-  var h = '<div class="wrap"><div class="lista"><section class="secao">' +
+  /* Aqui nunca há coluna do lado: o agregado de fornecedor não carrega tipo de gasto,
+     e o resumo do recorte mora na banda do topo. */
+  var h = '<div class="wrap solo"><div class="lista"><section class="secao">' +
     '<h2 class="ocultavisual">Quem recebeu · ' + esc(nomeUnidade(uf)) + '</h2>' +
     '<div class="status"><span>' + esc(conta) + ' · ' + esc(nomeUnidade(uf)) +
     '</span>' + ordCompacta([['valor', 'Valor', ORDS.valor],
@@ -3114,7 +3139,10 @@ function abrirAjuda(){
       '<span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd></span></div>' +
     '<div class="tecla"><span>Filtros: unidade, cargo, partido, sinal, tipo</span>' +
       '<span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>s</kbd> <kbd>t</kbd></span></div>' +
-    '<div class="tecla"><span>Ir para a ordenação</span><span><kbd>o</kbd></span></div>' +
+    (S.v === 'fornecedor'
+      ? '<div class="tecla"><span>Organizar por valor ou por campanhas</span>' +
+        '<span><kbd>o</kbd></span></div>'
+      : '') +
     '<div class="tecla"><span>Voltar, fechar</span><span><kbd>Esc</kbd></span></div>' +
     '<div class="tecla"><span>Esta ajuda</span><span><kbd>?</kbd></span></div>';
   c += '<p class="rot">Os dados</p><p>Prestação de contas da eleição de 2026, dados abertos do TSE, ' +
@@ -3151,14 +3179,11 @@ campoQ.addEventListener('input', function(){
     ir({q:v, cand:'', forn:''}, 'substituir');
   }, 140);
 });
-campoQ.addEventListener('focus', function(){
-  document.body.classList.add('buscando');
-  medirBarras();
-});
-campoQ.addEventListener('blur', function(){
-  document.body.classList.remove('buscando');
-  medirBarras();
-});
+/* A classe `buscando` existia para tirar da frente o rodapé preso enquanto o teclado
+   virtual estava aberto. O rodapé deixou de ser preso, e ela não escondia mais nada:
+   ficam só as medidas, que mudam quando o teclado virtual troca a altura da barra. */
+campoQ.addEventListener('focus', medirBarras);
+campoQ.addEventListener('blur', medirBarras);
 campoQ.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){ campoQ.value = ''; ir({q:''}, 'substituir'); campoQ.blur(); }
   if(e.key === 'Enter'){
