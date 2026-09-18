@@ -550,6 +550,8 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .fhead{padding:16px var(--gut) 15px;border-bottom:1px solid var(--b)}
 .fhead h1{font-size:34px;font-weight:800;line-height:1.12;letter-spacing:-.025em;overflow-wrap:anywhere}
 .fhead .sub{font-size:13px;color:var(--mut);margin-top:5px}
+/* na ficha os chips de atributo ficam logo sob o nome, com a folga de uma linha */
+.fhead .chips-attr{margin-top:10px}
 .fgrid{display:grid;gap:0 34px}
 @media(min-width:900px){.fgrid{grid-template-columns:1fr 1fr}.fgrid .full{grid-column:1/-1}}
 /* O destaque do dinheiro público era uma caixa teal cheia, a maior superfície preenchida
@@ -2471,6 +2473,16 @@ function sinaisDaFicha(f){
   var fora = foraDoIndice();
   return (f.alarmes || []).filter(function(x){ return !fora[x.cod]; }).length;
 }
+/* O sub-rótulo do quadro de sinais. Com índice, ele escreve o índice, porque foi a
+   ordenação por índice que saiu da lista e "a conferir" precisa de casa visível na
+   ficha. Sem índice, ele diz o que o quadro conta. O zero não vira número aqui pelo
+   mesmo motivo que saiu da lista: "0/100" ao lado de um nome próprio lê como nota
+   dada à pessoa. */
+function subIndice(f){
+  if(typeof f.indice === 'number' && isFinite(f.indice) && f.indice > 0)
+    return 'para conferir · índice ' + f.indice + '/100';
+  return 'para conferir';
+}
 function blocoIndiceFicha(f){
   if(typeof f.indice !== 'number' || !isFinite(f.indice)) return '';
   /* zero não vira selo aqui pelo mesmo motivo que saiu da lista: "0/100" ao lado
@@ -2508,12 +2520,14 @@ function viewCand(){
      chip da tela e outro no subtítulo da ficha */
   /* "Presidente Presidência" não se escreve: na disputa presidencial o cargo diz onde é */
   var co = cargoOnde(f.cargo, f.uf);
-  var ident = [f.partido, f.nr, co.cargo, co.onde].filter(Boolean).join(' · ');
   recorteTela = 'Ficha · ' + f.nome + ' · ' + nomeUnidade(f.uf);
   /* a volta mora na barra de cima, no lugar dos filtros que não filtram nada na ficha */
+  /* Quem é a candidatura sai nos mesmos chips da lista, e pela mesma função: quem chega
+     aqui de uma linha precisa reconhecer na ficha o que viu na linha. */
   var h = '<div class="cartao"><div class="fhead">' +
     '<h1>' + esc(f.nome) + '</h1>' +
-    '<div class="sub">' + esc(ident) + (f.fed ? ' · ' + esc(fedCurta(f.fed)) : '') + '</div>' +
+    chipsAttr([f.partido, f.nr ? 'nº ' + f.nr : '',
+               co.cargo + (co.onde ? ' · ' + co.onde : ''), fedCurta(f.fed || '')]) +
     '<div class="sub">' + esc([f.genero, f.cor_raca].filter(Boolean).join(' · ').toLowerCase()) +
       /* a ocupação declarada no registro da candidatura: o TSE manda, e era o
          único campo do cadastro que o painel tinha e não mostrava */
@@ -2526,7 +2540,7 @@ function viewCand(){
       'A prestação de contas é entregue aos poucos, e quem não movimenta dinheiro presta contas ao final, ' +
       'sem nada a declarar. Por isso não há valores para mostrar aqui.</div>';
     h += '<div class="tiles"><div class="tile sin"><div class="r">Sinais</div><div class="v num">' +
-      inteiro(sinaisDaFicha(f)) + '</div><div class="n">para conferir</div></div></div>';
+      inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + subIndice(f) + '</div></div></div>';
     h += blocoIndiceFicha(f);
   } else {
     /* A régua do grupo abre a ficha. Ela é a única frase daqui que responde "isso
@@ -2534,11 +2548,15 @@ function viewCand(){
        primeira tela do celular. Quatro cifras sem escala não dizem nada a quem
        não acompanha campanha. */
     h += blocoPares(f);
+    /* A ordem dos quadros é a mesma da banda que abre a tela: receita, contratado, já
+       pago, sinais. Contratado e pago saíram da lista nesta rodada, e é aqui que eles
+       são a conta de alguém, então é aqui que eles precisam de destaque. O quadro de
+       sinais leva o índice no sub-rótulo, para "a conferir" ter casa visível na ficha. */
     h += '<div class="tiles">' +
+      '<div class="tile"><div class="r">Receita</div><div class="v num" title="' + esc(moedaCheia(f.receita)) + '">' + moeda(f.receita) + '</div><div class="n">' + (f.estimavel ? moeda(f.estimavel) + ' estimável' : 'sem estimável') + '</div></div>' +
       '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(f.contratado)) + '">' + moeda(f.contratado) + '</div><div class="n">' + inteiro(f.n_despesas) + (f.n_despesas === 1 ? ' despesa' : ' despesas') + '</div></div>' +
       '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(f.pago)) + '">' + moeda(f.pago) + '</div><div class="n">' + pct(f.pago, f.contratado) + '% do contratado</div></div>' +
-      '<div class="tile"><div class="r">Receita</div><div class="v num" title="' + esc(moedaCheia(f.receita)) + '">' + moeda(f.receita) + '</div><div class="n">' + (f.estimavel ? moeda(f.estimavel) + ' estimável' : 'sem estimável') + '</div></div>' +
-      '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(sinaisDaFicha(f)) + '</div><div class="n">para conferir</div></div>' +
+      '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + subIndice(f) + '</div></div>' +
       '</div>';
     if(f.pago > 0){
       h += '<div class="dest"><div class="g num">' + pubPct + ' % público</div>' +
