@@ -64,15 +64,22 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 
 ## O estado da publicacao, em 18/09/2026
 
-**A rodada diaria esta desabilitada a mao** (`gh workflow list --all` mostra
-`disabled_manually`). O motivo: a branch `dados` ja foi recriada no formato novo,
-sem CPF em texto puro, e uma rodada com o codigo antigo leria aquele arquivo como
-documento cru, regravaria os CPF e dispararia "fornecedor novo" para centenas de
-milhares de pessoas.
+**A rodada diaria esta no ar de novo** (`gh workflow list --all` mostra `active`) e o
+painel nacional foi publicado em 18/09 com o codigo novo. O secret `CONTAS_SAL` existe
+no repositorio desde 18/09.
 
-Para religar, na ordem: `git push` do `main` com o codigo novo, e so entao
-`gh workflow enable diario.yml`. O secret `CONTAS_SAL` ja existe no repositorio
-desde 18/09.
+Ela passou a madrugada desabilitada a mao, por um motivo que vale guardar: a branch
+`dados` ja havia sido recriada no formato novo, sem CPF em texto puro, e uma rodada com
+o codigo antigo leria aquele arquivo como documento cru, regravaria os CPF e dispararia
+"fornecedor novo" para centenas de milhares de pessoas. **A ordem que desfaz isso e
+sempre a mesma:** `git push` do `main` com o codigo novo, e so entao
+`gh workflow enable diario.yml`.
+
+**A ordem padrao do ranking e a receita declarada** `[decidido, Guilherme 18/09/2026]`,
+e nao o gasto contratado. Ela troca quem ocupa a primeira linha da tela que abre: no
+pais, Lula (o maior gasto contratado) sai e Flavio Bolsonaro (a maior receita) entra, e
+17 das 60 primeiras linhas trocam. Num repositorio cuja primeira regra e neutralidade,
+isso e escolha declarada do dono, e nao efeito colateral de uma decisao de desenho.
 
 ## Para rodar
 

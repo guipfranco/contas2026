@@ -403,13 +403,14 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
    em vigor troca o fio de 1px por um fio de 2px no acento. É um desenho só para as três
    abas: quem aprendeu a ordenar no ranking reconhece o controle nas outras duas. */
 .ordwrap{display:flex;align-items:center;gap:4px 14px;padding:5px var(--gut) 0;border-bottom:1px solid var(--b);flex-wrap:wrap}
+/* O rótulo "ORDENAR POR" media 85 px e não cabia: com os quatro critérios em 269 px,
+   ele empurrava a fileira para uma segunda linha e a barra custava 96 px de altura.
+   A saída de 17/09 foi escondê-lo no celular, apostando que "os critérios sozinhos já
+   dizem que são critérios de ordem". A aposta perdeu no primeiro teste com gente: sem
+   rótulo, quatro palavras com filete embaixo, logo acima de uma lista e com a mesma
+   voz visual das abas do rodapé, foram lidas como abas de conteúdo. O rótulo volta
+   curto, medido: "ORDEM" custa 43 px, e a barra fecha em 332 px dos 358 úteis. */
 .ordrot{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--mut);flex:none}
-/* no celular o rotulo empurrava os quatro criterios para uma segunda linha, e a
-   barra inteira custava 96 px. Ele continua no DOM, para o leitor de tela, e sai
-   do desenho: os criterios sozinhos ja dizem que sao criterios de ordem */
-@media(max-width:559px){
-  .ordrot{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-}
 .ord{display:flex;gap:2px;flex:1 1 240px;flex-wrap:wrap}
 .ord button{flex:0 1 auto;min-height:44px;padding:0 10px;font-size:12.5px;font-weight:600;color:var(--mut);
   border-bottom:2px solid transparent;white-space:nowrap}
@@ -783,14 +784,17 @@ function fedCurta(f){
 /* ---------- estado ---------- */
 var META = null, UFD = null, IDX = null, ALA = null, FOR = null, COTA = null, PAN = null;
 var S = {
-  view:'ranking', uf:'', cargo:'', partido:'', fed:'', ord:'contratado',
+  view:'ranking', uf:'', cargo:'', partido:'', fed:'', ord:'receita',
   sinal:'', tipo:'', q:'', cand:'', forn:'', grav:'', fam:'', auf:'',
   fo:'valor', pan:'partidos', limite:60
 };
 var ORDS = {contratado:'gasto contratado', indice:'índice de conferência', pago:'gasto pago',
             receita:'receita declarada', sinais:'quantidade de sinais a conferir'};
-/* o que aparece sempre na barra segmentada; 'sinais' segue valendo no link antigo */
-var ORDSEG = [['contratado','Contratado'], ['indice','A conferir'], ['pago','Pago'], ['receita','Receita']];
+/* O que aparece sempre na barra segmentada; 'sinais' segue valendo no link antigo.
+   A receita vem primeira e é a ordem padrão da lista: numa página de contas de
+   campanha, o dinheiro que entrou é o que a pessoa procura antes de qualquer
+   outra coisa, e era ele que estava em último na fileira. */
+var ORDSEG = [['receita','Receita'], ['contratado','Contratado'], ['indice','A conferir'], ['pago','Pago']];
 var COLS = {contratado:6, pago:7, receita:8, indice:14, sinais:12};
 var FAMS = {A:'fornecedor', B:'doador', C:'candidato', D:'ritmo'};
 /* a mesma ressalva em toda tela onde o sinal vira a metrica principal */
@@ -961,7 +965,9 @@ function aplicarHash(){
   S.uf = (o.uf || S.uf || unidadeInicial()).toUpperCase();
   if(META && !unidadeValida(S.uf)) S.uf = ufPadrao();
   S.cargo = o.cargo || ''; S.partido = o.partido || ''; S.fed = o.fed || '';
-  S.ord = ORDS[o.ord] ? o.ord : 'contratado';
+  /* hasOwnProperty, e não ORDS[o.ord]: com a consulta direta, #ord=toString atravessava
+     a régua, COLS não tinha a chave e a lista inteira saía com "não declarado" no valor. */
+  S.ord = Object.prototype.hasOwnProperty.call(ORDS, o.ord || '') ? o.ord : 'receita';
   S.sinal = o.sinal || '';
   /* O corte por tipo e calculado por estado: no arquivo do pais a linha nao
      carrega tipo. Um endereco com uf=BRASIL&tipo=N zerava a lista inteira, com
@@ -1003,7 +1009,7 @@ function montarHash(){
     return p.join('&');
   }
   add('uf',S.uf); add('cargo',S.cargo); add('partido',S.partido); add('fed',S.fed);
-  add('ord',S.ord,'contratado'); add('sinal',S.sinal); add('tipo',S.tipo);
+  add('ord',S.ord,'receita'); add('sinal',S.sinal); add('tipo',S.tipo);
   if(S.view === 'busca') add('q',S.q);
   if(S.view === 'cand') add('cand',S.cand);
   return p.join('&');
@@ -1450,7 +1456,7 @@ function renderChips(){
         '" aria-label="Tipo de gasto: ' + esc(rt) + '. Tocar para limpar"><span>' + esc(rt) +
         '</span><span aria-hidden="true">✕</span></button>';
     }
-    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== 'contratado')
+    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== 'receita')
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
   c.innerHTML = h;
@@ -1505,7 +1511,7 @@ function barras(itens, total, opts){
 
 /* ---------- visão: ranking ---------- */
 /* Uma frase em portugues antes dos numeros: quem chega precisa saber o que esta vendo. */
-function fraseDoRecorte(n, comGasto, ct, pg, pb){
+function fraseDoRecorte(n, comGasto, ct, pg, pb, rc){
   if(!n) return '';
   var outroFiltro = !!(S.partido || S.fed || S.sinal || S.tipo !== '');
   var onde = esc(ondeUF(S.uf)), f;
@@ -1533,6 +1539,13 @@ function fraseDoRecorte(n, comGasto, ct, pg, pb){
   else if(pb == null) f += '. Os números por candidatura estão carregando.';
   else f += pg > 0 ? ', e <b>' + pct(pb, pg) + ' %</b> do que já foi pago saiu de dinheiro público.'
                    : ', e nada foi declarado como pago até agora.';
+  /* A coluna de números da lista é a grandeza que ordena, e desde esta rodada ela é a
+     receita por padrão, enquanto a frase acima dela soma o gasto contratado. Em Roraima
+     são R$ 69,1 mi escritos contra R$ 96,5 mi somados na coluna, e nada explicava a
+     diferença. A oração vem separada de propósito: a receita é das n candidaturas do
+     recorte, e o contratado é das que já declararam gasto, que são menos. */
+  if(!noTipo && rc != null && S.ord === 'receita')
+    f += ' A lista está ordenada pela <b>receita declarada</b>, que soma <b>' + moeda(rc) + '</b>.';
   return '<div class="abre">' + f + '</div>';
 }
 /* Quais sinais o quadro "para conferir" conta. C2 ("nada declarado") e D1 saem do
@@ -1580,7 +1593,7 @@ function blocoResumo(lista, opts){
     comGasto = u.com_gasto || 0; pb = null;
   }
   var h = '<div class="cartao"><h2 class="ocultavisual">Resumo do recorte · ' + esc(nomeUnidade(S.uf)) + '</h2>';
-  if(!opts.semFrase) h += fraseDoRecorte(n, comGasto, ct, pg, pb);
+  if(!opts.semFrase) h += fraseDoRecorte(n, comGasto, ct, pg, pb, temLista ? rc : null);
   h += '<div class="tiles">';
   h += '<div class="tile"><div class="r">Contratado' + (noTipo ? ' no tipo' : '') + '</div>' +
        '<div class="v num" title="' + esc(moedaCheia(ct)) + '">' + moeda(ct) + '</div>' +
@@ -1720,7 +1733,10 @@ function linhaRanking(r, i){
              (r[2] ? ' · nº ' + esc(r[2]) : '') +
              (fed ? ' · ' + esc(fed) : '');
   var pubTxt, pubLarg = 0, temPag = r[7] > 0;
-  if(temPag){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + ' % público'; }
+  /* A base do percentual é o que foi pago, e o número grande da linha logo acima dele
+     é a grandeza da ordem, que pode ser a receita. Sem a base escrita, quem aplicava
+     os 99 % ao número que via errava R$ 1,35 mi na primeira linha de Roraima. */
+  if(temPag){ pubLarg = pct(r[9], r[7]); pubTxt = pubLarg + ' % do pago é público'; }
   else { pubTxt = 'sem pagamento declarado'; }
   /* a assinatura da página: o fio de duas cores do dinheiro público. Sem pagamento
      declarado o fio fica só no trilho, e quem diz o que isso quer dizer é a palavra
@@ -1755,7 +1771,7 @@ function linhaRanking(r, i){
    texto com seta no dinheiro), e quem aprendia a ordenar numa não reconhecia o controle
    nas outras. `segs` é uma lista de [valor, rótulo curto, rótulo por extenso]. */
 function barraOrd(id, segs, atual, act, extraBt, nota){
-  var h = '<div class="ordwrap"><span class="ordrot" id="rot' + id + '">Ordenar por</span>' +
+  var h = '<div class="ordwrap"><span class="ordrot" id="rot' + id + '">Ordem</span>' +
     '<div class="ord" role="group" aria-labelledby="rot' + id + '">';
   h += segs.map(function(sg){
     return '<button data-act="' + act + '" data-v="' + esc(sg[0]) + '" aria-pressed="' +
@@ -1835,7 +1851,8 @@ function viewRanking(){
       lista.reduce(function(n, r){ return n + (r[6] > 0 ? 1 : 0); }, 0),
       lista.reduce(function(v, r){ return v + (S.tipo !== '' ? valorTipo(r) : r[6]); }, 0),
       lista.reduce(function(v, r){ return v + r[7]; }, 0),
-      lista.reduce(function(v, r){ return v + r[9]; }, 0)) : '';
+      lista.reduce(function(v, r){ return v + r[9]; }, 0),
+      lista.reduce(function(v, r){ return v + r[8]; }, 0)) : '';
   var h = '<div class="wrap"><div class="lista">';
   if(avisoDic) h += '<div class="cartao"><div class="nota">' + esc(avisoDic) + '</div></div>';
   if(abre) h += '<div class="cartao">' + abre + '</div>';
@@ -1847,6 +1864,10 @@ function viewRanking(){
   recorteTela = descreverRecorte() + ' · ' + inteiro(lista.length) +
                 (lista.length === 1 ? ' candidatura' : ' candidaturas');
   h += '<div class="cartao"><h2 class="ocultavisual">Candidaturas ' + esc(ondeUF(S.uf)) + '</h2>' +
+       /* Aqui já se tentou escrever o critério de ordem, para dar nome à coluna de
+          números da lista. Não cabe: com o botão do índice do outro lado, o texto
+          "por receita declarada" sai com reticências em 390 px. Quem dá nome à
+          coluna é a barra logo abaixo, que desde esta rodada tem o rótulo à vista. */
        '<div class="status"><span>' + inteiro(lista.length) + ' candidatura' +
        (lista.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(S.uf)) + '</span>' +
        /* o botao e, ao mesmo tempo, o rotulo da coluna de indice, que fica logo abaixo dele */
@@ -2069,8 +2090,8 @@ function viewFornecedores(){
   }
   h += '<div class="cartao"><div class="cab"><h2>Doadores</h2></div>' +
     '<div class="nota">Quem doou aparece na <b>ficha de cada candidatura</b>, com o valor e a origem do recurso. ' +
-    'Para achar quem mais arrecadou, ordene o ranking por receita declarada.</div>' +
-    '<div style="padding:0 12px 12px"><button class="bt pri" data-act="porreceita">Ver o ranking por receita</button></div></div>';
+    'Para achar quem mais arrecadou, veja o ranking, que abre pela <b>receita declarada</b>.</div>' +
+    '<div style="padding:0 12px 12px"><button class="bt pri" data-act="porreceita">Ver o ranking</button></div></div>';
   m.innerHTML = h;
 }
 function viewCota(){
@@ -2847,7 +2868,7 @@ document.addEventListener('click', function(e){
   if(a === 'mais'){ S.limite += 60; render(); focarNovaLinha(); return; }
   if(a === 'limpar'){
     ir(S.view === 'alarmes' ? {grav:'', fam:'', auf:''}
-       : {cargo:'', partido:'', fed:'', sinal:'', tipo:'', ord:'contratado'});
+       : {cargo:'', partido:'', fed:'', sinal:'', tipo:'', ord:'receita'});
     return;
   }
   if(a === 'limpatipo'){ ir({tipo:''}); return; }
