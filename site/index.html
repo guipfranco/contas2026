@@ -859,36 +859,31 @@ var S = {
 var DIMS = {candidato:1, partido:1, estado:1, cargo:1, fornecedor:1};
 var ROT_DIM = {candidato:'candidato', partido:'partido', estado:'estado',
                cargo:'cargo', fornecedor:'fornecedor'};
-var ORDS = {contratado:'gasto contratado', indice:'índice de conferência', pago:'gasto pago',
-            receita:'receita declarada', sinais:'quantidade de sinais a conferir',
-            publico:'dinheiro público pago', n:'número de candidaturas',
+var ORDS = {receita:'receita declarada',
             valor:'valor recebido', campanhas:'campanhas que pagaram'};
-var ORD_CURTO = {receita:'Receita', contratado:'Contratado', indice:'A conferir', pago:'Pago',
-                 sinais:'Nº de sinais', publico:'Público', n:'Candidaturas',
-                 valor:'Valor', campanhas:'Campanhas'};
-/* Cada dimensão ordena pelo que ela tem. Nas visões agregadas não há índice nem selo:
-   partido, estado e cargo mostram dinheiro, e a fila de conferência é da candidatura,
-   que é quem presta contas. A receita abre as quatro primeiras, por decisão declarada
-   do dono: numa página de contas, o dinheiro que entrou é o que se procura primeiro. */
+/* QUATRO DAS CINCO DIMENSÕES TÊM UMA ORDEM SÓ, e ela é a receita declarada. Ordenar por
+   gasto contratado, por índice de conferência, por número de sinais ou por quantidade de
+   candidaturas trocava a cifra da linha, e o mesmo nome aparecia com números diferentes
+   conforme a tela. Contratado, a conferir e pago moram na ficha da candidatura, e
+   "candidaturas" virou célula da linha de grupo, que é onde eles são conta de alguém.
+   A dimensão Fornecedor mantém duas, porque ali "Valor" e "Campanhas" são duas leituras
+   da mesma lista, e não duas listas.
+   Endereço antigo com uma ordem que saiu (#ord=indice, #ord=sinais, #ord=n) continua
+   abrindo: `ordValida` devolve o padrão da dimensão em vez de deixar a lista ordenada
+   por uma coluna que não existe mais. */
 var ORD_DIM = {
-  candidato:['receita','contratado','indice','pago'],
-  partido:['receita','contratado','pago','publico','n'],
-  estado:['receita','contratado','pago','publico','n'],
-  cargo:['receita','contratado','pago','publico','n'],
+  candidato:['receita'],
+  partido:['receita'],
+  estado:['receita'],
+  cargo:['receita'],
   fornecedor:['valor','campanhas']
 };
 var PADRAO_ORD = {candidato:'receita', partido:'receita', estado:'receita',
                   cargo:'receita', fornecedor:'valor'};
-var COLS = {contratado:6, pago:7, receita:8, indice:14, sinais:12};
+var COLS = {receita:8};
 function ordPadrao(){ return PADRAO_ORD[S.v] || 'receita'; }
-function ordsDaDimensao(alvo){
-  var l = (ORD_DIM[S.v] || ORD_DIM.candidato).slice();
-  /* 'sinais' continua valendo em endereço antigo: ele entra na fileira quando está
-     em vigor, em vez de desaparecer e deixar a lista ordenada por nada */
-  if(S.v === 'candidato' && (alvo == null ? S.ord : alvo) === 'sinais') l.push('sinais');
-  return l;
-}
-function ordValida(v){ return ordsDaDimensao(v).indexOf(v) >= 0 ? v : ordPadrao(); }
+function ordsDaDimensao(){ return (ORD_DIM[S.v] || ORD_DIM.candidato).slice(); }
+function ordValida(v){ return ordsDaDimensao().indexOf(v) >= 0 ? v : ordPadrao(); }
 /* Em que unidade a tela está. Na dimensão Estado a lista é o país inteiro, porque é ele
    que tem uma linha por estado; a unidade escolhida sobrevive por baixo, em S.uf, e
    volta a valer quando a pessoa troca de dimensão. */
@@ -1483,11 +1478,10 @@ function valorTipo(r){
   r[11].forEach(function(t){ if(t[0] === ti) v = t[1]; });
   return v;
 }
+/* A grandeza que ordena a lista de candidaturas e que aparece na cifra da linha: a
+   receita declarada, ou o gasto no tipo escolhido, quando há um. */
 function valorDe(r){
-  if(noTipo()) return valorTipo(r);
-  if(S.ord === 'sinais') return r[12].length;
-  if(S.ord === 'indice') return indiceDe(r);
-  return r[COLS[S.ord]] || 0;
+  return noTipo() ? valorTipo(r) : (r[COLS.receita] || 0);
 }
 function filtradas(){
   if(!UFD) return [];
