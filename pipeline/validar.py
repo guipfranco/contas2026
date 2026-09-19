@@ -16,9 +16,17 @@ LIMITE_INDICE_MB = 3.0
 # Sentinela do corte do recorte de fornecedor: sem os topos, o arquivo do pais
 # passaria de 34 MB. Se ele crescer ate aqui, o corte parou de funcionar.
 LIMITE_RECORTE_MB = 2.0
+# O cruzado multiplica fornecedores por tipos de despesa, entao ele cresce pelo
+# produto dos dois eixos e nao pela soma. Se estourar, o primeiro corte e o da
+# celula, em TOPO_CRUZADO_CELULA.
+LIMITE_FORN_CRUZADO_MB = 2.0
+# O tipo por candidatura no pais media 36 % do arquivo nacional, que tem teto
+# de 4 MB: sozinho ele cabe com folga em 5.
+LIMITE_TIPOS_MB = 5.0
 
 CHAVES_RECORTE = ('uf', 'geral', 'geral_por_camp', 'partido', 'cargo',
                   'celula', 'fora')
+CHAVES_CRUZADO = ('uf', 'forn', 'tipo', 'fora', 'partido')
 
 
 def _le(caminho):
@@ -141,6 +149,186 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
     return erros, total
 
 
+def _checar_tipos_brasil(rel, d, linhas_br, n_tipo):
+    """O gasto por tipo de cada candidatura do pais, no arquivo a parte.
+
+    Duas contas para a mesma candidatura na mesma tela nao podem divergir: a
+    soma dos tipos dela aqui tem de ser o contratado que a linha do ranking
+    declara.
+    """
+    erros = []
+    c = d.get('c')
+    if not isinstance(c, dict) or not c:
+        return [f'{rel}: sem o mapa "c"']
+    contratado = {l[0]: l[6] for l in linhas_br}
+    com_gasto = {sq for sq, v in contratado.items() if v}
+    if set(c) != com_gasto:
+        sobra = sorted(set(c) - com_gasto)[:1]
+        falta = sorted(com_gasto - set(c))[:1]
+        erros.append(f'{rel}: candidaturas fora do ranking {sobra}, '
+                     f'sem tipo {falta}')
+    for sq, pares in c.items():
+        if sq not in contratado:
+            continue
+        soma = 0
+        for par in pares:
+            if len(par) != 2:
+                erros.append(f'{rel}: par com {len(par)} campos em {sq}')
+                break
+            tid, valor = par
+            if not (0 <= tid < n_tipo):
+                erros.append(f'{rel}: id de tipo {tid} fora do dicionario')
+                break
+            soma += valor
+        else:
+            if soma != contratado[sq]:
+                erros.append(f'{rel}: {sq} soma {soma} em tipos, e a linha do '
+                             f'ranking diz {contratado[sq]}')
+    return erros
+
+
+def _queixa_do_forn(e, sem_pessoas):
+    """O que uma entrada de `forn` do cruzado nao pode ser.
+
+    A entrada e [endereco, nome, pj, tem_ficha]. Nao ha documento aqui, nem
+    mascarado, entao o que se confere e o nome e a coerencia do link.
+    """
+    if len(e) != 4:
+        return f'entrada de forn com {len(e)} campos, esperado 4'
+    endereco, nome, pj, tem = e
+    if pj not in (0, 1) or tem not in (0, 1):
+        return f'pj {pj!r} ou tem_ficha {tem!r} fora de 0 e 1'
+    if bool(endereco) != bool(tem):
+        return f'tem_ficha {tem} com endereco {endereco!r}'
+    if pj and not tem:
+        return f'empresa sem ficha: {nome!r}'
+    if not pj and endereco and not endereco.startswith('p'):
+        return f'pessoa fisica com endereco de empresa: {endereco!r}'
+    if not pj and tem and sem_pessoas:
+        return ('pessoa fisica com ficha, e o meta diz que nenhuma foi '
+                f'escrita: {endereco!r}')
+    if _cpf_no_texto(nome):
+        return f'CPF inteiro em campo de texto: {nome!r}'
+    return ''
+
+
+def _checar_forn_cruzado(rel, d, n_part, n_tipo, cargos, sem_pessoas,
+                         total_do_tipo, ficha_do_endereco):
+    """Confere um arquivo de fornecedor cruzado.
+
+    Tres travas. As somas por partido, por cargo e por celula fecham com o
+    geral dentro de cada tipo; nenhuma lista declara mais do que aquele tipo
+    gastou no ranking; e o que a tela diz ter ficha tem de ter ficha tambem no
+    recorte da mesma unidade, senao o mesmo nome abre pagina numa tela e nao
+    abre na outra.
+    """
+    erros = []
+    forn = d.get('forn') or []
+    for e in forn:
+        queixa = _queixa_do_forn(e, sem_pessoas)
+        if queixa:
+            erros.append(f'{rel}: {queixa}')
+            break
+    for e in forn:
+        if len(e) == 4 and e[0] and e[0] in ficha_do_endereco:
+            if e[3] != ficha_do_endereco[e[0]]:
+                erros.append(f'{rel}: {e[0]} tem ficha {e[3]} aqui e '
+                             f'{ficha_do_endereco[e[0]]} no recorte')
+                break
+
+    def chave_valida(chave):
+        if chave == 'geral':
+            return True
+        partes = chave.split(':')
+        if len(partes) % 2:
+            return False
+        for marca, valor in zip(partes[0::2], partes[1::2]):
+            if marca == 'p':
+                if not (valor.isdigit() and int(valor) < n_part):
+                    return False
+            elif marca == 'c':
+                if valor not in cargos:
+                    return False
+            elif marca == 't':
+                if not (valor.isdigit() and int(valor) < n_tipo):
+                    return False
+            else:
+                return False
+        return True
+
+    por_tipo = d.get('tipo') or {}
+    fora = d.get('fora') or {}
+    if 'geral' not in por_tipo:
+        return erros + [f'{rel}: sem o recorte geral']
+    for chave in list(por_tipo) + list(fora) + list(d.get('partido') or {}):
+        if not chave_valida(chave):
+            erros.append(f'{rel}: recorte {chave!r} invalido')
+            return erros
+
+    def soma(chave, tid):
+        lista = (por_tipo.get(chave) or {}).get(tid) or []
+        for par in lista:
+            if len(par) != 2 or not (0 <= par[0] < len(forn)):
+                erros.append(f'{rel}: par {par!r} em {chave}/{tid}')
+                return None
+        sobra = ((fora.get(chave) or {}).get(tid) or [0, 0])
+        if len(sobra) != 2 or sobra[0] < 0:
+            erros.append(f'{rel}: fora[{chave!r}][{tid!r}] = {sobra!r}')
+            return None
+        return sum(v for _, v in lista) + sobra[1]
+
+    chaves = list(por_tipo)
+    for tid in por_tipo['geral']:
+        geral = soma('geral', tid)
+        if geral is None:
+            return erros
+        teto = total_do_tipo.get(int(tid))
+        if teto is not None and geral > teto:
+            erros.append(f'{rel}: tipo {tid} soma {geral}, acima do '
+                         f'contratado {teto} do ranking')
+        for prefixo, quais in (
+                ('por partido', [k for k in chaves
+                                 if k.startswith('p:') and ':c:' not in k]),
+                ('por cargo', [k for k in chaves if k.startswith('c:')]),
+                ('por celula', [k for k in chaves if ':c:' in k])):
+            parcial = 0
+            for k in quais:
+                v = soma(k, tid)
+                if v is None:
+                    return erros
+                parcial += v
+            if parcial != geral:
+                erros.append(f'{rel}: tipo {tid} soma {parcial} {prefixo} e '
+                             f'{geral} no geral')
+                break
+
+    for chave, lista in (d.get('partido') or {}).items():
+        marca = chave.split(':')
+        do_tipo = {}
+        if marca[0] == 't':
+            do_tipo = {e[0]: e[1] for e in
+                       (por_tipo['geral'].get(marca[1]) or [])}
+        for entrada in lista:
+            if len(entrada) != 2 or not (0 <= entrada[0] < len(forn)):
+                erros.append(f'{rel}: fluxo {chave} com entrada {entrada!r}')
+                break
+            i_forn, pares = entrada
+            total = 0
+            for par in pares:
+                if len(par) != 2 or not (0 <= par[0] < n_part) or par[1] <= 0:
+                    erros.append(f'{rel}: fluxo {chave} com divisao {par!r}')
+                    break
+                total += par[1]
+            else:
+                if i_forn in do_tipo and total != do_tipo[i_forn]:
+                    erros.append(f'{rel}: fluxo {chave} divide {total} e a '
+                                 f'lista do tipo diz {do_tipo[i_forn]}')
+                    break
+                continue
+            break
+    return erros
+
+
 def validar(pasta):
     erros = []
 
@@ -171,6 +359,9 @@ def validar(pasta):
     n_tipo, n_part, n_fed, n_al = (len(dic.get(k, [])) for k in
                                    ('tipo', 'partido', 'fed', 'alarme'))
     total_linhas = 0
+    # quanto cada tipo de despesa gastou em cada unidade, somado das linhas do
+    # ranking: e o teto que o cruzado de fornecedor nao pode passar
+    tipos_por_unidade = {}
     for uf in sorted(meta.get('ufs', {})):
         caminho = os.path.join(pasta, 'uf', f'{uf}.json')
         if falta(os.path.join('uf', f'{uf}.json')):
@@ -185,7 +376,11 @@ def validar(pasta):
             erros.append(f'uf/{uf}.json tem {len(linhas)} linhas, meta diz '
                          f'{meta["ufs"][uf]["n"]}')
         soma = 0
+        do_tipo = tipos_por_unidade.setdefault(uf, {})
         for l in linhas:
+            if len(l) == 16:
+                for tid, v in l[11]:
+                    do_tipo[tid] = do_tipo.get(tid, 0) + v
             if len(l) != 16:
                 erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 16')
                 break
@@ -235,6 +430,22 @@ def validar(pasta):
             erros.append(f'uf/BRASIL.json tem {len(br)} linhas, menos que as '
                          f'{com_movimento} com gasto')
 
+        # o tipo por candidatura no pais: a linha do arquivo nacional nao o
+        # carrega, e a visao geral cruza tipo com todas as outras dimensoes
+        rel = os.path.join('tipos', 'BRASIL.json')
+        if not falta(rel):
+            caminho = os.path.join(pasta, rel)
+            mb = os.path.getsize(caminho) / 1e6
+            if mb > LIMITE_TIPOS_MB:
+                erros.append(f'{rel} tem {mb:.1f} MB, acima de {LIMITE_TIPOS_MB}')
+            d = _le(caminho)
+            erros.extend(_checar_tipos_brasil(rel, d, br, n_tipo))
+            do_tipo = tipos_por_unidade.setdefault('BRASIL', {})
+            for pares in (d.get('c') or {}).values():
+                for par in pares:
+                    if len(par) == 2:
+                        do_tipo[par[0]] = do_tipo.get(par[0], 0) + par[1]
+
     # recorte de fornecedor: fora da ficha, e a unica peca do site que carrega
     # nome de fornecedor. Duas coisas se conferem aqui: a soma fecha com o que
     # as UFs declararam, e nenhum CPF sai inteiro em campo de texto.
@@ -242,6 +453,7 @@ def validar(pasta):
     cargos_meta = set(meta.get('cargos', {}))
     sem_pessoas = bool((meta.get('forn') or {}).get('pessoas_fora'))
     total_recorte = {}
+    fichas_por_unidade = {}
     for unidade in sorted(meta.get('ufs', {})) + ['BRASIL']:
         rel = os.path.join('forn-recorte', f'{unidade}.json')
         if falta(rel):
@@ -261,6 +473,12 @@ def validar(pasta):
                                             sem_pessoas)
         erros.extend(do_arquivo)
         total_recorte[unidade] = total
+        # o que o recorte diz ter ficha, para o cruzado da mesma unidade dizer
+        # a mesma coisa sobre o mesmo endereco
+        alvo = fichas_por_unidade.setdefault(unidade, {})
+        for e in d['geral']:
+            if len(e) == 8 and e[0]:
+                alvo[e[0]] = e[7]
         if unidade != 'BRASIL':
             # e menor ou igual, nunca igual: em RR, 660 linhas de despesa nao
             # trazem documento de fornecedor e somam R$ 7.643,40 que existem no
@@ -291,6 +509,30 @@ def validar(pasta):
             if sem_ficha:
                 erros.append(f'forn-recorte/BRASIL.json: {sem_ficha} '
                              f'fornecedores marcados com ficha nao tem ficha')
+
+    # fornecedor cruzado: quem recebeu por tipo de despesa, e de que partidos
+    # saiu o dinheiro que chegou a ele. Sao as duas contas da visao geral que o
+    # front nao tem como refazer a partir das linhas do ranking.
+    for unidade in sorted(meta.get('ufs', {})) + ['BRASIL']:
+        rel = os.path.join('forn-cruzado', f'{unidade}.json')
+        if falta(rel):
+            continue
+        caminho = os.path.join(pasta, rel)
+        mb = os.path.getsize(caminho) / 1e6
+        if mb > LIMITE_FORN_CRUZADO_MB:
+            erros.append(f'{rel} tem {mb:.1f} MB, acima de '
+                         f'{LIMITE_FORN_CRUZADO_MB}')
+        d = _le(caminho)
+        if d.get('uf') != unidade:
+            erros.append(f'{rel}: cabecalho diz {d.get("uf")!r}')
+        faltam = [k for k in CHAVES_CRUZADO if k not in d]
+        if faltam:
+            erros.append(f'{rel}: sem a chave {faltam[0]!r}')
+            continue
+        erros.extend(_checar_forn_cruzado(
+            rel, d, n_part, n_tipo, cargos_meta, sem_pessoas,
+            tipos_por_unidade.get(unidade) or {},
+            fichas_por_unidade.get(unidade) or {}))
 
     al = _le(os.path.join(pasta, 'alarmes.json')).get('a', [])
     for linha in al[:2000]:

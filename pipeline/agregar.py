@@ -33,6 +33,22 @@ TOPO_RECORTE_PARTIDO = 60
 TOPO_RECORTE_CARGO = 60
 TOPO_RECORTE_CELULA = 30
 
+# Quantos fornecedores cada lista do CRUZADO carrega. Aqui o corte e bem mais
+# curto que no recorte porque cada lista e multiplicada pelos tipos de despesa
+# (33 em Roraima): o arquivo e o produto dos dois eixos, nao a soma. Os numeros
+# sao os de um cartao que cabe numa tela, nao os de uma lista de conferencia.
+#
+# Se o arquivo do pais passar do limite do validador, o primeiro a cortar e a
+# CELULA: ela e a chave mais numerosa (um partido vezes um cargo) e a que menos
+# gente abre, porque exige dois filtros ligados ao mesmo tempo.
+TOPO_CRUZADO_GERAL = 12
+TOPO_CRUZADO_PARTIDO = 8
+TOPO_CRUZADO_CARGO = 8
+TOPO_CRUZADO_CELULA = 5
+# Quantos fornecedores o fluxo de duas colunas mostra a divisao exata por
+# partido. Doze e o mesmo topo do cartao: o fluxo desenha o que o cartao lista.
+TOPO_CRUZADO_FLUXO = 12
+
 # O TSE chama de SG_UF a unidade eleitoral, e para os cargos nacionais ela e
 # 'BR'. Na tela isso precisa ter nome, senao 'BR' parece uma sigla de estado
 # que ninguem reconhece.
@@ -80,7 +96,7 @@ class Agg:
                  'prestadores', 'tipo_prest',
                  'contratado', 'pago', 'pago_publico',
                  'receita', 'estimavel', 'receita_publica',
-                 'n_despesas', 'por_tipo', 'por_forn', 'por_dia',
+                 'n_despesas', 'por_tipo', 'por_forn', 'por_forn_tipo', 'por_dia',
                  'por_origem', 'por_fonte_paga', 'por_doador',
                  'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao')
 
@@ -96,6 +112,10 @@ class Agg:
         self.n_despesas = 0
         self.por_tipo = collections.Counter()
         self.por_forn = {}          # doc -> [valor, n, nome, tipo_forn, cnae, sq_cand_forn]
+        # (doc, tipo) -> valor. A chave e uma tupla, e nao um dict aninhado
+        # dentro de por_forn: sao 419.531 fornecedores no pais, e um dict vazio
+        # por fornecedor custa mais memoria que a conta inteira.
+        self.por_forn_tipo = {}
         self.por_dia = collections.Counter()
         self.por_origem = collections.Counter()
         self.por_fonte_paga = collections.Counter()
@@ -216,6 +236,11 @@ def agregar_despesas(fluxo, aggs, nac):
                        d.cnae, d.sq_cand_forn, d.tipo)
             _bota_forn(nac.fornecedores, d.doc, d.valor, nome_forn, d.tipo_forn,
                        d.cnae, d.sq_cand_forn, d.tipo)
+            # o mesmo par que por_tipo guarda por candidatura, agora tambem por
+            # fornecedor: e o unico cruzamento da visao geral que o front nao
+            # consegue refazer a partir das linhas do ranking
+            chave_ft = (d.doc, d.tipo or 'Não informado')
+            a.por_forn_tipo[chave_ft] = a.por_forn_tipo.get(chave_ft, 0) + d.valor
             if d.cnae and d.ds_cnae and d.cnae not in nac.cnae_nome:
                 nac.cnae_nome[d.cnae] = d.ds_cnae
             porcand = nac.forn_cands[d.doc]
@@ -508,4 +533,180 @@ def recorte_fornecedores(aggs):
         for chave, mapa in celulas.items():
             _funde_no(nacional[chave], mapa)
     saida['BRASIL'] = _cortar_recorte(nacional)
+    return saida
+
+
+# ---------- o cruzado: fornecedor por tipo de despesa e por partido ----------
+#
+# A visao geral cruza cinco dimensoes numa tela so, e quatro delas o front
+# calcula sozinho sobre as linhas do ranking que ja estao filtradas. Fornecedor
+# e a quinta, e ele nao esta na linha: a conta tem de vir pronta daqui.
+
+
+def _celulas_cruzadas(lista):
+    """(partido, cargo) -> {tipo: {doc: valor}}.
+
+    Mesma ideia de `_celulas`, com o tipo de despesa como eixo a mais. A celula
+    continua sendo a unidade menor: partido, cargo e o geral saem dela por
+    fusao, numa passada so.
+    """
+    celulas = collections.defaultdict(dict)
+    for a in lista:
+        alvo = celulas[(a.partido or '', a.cargo or '')]
+        for (doc, tipo), valor in a.por_forn_tipo.items():
+            porta = alvo.get(tipo)
+            if porta is None:
+                porta = alvo[tipo] = {}
+            porta[doc] = porta.get(doc, 0) + valor
+    return celulas
+
+
+def _funde_cruzado(destino, mapa):
+    """Soma um {tipo: {doc: valor}} dentro de outro."""
+    for tipo, docs in mapa.items():
+        alvo = destino.get(tipo)
+        if alvo is None:
+            alvo = destino[tipo] = {}
+        for doc, valor in docs.items():
+            alvo[doc] = alvo.get(doc, 0) + valor
+
+
+def _topo_simples(mapa, quantos):
+    """Os maiores de {doc: valor}, e quantos ficaram fora somando quanto.
+
+    O empate desce pelo documento, para a lista nao mudar de ordem entre
+    rodadas, que e a mesma regra de `_topo`.
+    """
+    def chave(kv):
+        return (kv[1], kv[0])
+
+    if len(mapa) <= quantos:
+        return sorted(mapa.items(), key=chave, reverse=True), None
+    lista = heapq.nlargest(quantos, mapa.items(), key=chave)
+    resto = sum(mapa.values()) - sum(v for _, v in lista)
+    return lista, [len(mapa) - quantos, resto]
+
+
+def _fatias(celulas, cargo=None, tipo=None, fundidas=None):
+    """[(partido, {doc: valor})], uma fatia por celula do recorte pedido."""
+    saida = []
+    for (p, c), mapa in celulas.items():
+        if cargo is not None and c != cargo:
+            continue
+        if tipo is None:
+            docs = fundidas[(p, c)]
+        else:
+            docs = mapa.get(tipo) or {}
+        if docs:
+            saida.append((p, docs))
+    return saida
+
+
+def _fluxo(fatias, quantos=TOPO_CRUZADO_FLUXO):
+    """Os maiores fornecedores do recorte, com o valor dividido por partido.
+
+    Duas passadas de proposito. A primeira soma so o total de cada fornecedor,
+    um inteiro por documento; a segunda monta a divisao por partido apenas dos
+    que ficaram na lista. Guardar a divisao de todo mundo para depois jogar
+    fora custaria um dict por fornecedor, e sao 419.531 no pais.
+    """
+    totais = {}
+    for _, docs in fatias:
+        for doc, valor in docs.items():
+            totais[doc] = totais.get(doc, 0) + valor
+    if not totais:
+        return []
+    maiores = heapq.nlargest(quantos, totais.items(),
+                             key=lambda kv: (kv[1], kv[0]))
+    del totais
+    divisao = {doc: {} for doc, _ in maiores}
+    for partido, docs in fatias:
+        for doc, alvo in divisao.items():
+            valor = docs.get(doc)
+            if valor:
+                alvo[partido] = alvo.get(partido, 0) + valor
+    return [(doc, sorted(divisao[doc].items(), key=lambda kv: (-kv[1], kv[0])))
+            for doc, _ in maiores]
+
+
+def _cortar_cruzado(celulas):
+    """Das celulas para as listas publicaveis do cruzado.
+
+    Devolve {'tipo': {chave: {tipo: lista}}, 'fora': {chave: {tipo: sobra}},
+    'partido': {chave: [(doc, [(partido, valor)])]}}, com a chave em tupla,
+    como `_cortar_recorte` faz, e o nome so no `escrever`.
+    """
+    por_tipo, fora, fluxos = {}, {}, {}
+
+    def corta(mapa, quantos, chave):
+        porta, sobrou = {}, {}
+        for tipo, docs in mapa.items():
+            lista, sobra = _topo_simples(docs, quantos)
+            porta[tipo] = lista
+            if sobra:
+                sobrou[tipo] = sobra
+        por_tipo[chave] = porta
+        if sobrou:
+            fora[chave] = sobrou
+
+    geral = {}
+    for mapa in celulas.values():
+        _funde_cruzado(geral, mapa)
+    corta(geral, TOPO_CRUZADO_GERAL, 'geral')
+    tipos = sorted(geral)
+    del geral
+    partidos = sorted({p for p, _ in celulas})
+    cargos = sorted({c for _, c in celulas})
+    for p in partidos:
+        mapa = {}
+        for (pp, _), m in celulas.items():
+            if pp == p:
+                _funde_cruzado(mapa, m)
+        corta(mapa, TOPO_CRUZADO_PARTIDO, ('p', p))
+    for c in cargos:
+        mapa = {}
+        for (_, cc), m in celulas.items():
+            if cc == c:
+                _funde_cruzado(mapa, m)
+        corta(mapa, TOPO_CRUZADO_CARGO, ('c', c))
+    for (p, c), mapa in celulas.items():
+        corta(mapa, TOPO_CRUZADO_CELULA, ('p', p, 'c', c))
+
+    # Os fluxos. Nao ha chave de partido aqui: com o filtro de partido ligado o
+    # fluxo tem uma fonte so, e a divisao seria a lista inteira num lado.
+    fundidas = {}
+    for chave, mapa in celulas.items():
+        alvo = fundidas[chave] = {}
+        for docs in mapa.values():
+            for doc, valor in docs.items():
+                alvo[doc] = alvo.get(doc, 0) + valor
+    fluxos['geral'] = _fluxo(_fatias(celulas, fundidas=fundidas))
+    for c in cargos:
+        fluxos[('c', c)] = _fluxo(_fatias(celulas, cargo=c, fundidas=fundidas))
+    del fundidas
+    for t in tipos:
+        fluxos[('t', t)] = _fluxo(_fatias(celulas, tipo=t))
+        for c in cargos:
+            lista = _fluxo(_fatias(celulas, cargo=c, tipo=t))
+            if lista:
+                fluxos[('c', c, 't', t)] = lista
+    return {'tipo': por_tipo, 'fora': fora, 'partido': fluxos}
+
+
+def recorte_forn_cruzado(aggs):
+    """Fornecedor por tipo de despesa e por partido, por unidade e no pais.
+
+    Irmao de `recorte_fornecedores`, e pela mesma razao: a linha do ranking nao
+    diz quem recebeu. O recorte responde "quem recebeu do PT em Roraima"; este
+    responde "quem recebeu por publicidade" e "de que partidos saiu o dinheiro
+    que chegou a este fornecedor", que sao as duas contas da visao geral.
+    """
+    saida = {}
+    nacional = collections.defaultdict(dict)
+    for uf, lista in por_uf(aggs).items():
+        celulas = _celulas_cruzadas(lista)
+        saida[uf] = _cortar_cruzado(celulas)
+        for chave, mapa in celulas.items():
+            _funde_cruzado(nacional[chave], mapa)
+    saida['BRASIL'] = _cortar_cruzado(nacional)
     return saida

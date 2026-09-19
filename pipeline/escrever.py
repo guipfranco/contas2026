@@ -185,6 +185,10 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
     agregado do pais inteiro, no cabecalho, que e o que aquele painel mostra.
     Nas UFs o campo continua por linha, porque la ele custa pouco e o filtro
     por tipo precisa dele.
+
+    O campo 11 segue vazio neste arquivo, e desde 18/09 o mesmo dado existe em
+    `tipos/BRASIL.json`, baixado so por quem abre a visao geral ou liga o
+    filtro de tipo. Quem escreve aquele arquivo e `escrever_tipos_brasil`.
     """
     dpart, dfed, dalarme = dics['partido'], dics['fed'], dics['alarme']
     dtipo = dics['tipo']
@@ -217,6 +221,28 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
                   'sem_movimento': sem_movimento,
                   'tipos': [[dtipo.id(t), v] for t, v in tipos_pais.most_common()],
                   'c': linhas})
+
+
+def escrever_tipos_brasil(aggs, dics, destino):
+    """O gasto por tipo de cada candidatura do pais, em arquivo a parte.
+
+    Ele existe porque a linha do arquivo nacional nao carrega tipo, e a visao
+    geral cruza tipo com partido, cargo, estado e candidatura. Com este arquivo
+    na mao o front refaz sozinho, no pais inteiro, a mesma conta que ja faz nas
+    UFs, e o filtro por tipo passa a valer em todas as dimensoes.
+
+    E um arquivo por demanda: so quem abre aquela tela, ou liga o filtro de
+    tipo, paga o download. Formato {"c": {"<sq>": [[id_tipo, valor], ...]}}.
+    """
+    dtipo = dics['tipo']
+    c = {}
+    for a in aggs:
+        if not a.movimento:
+            continue
+        pares = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
+        if pares:
+            c[a.sq] = pares
+    return grava(os.path.join(destino, 'tipos', 'BRASIL.json'), {'c': c})
 
 
 def escrever_indice(aggs, dics, destino):
@@ -439,6 +465,75 @@ def escrever_forn_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
         'celula': {f'{dpart.id(p)}:{c}': lista(v)
                    for (p, c), v in recorte['celula'].items()},
         'fora': {_chave_fora(k, dpart): v for k, v in recorte['fora'].items()},
+    })
+
+
+def _chave_cruzado(chave, dpart, dtipo):
+    """A chave do recorte cruzado com os indices do meta no lugar dos nomes."""
+    if chave == 'geral':
+        return 'geral'
+    partes = []
+    for i in range(0, len(chave), 2):
+        marca, valor = chave[i], chave[i + 1]
+        if marca == 'p':
+            partes.append(f'p:{dpart.id(valor)}')
+        elif marca == 'c':
+            partes.append(f'c:{valor}')
+        else:
+            partes.append(f't:{dtipo.id(valor)}')
+    return ':'.join(partes)
+
+
+def escrever_forn_cruzado(unidade, recorte, nac, dics, destino, com_chave=None):
+    """Fornecedor por tipo de despesa e por partido, na unidade e em cada recorte.
+
+    Irmao do `forn-recorte`, e com uma diferenca de forma: aqui os fornecedores
+    moram num dicionario local, `forn`, e cada lista carrega o indice dele. O
+    mesmo fornecedor aparece em dezenas de listas deste arquivo (uma por tipo,
+    uma por partido, uma por cargo), e repetir nome e endereco em cada uma
+    multiplicaria o arquivo por dez sem dizer nada de novo.
+
+    Uma entrada de `forn` e [endereco, nome, pj, tem_ficha]. Nao ha documento
+    aqui, nem mascarado: quem precisa do numero e a ficha, e esta e uma tela de
+    cruzamento. O `tem_ficha` vem do cadastro nacional, como no recorte, porque
+    o piso da ficha de pessoa fisica e medido na eleicao inteira.
+    """
+    dpart, dtipo = dics['partido'], dics['tipo']
+    forn, indice = [], {}
+
+    def i_forn(doc):
+        i = indice.get(doc)
+        if i is not None:
+            return i
+        cad = nac.fornecedores.get(doc)
+        if cad is None:
+            # o mesmo caminho silencioso que o recorte descreve: sem cadastro
+            # nacional nao ha ficha, e entao nao ha endereco
+            entrada = ['', 'Não informado', 1 if len(doc) == 14 else 0, 0]
+        else:
+            endereco, _documento, pj, tem = _forn_publico(doc, cad, com_chave)
+            entrada = [endereco, curto(cad[2] or 'Não informado'), pj, tem]
+        i = indice[doc] = len(forn)
+        forn.append(entrada)
+        return i
+
+    def nome(chave):
+        return _chave_cruzado(chave, dpart, dtipo)
+
+    por_tipo = {nome(chave): {str(dtipo.id(t)): [[i_forn(d), v] for d, v in lista]
+                              for t, lista in porta.items()}
+                for chave, porta in recorte['tipo'].items()}
+    fora = {nome(chave): {str(dtipo.id(t)): sobra for t, sobra in porta.items()}
+            for chave, porta in recorte['fora'].items()}
+    partido = {nome(chave): [[i_forn(d), [[dpart.id(p), v] for p, v in pares]]
+                             for d, pares in lista]
+               for chave, lista in recorte['partido'].items()}
+    return grava(os.path.join(destino, 'forn-cruzado', f'{unidade}.json'), {
+        'uf': unidade,
+        'forn': forn,
+        'tipo': por_tipo,
+        'fora': fora,
+        'partido': partido,
     })
 
 

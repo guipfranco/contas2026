@@ -235,6 +235,8 @@ def main(argv=None):
 
     b_br = E.escrever_brasil(list(aggs.values()), por_sq, dics, a.site)
     passo(t0, f'Brasil inteiro: {b_br / 1e6:.2f} MB')
+    b_tip = E.escrever_tipos_brasil(list(aggs.values()), dics, a.site)
+    passo(t0, f'tipo por candidatura no pais: {b_tip / 1e6:.2f} MB')
     b_ind = E.escrever_indice(list(aggs.values()), dics, a.site)
     b_al = E.escrever_alarmes(todos, aggs, dics, a.site)
     fichas_forn = E.escrever_fornecedores_fichas(nac, aggs, dados_receita,
@@ -254,6 +256,11 @@ def main(argv=None):
                 for unidade, recorte in sorted(recortes.items()))
     passo(t0, f'recorte de fornecedor em {len(recortes)} arquivos, '
               f'{b_rec / 1e6:.2f} MB')
+    cruzados = A.recorte_forn_cruzado(aggs)
+    b_cru = sum(E.escrever_forn_cruzado(unidade, cruzado, nac, dics, a.site)
+                for unidade, cruzado in sorted(cruzados.items()))
+    passo(t0, f'fornecedor cruzado em {len(cruzados)} arquivos, '
+              f'{b_cru / 1e6:.2f} MB')
     # o panorama e a lista nacional de fornecedores sairam em 18/09: a tela passou
     # a agrupar por partido, estado e cargo no proprio front, sobre as linhas que
     # ja estao filtradas, e quem recebeu vem do recorte por unidade

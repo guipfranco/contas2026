@@ -1174,6 +1174,293 @@ class TestRecorteDeFornecedores(unittest.TestCase):
         self.assertTrue(pequenas)
 
 
+def _agregar_roraima():
+    """A fatia real de Roraima ja somada, como a rodada faz.
+
+    Duas classes deste arquivo partem do mesmo ponto, e repetir a montagem
+    custava dez segundos de teste sem medir nada de novo.
+    """
+    zc = zipfile.ZipFile(os.path.join(FIX, 'candidatos.zip'))
+    zk = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand.zip'))
+    aggs, nac = {}, A.Nacional()
+    A.agregar_despesas(C.despesas(zc, 'RR'), aggs, nac)
+    p2s = {}
+    for sq, ag in aggs.items():
+        for pr in ag.prestadores:
+            p2s[pr] = sq
+    A.agregar_pagas(C.pagas(zc, 'RR'), aggs, nac, p2s)
+    A.agregar_receitas(C.receitas(zc, 'RR'), aggs, nac)
+    A.juntar_candidaturas(list(C.candidaturas(zk, 'RR')), aggs)
+    nac.fecha()
+    return aggs, nac
+
+
+class TestTipoPorCandidaturaNoPais(unittest.TestCase):
+    """O gasto por tipo de cada candidatura do pais, em arquivo a parte.
+
+    A linha do arquivo nacional nao carrega tipo: media em 17/09, a lista era
+    36 % do arquivo, quase 1 MB comprimido que o celular baixava para alimentar
+    um painel que nasce fechado. O cruzamento da visao geral precisa dela, e
+    entao ela mora aqui, e so quem abre aquela tela paga o custo.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp()
+        cls.aggs, cls.nac = _agregar_roraima()
+        cls.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        lista = list(cls.aggs.values())
+        E.escrever_brasil(lista, {}, cls.dics, cls.tmp)
+        cls.bytes = E.escrever_tipos_brasil(lista, cls.dics, cls.tmp)
+        cls.br = json.load(open(os.path.join(cls.tmp, 'uf', 'BRASIL.json'),
+                                encoding='utf-8'))
+        cls.tipos = json.load(open(os.path.join(cls.tmp, 'tipos', 'BRASIL.json'),
+                                   encoding='utf-8'))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_a_soma_dos_tipos_e_o_contratado_da_candidatura(self):
+        """Somar os tipos de uma candidatura tem de dar o gasto dela.
+
+        E a mesma conta que a linha da UF ja faz no campo 11: se as duas
+        divergirem, a mesma candidatura tem dois totais na mesma tela.
+        """
+        contratado = {l[0]: l[6] for l in self.br['c']}
+        self.assertTrue(self.tipos['c'])
+        for sq, pares in self.tipos['c'].items():
+            self.assertIn(sq, contratado)
+            self.assertEqual(sum(v for _, v in pares), contratado[sq])
+
+    def test_so_quem_tem_movimento_e_gastou_entra(self):
+        com_gasto = {l[0] for l in self.br['c'] if l[6]}
+        self.assertEqual(set(self.tipos['c']), com_gasto)
+        self.assertGreater(len(com_gasto), 200)
+
+    def test_o_id_de_tipo_sai_do_dicionario_do_meta(self):
+        n = len(self.dics['tipo'].lista)
+        vistos = set()
+        for pares in self.tipos['c'].values():
+            for tid, valor in pares:
+                self.assertTrue(0 <= tid < n, tid)
+                self.assertGreater(valor, 0)
+                vistos.add(tid)
+        self.assertGreater(len(vistos), 20)
+
+    def test_o_arquivo_cabe_no_limite(self):
+        self.assertLess(self.bytes / 1e6, V.LIMITE_TIPOS_MB)
+
+
+class TestFornecedorCruzado(unittest.TestCase):
+    """Fornecedor por tipo de despesa e por partido, que o front nao calcula.
+
+    As linhas do ranking bastam para cruzar partido, cargo, estado, tipo e
+    candidatura no proprio navegador. Fornecedor nao: a linha nao diz quem
+    recebeu, e as 419.531 fichas do pais nao cabem no aparelho de ninguem.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # a classe mede o caminho SEM a chave, que e a rodada de quem
+        # desenvolve: nela nenhuma pessoa fisica pode ganhar endereco
+        cls.antes = os.environ.pop('CONTAS_SAL', None)
+        cls.tmp = tempfile.mkdtemp()
+        cls.aggs, cls.nac = _agregar_roraima()
+        cls.cruzados = A.recorte_forn_cruzado(cls.aggs)
+        cls.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        # os dicionarios nascem no ranking, e o cruzado carrega os mesmos
+        # indices: a ordem tem de ser a mesma dos dois lados
+        E.escrever_uf('RR', list(cls.aggs.values()), {}, cls.dics, cls.tmp)
+        cls.cru = cls._grava(cls.tmp, cls.dics)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+        if cls.antes is not None:
+            os.environ['CONTAS_SAL'] = cls.antes
+
+    @classmethod
+    def _grava(cls, destino, dics):
+        saida = {}
+        for unidade, recorte in cls.cruzados.items():
+            E.escrever_forn_cruzado(unidade, recorte, cls.nac, dics, destino)
+            saida[unidade] = json.load(open(
+                os.path.join(destino, 'forn-cruzado', f'{unidade}.json'),
+                encoding='utf-8'))
+        return saida
+
+    def _a_mao(self):
+        """tipo -> {doc: valor}, somado na mao a partir das candidaturas."""
+        mao = {}
+        for a in self.aggs.values():
+            for (doc, tipo), v in a.por_forn_tipo.items():
+                alvo = mao.setdefault(tipo, {})
+                alvo[doc] = alvo.get(doc, 0) + v
+        return mao
+
+    def test_o_topo_de_cada_tipo_bate_com_a_conta_feita_a_mao(self):
+        mao = self._a_mao()
+        tipo = max(mao, key=lambda t: sum(mao[t].values()))
+        tid = str(self.dics['tipo'].id(tipo))
+        r = self.cru['RR']
+        lista = r['tipo']['geral'][tid]
+        fora = (r['fora']['geral'].get(tid) or [0, 0])
+        self.assertEqual(len(mao[tipo]), len(lista) + fora[0])
+        self.assertEqual(sum(mao[tipo].values()),
+                         sum(e[1] for e in lista) + fora[1])
+        valores = [e[1] for e in lista]
+        self.assertEqual(valores, sorted(valores, reverse=True))
+        maior = max(mao[tipo].items(), key=lambda kv: (kv[1], kv[0]))
+        self.assertEqual(lista[0][1], maior[1])
+
+    def test_partido_cargo_e_celula_somam_o_mesmo_que_o_geral_em_cada_tipo(self):
+        r = self.cru['RR']
+
+        def total(chave, tid):
+            lista = (r['tipo'].get(chave) or {}).get(tid) or []
+            sobra = ((r['fora'].get(chave) or {}).get(tid) or [0, 0])
+            return sum(e[1] for e in lista) + sobra[1]
+
+        conferidos = 0
+        for tid in r['tipo']['geral']:
+            geral = total('geral', tid)
+            self.assertGreater(geral, 0)
+            for prefixo in ('p:', 'c:'):
+                somado = sum(total(k, tid) for k in r['tipo']
+                             if k.startswith(prefixo) and ':c:' not in k)
+                self.assertEqual(somado, geral, f'{prefixo} do tipo {tid}')
+            celulas = sum(total(k, tid) for k in r['tipo'] if ':c:' in k)
+            self.assertEqual(celulas, geral, f'celulas do tipo {tid}')
+            conferidos += 1
+        self.assertGreater(conferidos, 20)
+
+    def test_a_divisao_por_partido_soma_o_valor_do_fornecedor(self):
+        """O fluxo partido para fornecedor e exato para quem esta listado."""
+        r = self.cru['RR']
+        mao = {}
+        for a in self.aggs.values():
+            for doc, e in a.por_forn.items():
+                mao[doc] = mao.get(doc, 0) + e[0]
+        self.assertTrue(r['partido']['geral'])
+        for i_forn, pares in r['partido']['geral']:
+            self.assertTrue(pares)
+            endereco, nome, pj, tem = r['forn'][i_forn]
+            self.assertTrue(nome)
+            self.assertIn(pj, (0, 1))
+        # a soma de cada divisao e o valor daquele fornecedor no recorte, e o
+        # recorte geral e a UF inteira
+        por_valor = sorted(mao.values(), reverse=True)
+        somas = sorted((sum(v for _, v in pares)
+                        for _, pares in r['partido']['geral']), reverse=True)
+        self.assertEqual(somas, por_valor[:len(somas)])
+
+    def test_a_divisao_por_tipo_soma_o_valor_do_fornecedor_naquele_tipo(self):
+        r = self.cru['RR']
+        mao = self._a_mao()
+        chaves = [k for k in r['partido'] if k.startswith('t:')]
+        self.assertTrue(chaves)
+        for chave in chaves:
+            tid = chave.split(':')[1]
+            tipo = self.dics['tipo'].lista[int(tid)]
+            for i_forn, pares in r['partido'][chave]:
+                lista = r['tipo']['geral'].get(tid) or []
+                do_tipo = {e[0]: e[1] for e in lista}
+                if i_forn in do_tipo:
+                    self.assertEqual(sum(v for _, v in pares), do_tipo[i_forn])
+        self.assertTrue(mao)
+
+    def test_o_topo_respeita_os_limites_declarados(self):
+        r = self.cru['RR']
+        limite = {'geral': A.TOPO_CRUZADO_GERAL}
+        for chave, porta in r['tipo'].items():
+            if chave == 'geral':
+                teto = A.TOPO_CRUZADO_GERAL
+            elif ':c:' in chave:
+                teto = A.TOPO_CRUZADO_CELULA
+            elif chave.startswith('p:'):
+                teto = A.TOPO_CRUZADO_PARTIDO
+            else:
+                teto = A.TOPO_CRUZADO_CARGO
+            for tid, lista in porta.items():
+                self.assertLessEqual(len(lista), teto, f'{chave} {tid}')
+                if len(lista) < teto:
+                    self.assertNotIn(tid, r['fora'].get(chave) or {})
+        self.assertTrue(limite)
+        for chave, lista in r['partido'].items():
+            self.assertLessEqual(len(lista), A.TOPO_CRUZADO_FLUXO, chave)
+
+    def test_os_ids_de_partido_e_tipo_saem_dos_dicionarios_do_ranking(self):
+        uf = json.load(open(os.path.join(self.tmp, 'uf', 'RR.json'),
+                            encoding='utf-8'))
+        partidos = {l[3] for l in uf['c']}
+        n_tipo = len(self.dics['tipo'].lista)
+        r = self.cru['RR']
+        for chave, porta in r['tipo'].items():
+            if chave.startswith('p:'):
+                self.assertIn(int(chave.split(':')[1]), partidos)
+            for tid in porta:
+                self.assertTrue(0 <= int(tid) < n_tipo, tid)
+        for _, pares in r['partido']['geral']:
+            for pid, valor in pares:
+                self.assertIn(pid, partidos)
+                self.assertGreater(valor, 0)
+
+    def test_nenhum_cpf_aparece_no_arquivo_cru(self):
+        cpfs = [d for d in self.nac.fornecedores if len(d) == 11]
+        self.assertEqual(len(cpfs), 9082)
+        for unidade in ('RR', 'BRASIL'):
+            bruto = io.open(os.path.join(self.tmp, 'forn-cruzado',
+                                         f'{unidade}.json'),
+                            encoding='utf-8').read()
+            self.assertEqual([c for c in cpfs if c in bruto], [])
+
+    def test_sem_a_chave_nenhuma_pessoa_fisica_ganha_endereco_nem_ficha(self):
+        self.assertIsNone(os.environ.get('CONTAS_SAL'))
+        pessoas = 0
+        for unidade in ('RR', 'BRASIL'):
+            for endereco, nome, pj, tem in self.cru[unidade]['forn']:
+                if pj:
+                    continue
+                pessoas += 1
+                self.assertEqual(endereco, '')
+                self.assertEqual(tem, 0)
+        self.assertTrue(pessoas)
+
+    def test_tem_ficha_e_o_mesmo_do_forn_recorte_da_mesma_unidade(self):
+        """O mesmo nome nao pode abrir pagina numa tela e nao abrir na outra."""
+        outro = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, outro, True)
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.addCleanup(lambda: os.environ.pop('CONTAS_SAL', None))
+        dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        E.escrever_uf('RR', list(self.aggs.values()), {}, dics, outro)
+        for unidade, recorte in A.recorte_fornecedores(self.aggs).items():
+            E.escrever_forn_recorte(unidade, recorte, self.nac, dics, outro)
+        for unidade, recorte in self.cruzados.items():
+            E.escrever_forn_cruzado(unidade, recorte, self.nac, dics, outro)
+        rec = json.load(open(os.path.join(outro, 'forn-recorte', 'RR.json'),
+                             encoding='utf-8'))
+        cru = json.load(open(os.path.join(outro, 'forn-cruzado', 'RR.json'),
+                             encoding='utf-8'))
+        do_recorte = {e[0]: e[7] for e in rec['geral'] if e[0]}
+        conferidos = 0
+        for endereco, nome, pj, tem in cru['forn']:
+            self.assertEqual(bool(endereco), bool(tem))
+            if endereco in do_recorte:
+                self.assertEqual(tem, do_recorte[endereco])
+                conferidos += 1
+        self.assertGreater(conferidos, 10)
+        com_ficha = [e for e in cru['forn'] if not e[2] and e[3]]
+        self.assertTrue(com_ficha)
+
+    def test_o_arquivo_cabe_no_limite(self):
+        for unidade in ('RR', 'BRASIL'):
+            mb = os.path.getsize(os.path.join(
+                self.tmp, 'forn-cruzado', f'{unidade}.json')) / 1e6
+            self.assertLess(mb, V.LIMITE_FORN_CRUZADO_MB, unidade)
+
+
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
         # a rodada de producao exige a chave que torna o identificador de pessoa
@@ -1238,6 +1525,20 @@ class TestPontaAPonta(unittest.TestCase):
             # vem do recorte por unidade
             for morto in ('panorama.json', 'fornecedores.json'):
                 self.assertFalse(os.path.exists(os.path.join(site, morto)), morto)
+            # o tipo por candidatura no pais mora em arquivo a parte, e o
+            # cruzamento de fornecedor por tipo e por partido tambem: sao as
+            # duas contas que o front nao tem como fazer sozinho na visao geral
+            tipos_br = json.load(open(os.path.join(site, 'tipos', 'BRASIL.json'),
+                                      encoding='utf-8'))
+            self.assertEqual(set(tipos_br['c']),
+                             {l[0] for l in br['c'] if l[6]})
+            for unidade in ('RR', 'BRASIL'):
+                cru = json.load(open(os.path.join(site, 'forn-cruzado',
+                                                  f'{unidade}.json'),
+                                     encoding='utf-8'))
+                self.assertTrue(cru['forn'])
+                self.assertTrue(cru['tipo']['geral'])
+                self.assertTrue(cru['partido']['geral'])
             rec = os.path.join(site, 'forn-recorte')
             r_rr = json.load(open(os.path.join(rec, 'RR.json'), encoding='utf-8'))
             r_br = json.load(open(os.path.join(rec, 'BRASIL.json'),
