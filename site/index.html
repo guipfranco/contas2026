@@ -484,16 +484,27 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .blist li{min-width:0}
 .blist .t{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;font-size:13px;min-width:0;padding-bottom:4px}
 .blist div.t{padding-top:12px}
-.blist .t span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* Quem cede é o nome, e só até um piso: o selo não encolhe nunca. Ele é curto por
+   natureza ("empresa", "pessoa física", "28 candidaturas") e é o que diz se um nome
+   apontado nesta tela é de uma pessoa ou de uma empresa, que é a informação que este
+   painel menos pode perder. No caso mais apertado quem corta é o contêiner. */
+/* Quando os dois não cabem lado a lado, o selo desce para a linha seguinte e o nome fica
+   com a largura inteira. Sem isso, "ALBUQUERQUE" virava "ALBU…" para caber ao lado de
+   "REPUBLICANOS · Dep. Federal · RR", e o cartão das maiores candidaturas é justamente
+   onde o nome é o assunto. */
+.blab{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;min-width:0;
+  overflow:hidden}
+.bnome{flex:0 1 auto;min-width:3.5em;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
 .blist .t b{font-weight:700;white-space:nowrap}
 .blist button.t{width:100%;text-align:left;min-height:44px}
 .blist li[aria-current="true"] .t{color:var(--ac)}
 .blist li[aria-current="true"] .bar i{background:var(--ink)}
 @media(hover:hover){.blist button.t:hover{color:var(--ink)}}
 .blist a.t{text-decoration:none;color:inherit;min-height:44px;align-items:center}
-.blist a.t span:first-child{text-decoration:underline;text-decoration-color:var(--b2);
+.blist a.t .bnome{text-decoration:underline;text-decoration-color:var(--b2);
   text-underline-offset:3px}
-@media(hover:hover){.blist a.t:hover span:first-child{text-decoration-color:var(--ac)}}
+@media(hover:hover){.blist a.t:hover .bnome{text-decoration-color:var(--ac)}}
 /* A linha do resto não é botão e não abre nada: ela conta quem ficou de fora. Em tinta
    secundária e com a barra no cinza do trilho, ela se lê como nota de rodapé da lista,
    que é o que ela é. */
@@ -502,9 +513,9 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 /* O atributo de leitura ao lado do nome, dentro da barra: partido e cargo de uma
    candidatura, a natureza de um fornecedor. Mesma regra dos chips da linha: sem cor
    por partido e sem data-act, porque ele não filtra nada. */
-.battr{display:inline-block;margin-left:7px;padding:0 6px;border-radius:var(--raio);
+.battr{flex:none;padding:0 6px;border-radius:var(--raio);
   background:var(--chip);color:var(--mut);font-size:11.5px;font-weight:600;
-  vertical-align:1px;white-space:nowrap}
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ============ VISÃO GERAL ============
    A grade de cartões, o anel e os dois fluxos. Uma coluna no celular, duas a partir de
@@ -1573,7 +1584,11 @@ function barras(itens, total, opts){
        lado do nome, um endereço de ficha, ou a marca de que a linha é o resto */
     var ex = it[3] || {};
     var larg = Math.max(2, Math.round(it[1] / max * 100));
-    var linha = '<span>' + esc(it[0]) +
+    /* O nome e o selo são irmãos, e não pai e filho. Dentro do span que corta com
+       reticência, o selo era a primeira coisa a sumir: medido em 1280 px, 6 das 10
+       maiores candidaturas perdiam o partido e o cargo, e 4 dos 10 fornecedores perdiam
+       a palavra que diz se aquele nome é de uma pessoa. Quem encolhe é o nome. */
+    var linha = '<span class="blab"><span class="bnome">' + esc(it[0]) + '</span>' +
       (ex.attr ? '<span class="battr">' + esc(ex.attr) + '</span>' : '') + '</span><b>' + moeda(it[1]) +
       (total ? ' <span class="c" style="color:var(--mut);font-weight:400">' + pct(it[1], total) + '%</span>' : '') + '</b>';
     var tit = esc(moedaCheia(it[1]) + (ex.titulo ? ' · ' + ex.titulo : ''));
@@ -2150,15 +2165,24 @@ function cartaoEstadosGeral(lista, total){
     ' unidades · toque para abrir uma delas',
     barras(vis, total, {acao:'guf', atual:''}), 'larga');
 }
+/* O cartão de tipos é o seletor de tipo, e por isso ele NÃO obedece ao próprio filtro:
+   com um tipo ligado, uma lista de uma barra só não deixaria trocar de tipo. Ele soma as
+   candidaturas do recorte sem o corte por tipo, e o sub-rótulo diz isso: medido no país
+   com um tipo ligado, os outros cartões somavam R$ 9,1 mi e este somava R$ 63 mi, dois
+   totais para a mesma medida na mesma tela. O tipo em vigor sai marcado, e tocar nele
+   de novo limpa. */
 function cartaoTiposGeral(lista){
-  var t = tiposDoRecorte(lista);
+  var base = noTipo() ? UFD.c.filter(function(r){ return passa(r, 'tipo'); }) : lista;
+  var t = tiposDoRecorte(base);
   if(!t.itens.length) return '';
   var pode = temTipoPorLinha();
   var vis = topoComResto(t.itens, 8, function(n){
     return 'outros ' + inteiro(n) + (n === 1 ? ' tipo' : ' tipos');
   });
   var sub = inteiro(t.itens.length) + ' tipos · ' +
-            (pode ? 'toque para filtrar' : 'do país inteiro, enquanto o corte por tipo carrega');
+            (!pode ? 'do país inteiro, enquanto o corte por tipo carrega'
+             : noTipo() ? 'o recorte sem o corte por tipo, para dar a trocar'
+             : 'toque para filtrar');
   return cartaoGeral('Tipos de despesa', sub,
                      barras(vis, t.total, pode ? {acao:'tipo', atual:S.tipo} : {}));
 }
@@ -2224,10 +2248,34 @@ function fornDoRecorteGeral(){
     return {nome:e[1], pj:e[3], ficha:e[7], endereco:e[0], valor:e[4]};
   })};
 }
+/* Quando o arquivo de quem recebeu não vem, só dois cartões desta tela dependem dele, e
+   os outros seis continuam de pé: o erro mora dentro deles, com a porta de voltar a
+   tentar. Sem isto, os dois ficavam no esqueleto para sempre, porque o próprio erro
+   guardado é o que impede um pedido novo. 404 é arquivo que não existe, e tentar de novo
+   não resolve; aí o que se oferece é a tela vizinha, não o botão. */
+function erroDeFornecedor(){
+  var uf = ufDaTela();
+  var e = (erros.fcr && erros.fcr.u === uf) ? erros.fcr : null;
+  var qual = 'retryfcr';
+  if(!e && !noTipo() && erros.frc && erros.frc.u === uf){ e = erros.frc; qual = 'retryfrc'; }
+  if(!e) return '';
+  if(e.s === 404){
+    return '<div class="erro"><p>' +
+      esc('A lista de quem recebeu ' + ondeUF(uf) + ' ainda não foi publicada nesta ' +
+          'versão dos dados.') + '</p><button class="bt pri" data-act="aba" ' +
+      'data-v="candidato">Ver as candidaturas</button></div>';
+  }
+  return '<div class="erro"><p>' +
+    esc('Não foi possível carregar a lista de quem recebeu ' + ondeUF(uf) +
+        '. Verifique a conexão.') + '</p><button class="bt pri" data-act="' + qual +
+    '">Tentar de novo</button></div>';
+}
 function cartaoFornecedoresGeral(){
-  var d = fornDoRecorteGeral();
   var sub = noTipo() ? 'no tipo escolhido · toque abre a ficha quando há'
                      : 'por valor recebido · toque abre a ficha quando há';
+  var falha = erroDeFornecedor();
+  if(falha) return cartaoGeral('Maiores fornecedores', sub, falha);
+  var d = fornDoRecorteGeral();
   if(!d) return cartaoGeral('Maiores fornecedores', sub, skCartao());
   var top = d.lista.slice(0, 10);
   var itens = top.map(function(f){
@@ -2371,10 +2419,17 @@ function fluxoDuasColunas(esq, dir, ligs, id){
         n.y.toFixed(1) + '" width="' + nw + '" height="' + n.h.toFixed(1) + '"/>' +
         '<text class="rot' + (n.outros ? ' fraco' : '') + '" x="' + tx + '" y="' +
         (cy + 4).toFixed(1) + '"' + anc + '>' + esc(corta(n.nome)) + '</text>' +
+        /* O valor nunca entra na mesma linha que "fora de escala": em 360 px a coluna de
+           rótulo tem 110 px e a frase inteira mede 129, e ela saía por baixo da borda do
+           cartão. A ressalva ganha linha própria, e o nó "outros" sempre a comporta,
+           porque ele é o mais alto do desenho por construção. */
         (n.h >= 22 ? '<text class="val" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc +
-          '>' + esc(moeda(n.valor) + (n.outros && n.compr < 1 ? ', fora de escala' : '')) +
-          '</text>' : '');
+          '>' + esc(moeda(n.valor)) + '</text>' : '') +
+        (n.outros && n.compr < 1 && n.h >= 36
+          ? '<text class="val" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc +
+            '>fora de escala</text>' : '');
       var titulo = '<title>' + esc(n.nome + ': ' + moedaCheia(n.valor) +
+        (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '') +
         (n.outros ? '. Este nó não abre nada' : (n.href ? '' : '. Sem ficha própria'))) + '</title>';
       svg += n.href
         ? '<a class="fno" href="#' + esc(n.href) + '" data-no="' + i + '" data-lado="' + lado + '">' + titulo + corpo + '</a>'
@@ -2511,6 +2566,7 @@ function fluxoFornecedores(lista){
       esq.push({nome:'outras ' + inteiro(fora.length) + ' legendas', valor:somaFora, outros:1});
     }
     esq.visiveis = vis;
+    esq.temOutros = fora.length > 0;
   }
   if(!topo.length) return null;
   dir = topo.map(function(f){ return {nome:f.nome, valor:f.valor, href:f.href}; });
@@ -2525,7 +2581,15 @@ function fluxoFornecedores(lista){
   topo.forEach(function(f, j){
     f.pares.forEach(function(par){
       var i = S.partido ? 0 : esq.visiveis.indexOf(par[0]);
-      if(i < 0) i = esq.length - 1;
+      if(i < 0){
+        /* A legenda não está entre as nomeadas: ela só pode cair no nó "outras
+           legendas", e quando ele não existe a faixa não é desenhada. Mandá-la para o
+           último nó da coluna atribuiria o dinheiro de uma legenda a outra, com nome e
+           tudo, e numa tela que aponta gente pelo nome isso é pior que uma faixa a menos.
+           O valor continua na tabela irmã e no total do fornecedor. */
+        if(!esq.temOutros) return;
+        i = esq.length - 1;
+      }
       ligs.push([i, j, par[1]]);
       listado[i] = (listado[i] || 0) + par[1];
     });
@@ -2538,17 +2602,28 @@ function fluxoFornecedores(lista){
   }
   return {esq:esq, dir:dir, ligs:ligs};
 }
-var fluxosPendentes = [];
+var fluxosPendentes = [], nosDesenhados = 0;
 function desenharFluxos(){
+  nosDesenhados = quantosNos();
   fluxosPendentes.forEach(function(f){ fluxoDuasColunas(f.esq, f.dir, f.ligs, f.id); });
 }
 function viewGeral(){
   var m = document.getElementById('conteudo');
   var uf = ufDaTela();
   fluxosPendentes = [];
-  if(erros.uf && erros.uf.u === uf){
-    m.innerHTML = painelErro('Não foi possível carregar as candidaturas ' + ondeUF(uf) +
-                             '. Verifique a conexão.', 'retryuf');
+  var er = erros.uf;
+  if(er && er.u === uf){
+    /* 404 não é conexão ruim: é arquivo que não existe, e o botão de tentar de novo não
+       resolveria nada. A mesma distinção que as outras cinco dimensões fazem. */
+    if(er.s === 404){
+      m.innerHTML = '<div class="cartao"><div class="erro"><p>' +
+        esc('A lista de candidaturas ' + ondeUF(uf) + ' ainda não foi publicada nesta ' +
+            'versão dos dados.') + '</p><button class="bt pri" data-act="ufpadrao">Ver ' +
+        esc(nomeUnidade(ufPadrao())) + '</button></div></div>';
+    } else {
+      m.innerHTML = painelErro('Não foi possível carregar as candidaturas ' + ondeUF(uf) +
+                               '. Verifique a conexão.', 'retryuf');
+    }
     return;
   }
   if(!UFD || UFD.uf !== uf){
@@ -2583,14 +2658,20 @@ function viewGeral(){
     cartaoAnel(lista) +
     cartaoEstadosGeral(lista, total);
   var f1 = fluxoCandidaturas(lista);
+  /* O sub-rótulo diz o que a coluna da esquerda é, porque ela não é a lista do cartão de
+     partidos acima: são as legendas DAS CANDIDATURAS LISTADAS, e uma legenda que gastou
+     mais sem ter nenhuma candidatura entre as dez fica no nó "outras legendas". Sem esta
+     frase, os dois desenhos pareciam discordar sobre quem são as maiores. */
   h += cartaoGeral('Do partido para as maiores candidaturas',
-    'a largura da faixa é o gasto contratado; tocar num partido filtra a tela inteira',
+    'as legendas das candidaturas listadas; a largura da faixa é o gasto contratado, ' +
+    'e tocar num partido filtra a tela inteira',
     '<div id="fx1" class="hostfx"></div>', 'larga');
   fluxosPendentes.push({esq:f1.esq, dir:f1.dir, ligs:f1.ligs, id:'fx1'});
-  var f2 = fluxoFornecedores(lista);
+  var falha2 = erroDeFornecedor();
+  var f2 = falha2 ? null : fluxoFornecedores(lista);
   h += cartaoGeral('Do partido para os maiores fornecedores',
     'fornecedores com o maior valor contratado; a divisão por partido é exata para os listados',
-    f2 ? '<div id="fx2" class="hostfx"></div>' : skCartao(), 'larga');
+    falha2 || (f2 ? '<div id="fx2" class="hostfx"></div>' : skCartao()), 'larga');
   if(f2) fluxosPendentes.push({esq:f2.esq, dir:f2.dir, ligs:f2.ligs, id:'fx2'});
   h += '</div><p class="rodape-geral">Cada barra é o gasto contratado no recorte. ' +
     'Toque numa barra para filtrar; a lista das cinco dimensões obedece ao mesmo filtro. ' +
@@ -3738,7 +3819,13 @@ var redesenho = null;
 window.addEventListener('resize', function(){
   if(S.v !== 'geral' || !fluxosPendentes.length) return;
   clearTimeout(redesenho);
-  redesenho = setTimeout(desenharFluxos, 140);
+  redesenho = setTimeout(function(){
+    /* Quantos nós cabem depende da largura, e os nós já escolhidos ficam guardados em
+       `fluxosPendentes`: encolher do laptop para o celular precisa de contas novas, não
+       de um desenho novo com as contas antigas. */
+    if(quantosNos() !== nosDesenhados) render();
+    else desenharFluxos();
+  }, 140);
 });
 
 /* ---------- início ---------- */
