@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Wireframe 2 · Visão geral · Contas de campanha 2026</title>
+<style>
+:root{
+  --pap:#F4F6FA; --sf:#FFFFFF; --sf2:#E7EBF2; --ink:#171B26; --mut:#5B6272; --b:#D9DEE8; --b2:#C3CAD8;
+  --ac:#0E6E78; --acsf:#E3F0F2; --acink:#FFFFFF; --faixa:#0B4A52; --faixatx:#EAF4F5;
+  --ac2:#4F46B8; --ac2tx:#FFFFFF; --chip:#EEF0F6; --cs:#FFFFFF; --cr:10px; --raio:6px; --gut:16px;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --pap:#101319; --sf:#171B24; --sf2:#232A38; --ink:#E8EBF2; --mut:#9AA3B5; --b:#2A3040; --b2:#3A4256;
+  --ac:#5CC4CC; --acsf:#123036; --acink:#0B1014; --faixa:#0B3A40; --faixatx:#D7E8EA;
+  --ac2:#9B94F0; --ac2tx:#0B1014; --chip:#222838; --cs:#171B24;
+}}
+*{box-sizing:border-box}
+html{overflow-x:hidden}
+body{margin:0;background:var(--pap);color:var(--ink);font:15px/1.45 var(--sans)}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px;margin:0 auto;padding:0 var(--gut)}
+.aviso{background:#fdf3d0;color:#6d4708;border-bottom:1px solid #a67c12;padding:6px var(--gut);font-size:13px;text-align:center}
+.masthead{background:var(--faixa);color:var(--faixatx);padding:18px 0 22px}
+.masthead h1{margin:0 0 2px;font-size:24px;font-weight:800}
+.masthead p{margin:0 0 14px;font-size:13px;opacity:.9}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--cs);color:var(--ink);border-radius:var(--cr);padding:10px 12px}
+.tile .r{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.02em}
+.tile .v{font-size:24px;font-weight:800;line-height:1.15}
+.tile .n{font-size:13px;color:var(--mut)}
+.barra{background:var(--pap);border-bottom:1px solid var(--b2);padding:10px 0}
+.barra .wrap{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.q{flex:1 1 220px;min-width:180px;border:1px solid var(--b2);border-radius:var(--raio);padding:8px 10px;background:var(--sf);color:var(--mut);font-size:15px}
+.chip{border:1px solid var(--b2);background:var(--sf);border-radius:999px;padding:5px 10px;font-size:13px;color:var(--ink);cursor:pointer;font-family:inherit}
+.chip b{font-weight:600}
+.chip[data-on]{background:var(--acsf);border-color:var(--ac);color:var(--ac)}
+.chip[data-off]{opacity:.55;text-decoration:line-through}
+.chip .x{margin-left:6px;font-weight:800}
+.abas{display:flex;gap:4px;flex-wrap:wrap;padding:14px 0 6px}
+.abas button{border:1px solid var(--b2);background:var(--sf);color:var(--ink);border-radius:var(--raio);padding:7px 12px;font:600 13px var(--sans);cursor:pointer}
+.abas button[aria-current]{background:var(--ac2);color:var(--ac2tx);border-color:var(--ac2)}
+main{padding:8px 0 40px}
+/* Grade de verdade, não colunas independentes: cartão vizinho estica até a altura do
+   vizinho mais alto, então nenhuma linha termina em degrau. As colunas altas são as que
+   vão em dois cartões (estados desce dois, partidos desce dois), e é isso que faz o pé
+   de cada coluna bater com o da outra. */
+.grade{display:grid;grid-template-columns:1fr;gap:12px}
+.grade > section{min-width:0}
+@media (min-width:660px){
+  .grade{grid-template-columns:repeat(12,1fr)}
+  .grade > section{grid-column:span 12}
+  .grade > .p-cargos,.grade > .p-estados,.grade > .p-partidos,.grade > .p-cand{grid-column:span 6}
+}
+@media (min-width:1000px){
+  .grade > .p-cargos{grid-column:1 / 4;grid-row:1}
+  .grade > .p-estados{grid-column:1 / 4;grid-row:2 / 4}
+  .grade > .p-partidos{grid-column:4 / 8;grid-row:1 / 3}
+  .grade > .p-cand{grid-column:8 / 13;grid-row:1}
+  .grade > .p-tipos{grid-column:8 / 13;grid-row:2}
+  .grade > .p-anel{grid-column:8 / 13;grid-row:3}
+}
+.cartao{background:var(--cs);border:1px solid var(--b);border-radius:var(--cr);padding:12px 14px 10px;display:flex;flex-direction:column}
+/* O cartão esticado não deixa buraco embaixo: a lista de barras ocupa a sobra, com as
+   linhas espalhadas por igual. */
+.cartao > .blist{flex:1 1 auto}
+/* Cargos sao poucos e nao tem mais linha para mostrar: ali a lista fica no meio do
+   cartao, com o ar dividido em cima e embaixo, em vez de linhas soltas. */
+.espalha > .blist{display:flex;flex-direction:column;justify-content:center}
+.cartao > .anel{flex:1 1 auto}
+.cartao h2{margin:0;font-size:18px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cartao h2 .sm{font-size:13px;font-weight:400;color:var(--mut)}
+.cartao h2 a{color:inherit;text-decoration:none;border-bottom:2px solid var(--acsf)}
+.cartao h2 a:hover,.cartao h2 a:focus{color:var(--ac);border-bottom-color:var(--ac)}
+.cartao h2 a::after{content:" \2192";font-size:14px;color:var(--ac)}
+.cartao .nota{font-size:13px;color:var(--mut);margin:6px 0 0}
+.esbo{background:#fdf3d0;color:#6d4708;border:1px solid #a67c12;border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:600;vertical-align:1px}
+.dupla{display:grid;gap:12px}
+.dupla > div{min-width:0}
+@media (min-width:760px){.dupla{grid-template-columns:1fr 1fr}}
+.dupla > div + div{border-top:1px solid var(--b);padding-top:10px}
+@media (min-width:760px){.dupla > div + div{border-top:0;border-left:1px solid var(--b);padding-top:0;padding-left:16px}}
+.dupla h3{margin:0 0 4px;font-size:16px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dupla h3 .sm{font-size:13px;font-weight:400;color:var(--mut)}
+.blist{list-style:none;margin:8px 0 0;padding:0}
+.blist li{padding:5px 0 7px;border-top:1px solid var(--b)}
+.blist li:first-child{border-top:0}
+.blist .t{display:flex;justify-content:space-between;gap:10px;width:100%;background:none;border:0;padding:2px 4px;margin:0 -4px;font:inherit;color:inherit;text-align:left;border-radius:4px;cursor:pointer;min-height:26px;align-items:center}
+.blist button.t:hover{background:var(--sf2)}
+.blist .t span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blist .t b{font-weight:600;white-space:nowrap}
+.blist .t .c{color:var(--mut);font-weight:400;font-size:13px}
+.blist .bar{height:6px;background:var(--sf2);border-radius:3px;margin-top:4px;overflow:hidden}
+.blist .bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
+.blist li[aria-current] .t{background:var(--acsf);color:var(--ac)}
+.blist li.resto .t{color:var(--mut);cursor:default}
+.blist li.resto .bar i{background:var(--b2)}
+.blist .attr{display:inline-block;background:var(--chip);color:var(--mut);border-radius:999px;padding:0 7px;font-size:11.5px;margin-left:6px;vertical-align:middle}
+.blist a.t{text-decoration:none}
+.blist a.t span:first-child{text-decoration:underline;text-decoration-color:var(--b2);text-underline-offset:3px}
+.fina .blist .t{font-size:14px;min-height:22px}
+.fina .blist li{padding:3px 0 5px}
+.semlink{color:var(--ink)}
+.anel{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.anel svg{width:132px;height:132px;flex:none}
+.anel .leg{font-size:13px;color:var(--mut);flex:1 1 180px}
+.anel .leg b{color:var(--ink);font-weight:600}
+.anel .leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.fluxo{width:100%;display:block;margin-top:8px;overflow:visible}
+.fluxo text{font:13px var(--sans);fill:var(--ink)}
+.fluxo text.v{fill:var(--mut);font-size:11.5px}
+.fluxo rect{fill:var(--ac);rx:2}
+.fluxo rect.outros{fill:var(--b2)}
+.fluxo rect.no{cursor:pointer}
+.fluxo path{fill:var(--ac);opacity:.18;transition:opacity .15s}
+.fluxo path.outros{fill:var(--mut)}
+.fluxo.hl path{opacity:.07}
+.fluxo.hl path.on{opacity:.55}
+details{margin-top:8px;font-size:13px}
+summary{cursor:pointer;color:var(--ac);font-weight:600}
+table{border-collapse:collapse;width:100%;margin-top:6px}
+td,th{text-align:left;padding:4px 6px;border-top:1px solid var(--b);font-size:13px}
+td:last-child,th:last-child{text-align:right}
+.vazio{color:var(--mut);font-size:13px;padding:8px 0}
+footer{color:var(--mut);font-size:13px;padding:10px 0 30px}
+</style>
+</head>
+<body>
+<div class="aviso">Wireframe de 19/09/2026: dado real de Roraima da rodada local, com o cartão de estados em esboço declarado. A visão geral é a aba que abre; as outras são decorativas. Tocar numa barra filtra.</div>
+<header class="masthead"><div class="wrap">
+  <h1>Contas de campanha 2026</h1>
+  <p>O que as candidaturas declararam ao TSE, para conferir. Um sinal não é uma acusação.</p>
+  <div class="tiles" id="tiles"></div>
+</div></header>
+<header class="barra"><div class="wrap">
+  <div class="q">Buscar candidatura, partido ou fornecedor</div>
+  <span id="chips"></span>
+</div></header>
+<div class="wrap">
+  <nav class="abas" aria-label="Dimensão">
+    <button aria-current="true">Visão geral</button><button>Candidato</button><button>Partido</button><button>Estado</button><button>Cargo</button><button>Fornecedor</button>
+  </nav>
+</div>
+<main><div class="wrap">
+  <div class="grade" id="grade"></div>
+  <footer>Cada barra é o gasto contratado no recorte. Toque numa barra para filtrar; as outras abas obedecem ao mesmo filtro. O título de cada cartão leva à aba daquela dimensão, levando o filtro junto. Sem sinal nem índice nesta tela: quem presta contas é a candidatura.</footer>
+</div></main>
+<script>
+/*DADOS*/
+</script>
+<script>
+var F = {partido:'', cargo:'', tipo:'', uf:''};
+/* Quantas linhas cada lista mostra. Cartao vizinho de cartao alto estica ate a altura
+   dele, e a sobra dentro do cartao e preenchida com mais linhas de verdade, nao com ar:
+   depois de desenhar, `encaixar` mede a sobra de cada lista e devolve o numero de linhas
+   que cabe ali. TOPO guarda quantas linhas existem, para nenhuma lista pedir mais do que
+   o dado tem. */
+var PADRAO = {estados:12, partidos:10, cand:10, tipos:8, forn:10};
+var N = {}, TOPO = {};
+function repoe(){ for(var k in PADRAO) N[k] = PADRAO[k]; }
+repoe();
+var DP = META.dic.partido, DT = META.dic.tipo, CARGOS = META.cargos;
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function nm(x, casas){ return x.toLocaleString('pt-BR', {minimumFractionDigits:casas, maximumFractionDigits:casas}); }
+function moeda(c){
+  var v = c / 100;
+  if(v >= 1e9) return 'R$ ' + nm(v/1e9, 1) + ' bi';
+  if(v >= 1e6) return 'R$ ' + nm(v/1e6, 1) + ' mi';
+  if(v >= 1e3) return 'R$ ' + nm(v/1e3, 0) + ' mil';
+  return 'R$ ' + nm(v, 0);
+}
+function moedaCheia(c){ return 'R$ ' + nm(c/100, 2); }
+function inteiro(n){ return n.toLocaleString('pt-BR'); }
+function pct(a,b){ return b ? nm(a/b*100, 1) : '0'; }
+function cargoNome(k){ return CARGOS[String(k)] || ('cargo ' + k); }
+function passa(r){
+  if(F.partido && DP[r[3]] !== F.partido) return false;
+  if(F.cargo && String(r[4]) !== F.cargo) return false;
+  if(F.tipo !== '' && !r[11].some(function(t){ return t[0] === +F.tipo; })) return false;
+  return true;
+}
+function valorDe(r){
+  if(F.tipo === '') return r[6];
+  var v = 0; r[11].forEach(function(t){ if(t[0] === +F.tipo) v = t[1]; }); return v;
+}
+function linhas(){ return C.filter(passa); }
+function agrupar(lista, chaveDe, nomeDe){
+  var m = {};
+  lista.forEach(function(r){
+    var k = chaveDe(r);
+    if(!m[k]) m[k] = {k:k, nome:nomeDe(r), valor:0, n:0};
+    m[k].valor += valorDe(r); m[k].n++;
+  });
+  return Object.keys(m).map(function(k){ return m[k]; }).sort(function(a,b){ return b.valor - a.valor; });
+}
+/* ---- cartões de barras ---- */
+function barras(itens, total, opts){
+  opts = opts || {};
+  if(!itens.length) return '<p class="vazio">Nada declarado por aqui até agora.</p>';
+  var max = itens[0].valor || 1;
+  return '<ul class="blist">' + itens.map(function(it){
+    var larg = Math.max(2, Math.round(it.valor / max * 100));
+    var linha = '<span>' + esc(it.nome) + (it.attr ? '<span class="attr">' + esc(it.attr) + '</span>' : '') + '</span><b class="num">' + moeda(it.valor) +
+      (total ? ' <span class="c">' + pct(it.valor, total) + '%</span>' : '') + '</b>';
+    var tit = moedaCheia(it.valor) + (it.ttl ? ', ' + it.ttl : '');
+    var corpo;
+    if(it.resto) corpo = '<div class="t" title="' + tit + '">' + linha + '</div>';
+    else if(opts.acao) corpo = '<button class="t" data-act="' + opts.acao + '" data-v="' + esc(it.k) + '" title="' + tit + '">' + linha + '</button>';
+    else if(it.href) corpo = '<a class="t" href="' + it.href + '" title="' + moedaCheia(it.valor) + '">' + linha + '</a>';
+    else corpo = '<div class="t semlink" title="' + moedaCheia(it.valor) + ', sem ficha: pessoa física abaixo do piso">' + linha + '</div>';
+    var cur = (opts.acao && String(it.k) === String(opts.atual)) ? ' aria-current="true"' : '';
+    return '<li' + cur + (it.resto ? ' class="resto"' : '') + '>' + corpo + '<div class="bar"><i style="width:' + larg + '%"></i></div></li>';
+  }).join('') + '</ul>';
+}
+/* O título do cartão é o endereço da aba daquela dimensão. O filtro de agora vai junto,
+   porque ele sobrevive à troca de aba em qualquer caminho. */
+function tituloAba(rotulo, aba){ return '<a href="#v=' + aba + '">' + rotulo + '</a>'; }
+function cartao(titulo, sub, corpo, classe){
+  return '<section class="cartao' + (classe ? ' ' + classe : '') + '"><h2>' + titulo + '<span class="sm">' + sub + '</span></h2>' + corpo + '</section>';
+}
+function topoComResto(itens, n, rotuloResto){
+  var vis = itens.slice(0, n), resto = itens.slice(n);
+  if(resto.length){
+    var soma = resto.reduce(function(s,i){ return s + i.valor; }, 0);
+    vis.push({nome: rotuloResto(resto.length), valor: soma, resto: true});
+  }
+  return vis;
+}
+/* O cartão fino de estados. Os números aqui são ESBOÇO, não dado do TSE: a rodada local
+   só tem Roraima, e uma barra sozinha não mostraria a forma do cartão. No site ele sai do
+   mesmo lugar dos outros, a lista de UF do meta. */
+function cartaoEstados(){
+  var g = UF_ESBOCO.map(function(u){ return {k:u[0], nome:u[0], ttl:u[1], valor:u[2]}; }).sort(function(a,b){ return b.valor - a.valor; });
+  var total = g.reduce(function(s,i){ return s + i.valor; }, 0);
+  TOPO.estados = g.length;
+  var vis = topoComResto(g, N.estados, function(n){ return 'outras ' + n + ' unidades'; });
+  var nota = '<p class="nota">Esboço de layout: os valores deste cartão são inventados, e só dele. Tocar num estado, no site, troca a unidade da tela inteira.</p>';
+  return cartao(tituloAba('Estados', 'estado') + ' <span class="esbo">esboço</span>', '27 unidades', barras(vis, total, {acao:'uf', atual:F.uf}) + nota, 'p-estados fina');
+}
+function cartaoPartidos(L, total){
+  var g = agrupar(L, function(r){ return DP[r[3]]; }, function(r){ return DP[r[3]]; });
+  g.forEach(function(x){ x.attr = x.n + (x.n === 1 ? ' candidatura' : ' candidaturas'); });
+  TOPO.partidos = g.length;
+  var vis = topoComResto(g, N.partidos, function(n){ return 'outras ' + n + ' legendas'; });
+  return cartao(tituloAba('Partidos', 'partido'), g.length + ' legendas · toque para filtrar', barras(vis, total, {acao:'partido', atual:F.partido}), 'p-partidos');
+}
+function cartaoFornecedores(){
+  var lf = listaForn();
+  TOPO.forn = lf.lista.length;
+  var itens = lf.lista.slice(0, N.forn).map(function(e){ return {nome:e[1], attr:(e[3] ? 'empresa' : 'pessoa física') + ' · ' + e[5] + (e[5] === 1 ? ' campanha' : ' campanhas'), valor:e[4], href:e[7] ? '#forn=' + e[0] : ''}; });
+  var total = lf.lista.reduce(function(s,e){ return s + e[4]; }, 0) + (lf.fora ? lf.fora[1] : 0);
+  if(lf.fora) itens.push({nome:'outros ' + inteiro(lf.fora[0] + Math.max(0, lf.lista.length - N.forn)) + ' fornecedores', valor: lf.fora[1] + lf.lista.slice(N.forn).reduce(function(s,e){ return s + e[4]; }, 0), resto:true});
+  var nota = F.tipo !== '' ? '<p class="nota">Com filtro de tipo ligado, este cartão passa a ler o arquivo de fornecedor por tipo. O wireframe ainda não o tem, então a lista abaixo ignora o tipo.</p>' : '';
+  return cartao(tituloAba('Maiores fornecedores', 'fornecedor'), 'por valor recebido', nota + barras(itens, total, {}), 'p-forn');
+}
+function cartaoCargos(L, total){
+  var g = agrupar(L, function(r){ return String(r[4]); }, function(r){ return cargoNome(r[4]); });
+  /* Na coluna fina a etiqueta de contagem comeria o nome, entao ela vai para o titulo
+     do mouse, e a linha fica com nome, valor e porcentagem. */
+  g.forEach(function(x){ x.ttl = x.n + ' candidaturas'; });
+  return cartao(tituloAba('Cargos', 'cargo'), 'toque para filtrar', barras(g, total, {acao:'cargo', atual:F.cargo}), 'p-cargos fina espalha');
+}
+function cartaoCandidaturas(L){
+  TOPO.cand = L.length;
+  var top = L.slice().sort(function(a,b){ return valorDe(b) - valorDe(a); }).slice(0, N.cand);
+  var itens = top.map(function(r){ return {nome:r[1], attr:DP[r[3]] + ' · ' + cargoNome(r[4]), valor:valorDe(r), href:'#cand=' + r[0]}; });
+  var total = L.reduce(function(s,r){ return s + valorDe(r); }, 0);
+  return cartao(tituloAba('Maiores candidaturas', 'candidato'), 'por gasto contratado · toque abre a ficha', barras(itens, total, {}), 'p-cand');
+}
+/* Tipos de despesa e a fonte do dinheiro são dois cartões, um debaixo do outro: os dois
+   respondem "que dinheiro é esse", e nenhum dos dois tem aba própria, então nenhum título
+   é link. */
+function cartaoTipos(L){
+  var soma = {}, totalT = 0;
+  L.forEach(function(r){ r[11].forEach(function(t){ soma[t[0]] = (soma[t[0]] || 0) + t[1]; totalT += t[1]; }); });
+  var g = Object.keys(soma).map(function(k){ return {k:k, nome:DT[+k] || 'sem tipo', valor:soma[k]}; }).sort(function(a,b){ return b.valor - a.valor; });
+  if(F.tipo !== ''){ g = g.filter(function(x){ return x.k === String(F.tipo); }); }
+  TOPO.tipos = g.length;
+  var vis = topoComResto(g, N.tipos, function(n){ return 'outros ' + n + ' tipos'; });
+  return cartao('Tipos de despesa', g.length + ' tipos · toque para filtrar', barras(vis, totalT, {acao:'tipo', atual:F.tipo}), 'p-tipos');
+}
+function cartaoAnel(L){
+  var pago = 0, pub = 0;
+  L.forEach(function(r){ pago += r[7]; pub += r[9]; });
+  var p = pago ? pub / pago : 0, R = 54, cx = 66, cy = 66, circ = 2 * Math.PI * R;
+  var svg = '<svg viewBox="0 0 132 132" role="img" aria-label="Dinheiro público: ' + pct(pub, pago) + '% do pago">' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--b2)" stroke-width="14"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--ac)" stroke-width="14" stroke-dasharray="' + (circ * p) + ' ' + circ + '" transform="rotate(-90 ' + cx + ' ' + cy + ')" stroke-linecap="butt"/>' +
+    '<text x="66" y="62" text-anchor="middle" font-size="24" font-weight="800" fill="var(--ink)" font-family="var(--sans)">' + pct(pub, pago) + '%</text>' +
+    '<text x="66" y="80" text-anchor="middle" font-size="11.5" fill="var(--mut)" font-family="var(--sans)">público</text></svg>';
+  var leg = '<div class="leg"><div><i style="background:var(--ac)"></i><b class="num">' + moeda(pub) + '</b> de fundo eleitoral e partidário</div>' +
+    '<div><i style="background:var(--b2)"></i><b class="num">' + moeda(pago - pub) + '</b> de outros recursos</div>' +
+    '<div style="margin-top:6px">Pago até agora: <b class="num">' + moeda(pago) + '</b>. Fonte: DS_FONTE_DESPESA, a coluna que diz de que caixa o dinheiro saiu.</div></div>';
+  return cartao('De onde saiu o dinheiro pago', 'o número de capa do painel', '<div class="anel">' + svg + leg + '</div>', 'p-anel');
+}
+function listaForn(){
+  var pid = F.partido ? DP.indexOf(F.partido) : -1;
+  var chave = (F.partido && F.cargo) ? 'p:' + pid + ':c:' + F.cargo : F.partido ? 'p:' + pid : F.cargo ? 'c:' + F.cargo : 'geral';
+  var lista = chave === 'geral' ? FRC.geral : (F.partido && F.cargo) ? (FRC.celula[pid + ':' + F.cargo] || []) : F.partido ? (FRC.partido[pid] || []) : (FRC.cargo[F.cargo] || []);
+  return {lista:lista, fora:FRC.fora[chave], chave:chave};
+}
+/* ---- fluxo de duas colunas ---- */
+function fluxo(esq, dir, ligs, id){
+  /* esq/dir: [{nome, valor, outros, filtro}], ligs: [[i, j, valor]]
+     Uma escala só para as duas colunas: o mesmo px por real dos dois lados, então a faixa
+     entra e sai com a mesma espessura, e o nó "outros" ocupa o tamanho que o dinheiro dele
+     tem. O desenho cresce em altura até o menor nó listado caber com o nome ao lado. */
+  var host = document.getElementById(id); if(!host) return;
+  var W = host.clientWidth || 800, lab = Math.max(96, Math.min(240, Math.round(W * 0.28)));
+  var nw = 10, gap = 6, alt = Math.max(esq.length, dir.length);
+  function soma(nos){ return nos.reduce(function(s,n){ return s + n.valor; }, 0); }
+  var tot = Math.max(soma(esq), soma(dir)) || 1;
+  var listados = esq.concat(dir).filter(function(n){ return !n.outros && n.valor > 0; }).map(function(n){ return n.valor; });
+  var menor = listados.length ? Math.min.apply(null, listados) : tot;
+  var H = Math.max(320, Math.min(1500, Math.round(13 * tot / menor + gap * alt)));
+  var K = (H - gap * (alt - 1)) / tot;
+  function posiciona(nos){
+    var y = 0;
+    nos.forEach(function(n){ n.h = Math.max(1.5, n.valor * K); n.y = y; y += n.h + gap; n.off = 0; });
+    var sobra = H - (y - gap); if(sobra > 0){ nos.forEach(function(n){ n.y += sobra / 2; }); }
+  }
+  posiciona(esq); posiciona(dir);
+  var xl = lab + 8, xr = W - lab - 8 - nw, xm = (xl + nw + xr) / 2;
+  var maxCh = Math.floor(lab / 7.6);
+  function corta(s){ return s.length > maxCh ? s.slice(0, maxCh - 1) + '…' : s; }
+  var svg = '<svg class="fluxo" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img">';
+  ligs.slice().sort(function(a,b){ return b[2] - a[2]; }).forEach(function(l){
+    var a = esq[l[0]], b = dir[l[1]], t = l[2] * K;
+    var y0 = a.y + a.off, y1 = b.y + b.off; a.off += t; b.off += t;
+    var d = 'M' + (xl + nw) + ',' + y0 + ' C' + xm + ',' + y0 + ' ' + xm + ',' + y1 + ' ' + xr + ',' + y1 +
+      ' L' + xr + ',' + (y1 + t) + ' C' + xm + ',' + (y1 + t) + ' ' + xm + ',' + (y0 + t) + ' ' + (xl + nw) + ',' + (y0 + t) + ' Z';
+    svg += '<path d="' + d + '" data-l="' + l[0] + '" data-r="' + l[1] + '"' + ((a.outros || b.outros) ? ' class="outros"' : '') + '><title>' + esc(a.nome) + ' → ' + esc(b.nome) + ': ' + moedaCheia(l[2]) + '</title></path>';
+  });
+  function desenha(nos, lado){
+    nos.forEach(function(n, i){
+      var x = lado === 'l' ? xl : xr, at = lado === 'l' ? ' data-l="' + i + '"' : ' data-r="' + i + '"';
+      svg += '<rect class="no' + (n.outros ? ' outros' : '') + '"' + at + ' x="' + x + '" y="' + n.y + '" width="' + nw + '" height="' + n.h + '"><title>' + esc(n.nome) + ': ' + moedaCheia(n.valor) + '</title></rect>';
+      var cy = n.y + n.h / 2, tx = lado === 'l' ? xl - 8 : xr + nw + 8, anc = lado === 'l' ? ' text-anchor="end"' : '';
+      if(n.h >= 9){
+        svg += '<text x="' + tx + '" y="' + (cy + 4) + '"' + anc + (n.outros ? ' fill="var(--mut)"' : '') + '>' + esc(corta(n.nome)) + '</text>';
+        if(n.h >= 26) svg += '<text class="v" x="' + tx + '" y="' + (cy + 17) + '"' + anc + '>' + moeda(n.valor) + '</text>';
+      }
+    });
+  }
+  desenha(esq, 'l'); desenha(dir, 'r');
+  svg += '</svg>';
+  var tab = '<details><summary>Ver como tabela</summary><table><tr><th>De</th><th>Para</th><th>Valor</th></tr>' +
+    ligs.slice().sort(function(a,b){ return b[2] - a[2]; }).map(function(l){ return '<tr><td>' + esc(esq[l[0]].nome) + '</td><td>' + esc(dir[l[1]].nome) + '</td><td class="num">' + moedaCheia(l[2]) + '</td></tr>'; }).join('') + '</table></details>';
+  host.innerHTML = svg + tab;
+  var el = host.querySelector('svg');
+  function marca(sel){
+    el.classList.add('hl');
+    el.querySelectorAll('path').forEach(function(p){ p.classList.toggle('on', p.matches(sel)); });
+  }
+  el.querySelectorAll('rect').forEach(function(r){
+    var sel = r.dataset.l !== undefined ? 'path[data-l="' + r.dataset.l + '"]' : 'path[data-r="' + r.dataset.r + '"]';
+    r.addEventListener('mouseenter', function(){ marca(sel); });
+    r.addEventListener('mouseleave', function(){ el.classList.remove('hl'); });
+    r.addEventListener('click', function(){
+      var n = r.dataset.l !== undefined ? esq[+r.dataset.l] : dir[+r.dataset.r];
+      if(n.filtro){ F.partido = (F.partido === n.filtro) ? '' : n.filtro; repoe(); render(); }
+    });
+  });
+}
+function fluxoCandidaturas(L){
+  var top = L.slice().sort(function(a,b){ return valorDe(b) - valorDe(a); }).slice(0, 10);
+  var totalPartido = {}; L.forEach(function(r){ totalPartido[DP[r[3]]] = (totalPartido[DP[r[3]]] || 0) + valorDe(r); });
+  var parts = []; top.forEach(function(r){ if(parts.indexOf(DP[r[3]]) < 0) parts.push(DP[r[3]]); });
+  parts.sort(function(a,b){ return totalPartido[b] - totalPartido[a]; });
+  var esq = parts.map(function(p){ return {nome:p, valor:totalPartido[p], filtro:p}; });
+  var outrasP = Object.keys(totalPartido).filter(function(p){ return parts.indexOf(p) < 0; });
+  var somaOutrasP = outrasP.reduce(function(s,p){ return s + totalPartido[p]; }, 0);
+  if(outrasP.length) esq.push({nome:'outras ' + outrasP.length + ' legendas', valor:somaOutrasP, outros:true});
+  var dir = top.map(function(r){ return {nome:r[1], valor:valorDe(r)}; });
+  var nOut = L.length - top.length, somaOut = L.reduce(function(s,r){ return s + valorDe(r); }, 0) - top.reduce(function(s,r){ return s + valorDe(r); }, 0);
+  if(nOut > 0) dir.push({nome:'outras ' + inteiro(nOut) + ' candidaturas', valor:somaOut, outros:true});
+  var ligs = [], listado = {};
+  top.forEach(function(r, j){ var i = parts.indexOf(DP[r[3]]); ligs.push([i, j, valorDe(r)]); listado[DP[r[3]]] = (listado[DP[r[3]]] || 0) + valorDe(r); });
+  if(nOut > 0){
+    parts.forEach(function(p, i){ var v = totalPartido[p] - (listado[p] || 0); if(v > 0) ligs.push([i, dir.length - 1, v]); });
+    if(outrasP.length && somaOutrasP > 0) ligs.push([esq.length - 1, dir.length - 1, somaOutrasP]);
+  }
+  return {esq:esq, dir:dir, ligs:ligs};
+}
+function fluxoFornecedores(L){
+  var lf = listaForn(), top = lf.lista.slice(0, 10);
+  var totalPartido = {}; L.forEach(function(r){ totalPartido[DP[r[3]]] = (totalPartido[DP[r[3]]] || 0) + r[6]; });
+  var split = {};
+  Object.keys(FRC.partido).forEach(function(pid){ FRC.partido[pid].forEach(function(e){ var k = e[0] || e[1]; (split[k] = split[k] || {})[DP[+pid]] = e[4]; }); });
+  var parts = Object.keys(totalPartido).sort(function(a,b){ return totalPartido[b] - totalPartido[a]; });
+  if(F.partido) parts = [F.partido];
+  var vis = parts.slice(0, 8), outrasP = parts.slice(8);
+  var esq = vis.map(function(p){ return {nome:p, valor:totalPartido[p], filtro:p}; });
+  var somaOutrasP = outrasP.reduce(function(s,p){ return s + totalPartido[p]; }, 0);
+  if(outrasP.length) esq.push({nome:'outras ' + outrasP.length + ' legendas', valor:somaOutrasP, outros:true});
+  var dir = top.map(function(e){ return {nome:e[1], valor:e[4]}; });
+  var somaTop = top.reduce(function(s,e){ return s + e[4]; }, 0);
+  var totalRec = Object.keys(totalPartido).reduce(function(s,p){ return s + totalPartido[p]; }, 0);
+  var nOut = (lf.fora ? lf.fora[0] : 0) + Math.max(0, lf.lista.length - 10);
+  dir.push({nome:'outros ' + inteiro(nOut) + ' fornecedores', valor:Math.max(0, totalRec - somaTop), outros:true});
+  var ligs = [], listado = {};
+  top.forEach(function(e, j){
+    var sp = split[e[0] || e[1]] || {};
+    if(F.partido){ ligs.push([0, j, e[4]]); listado[F.partido] = (listado[F.partido] || 0) + e[4]; return; }
+    var resto = e[4];
+    Object.keys(sp).forEach(function(p){
+      var i = vis.indexOf(p); if(i < 0) i = esq.length - 1;
+      ligs.push([i, j, sp[p]]); listado[p] = (listado[p] || 0) + sp[p]; resto -= sp[p];
+    });
+    if(resto > 0){ ligs.push([esq.length - 1, j, resto]); listado['__o'] = (listado['__o'] || 0) + resto; }
+  });
+  vis.forEach(function(p, i){ var v = totalPartido[p] - (listado[p] || 0); if(v > 0) ligs.push([i, dir.length - 1, v]); });
+  if(outrasP.length){ var v2 = somaOutrasP - (listado['__o'] || 0); outrasP.forEach(function(p){ v2 -= (listado[p] || 0); }); if(v2 > 0) ligs.push([esq.length - 1, dir.length - 1, v2]); }
+  return {esq:esq, dir:dir, ligs:ligs};
+}
+/* ---- render ---- */
+function tiles(L){
+  var contr = 0, pago = 0, pub = 0, rec = 0;
+  L.forEach(function(r){ contr += r[6]; pago += r[7]; pub += r[9]; rec += r[8]; });
+  function tile(r, v, n){ return '<div class="tile"><div class="r">' + r + '</div><div class="v num">' + v + '</div>' + (n ? '<div class="n">' + n + '</div>' : '') + '</div>'; }
+  document.getElementById('tiles').innerHTML = tile('Candidaturas', inteiro(L.length), 'Roraima') + tile('Receita declarada', moeda(rec)) +
+    tile('Gasto contratado', moeda(contr)) + tile('Pago', moeda(pago), pct(pago, contr) + '% do contratado') + tile('Dinheiro público', pct(pub, pago) + '%', 'do que foi pago');
+}
+function chips(){
+  function chip(rot, val, act, off){ return '<button class="chip"' + (val ? ' data-on' : '') + (off ? ' data-off title="não recorta a visão geral"' : '') + ' data-act="' + act + '">' + rot + ': <b>' + (val || 'todos') + '</b>' + (val ? '<span class="x">×</span>' : '') + '</button>'; }
+  document.getElementById('chips').innerHTML = chip('Estado', F.uf || 'Roraima', 'uf') + chip('Partido', F.partido, 'partido') + chip('Cargo', F.cargo ? cargoNome(F.cargo) : '', 'cargo') +
+    chip('Tipo', F.tipo !== '' ? DT[+F.tipo] : '', 'tipo') + chip('Sinal', '', 'x', true) + chip('Federação', '', 'x', true);
+}
+/* Mede a sobra de cada cartao esticado e devolve quantas linhas cabem nela. Uma passada
+   muda a altura das linhas da grade, entao ele repete, no maximo tres vezes, e para
+   quando nada mais cresce. */
+function encaixar(passe){
+  var alvos = [['.p-estados','estados'], ['.p-partidos','partidos'], ['.p-cand','cand'], ['.p-tipos','tipos'], ['.p-forn','forn']];
+  var mudou = false;
+  alvos.forEach(function(a){
+    var sec = document.querySelector(a[0]); if(!sec) return;
+    var ul = sec.querySelector('.blist'); if(!ul || !ul.children.length) return;
+    var soma = 0;
+    [].forEach.call(ul.children, function(li){ soma += li.getBoundingClientRect().height; });
+    var linha = soma / ul.children.length;
+    var cabe = Math.floor((ul.getBoundingClientRect().height - soma) / linha);
+    if(cabe < 1) return;
+    var teto = TOPO[a[1]] || 0;
+    var novo = Math.min(N[a[1]] + cabe, teto);
+    if(novo > N[a[1]]){ N[a[1]] = novo; mudou = true; }
+  });
+  if(mudou && passe < 3) render(passe + 1);
+}
+function render(passe){
+  var L = linhas();
+  var total = L.reduce(function(s,r){ return s + valorDe(r); }, 0);
+  tiles(L); chips();
+  var g = document.getElementById('grade');
+  /* A ordem aqui é a do celular, de cima para baixo. Quem monta as três colunas da tela
+     larga é o CSS, colocando cada cartão na sua linha e coluna. */
+  g.innerHTML = cartaoCargos(L, total) + cartaoEstados() + cartaoPartidos(L, total) +
+    cartaoCandidaturas(L) + cartaoTipos(L) + cartaoAnel(L) +
+    cartaoFornecedores() +
+    cartao('Do partido para as maiores candidaturas', 'a largura da faixa é o gasto contratado · passar o mouse destaca · tocar num partido filtra', '<div id="fx1"></div>') +
+    cartao('Do partido para os maiores fornecedores', 'fornecedores com o maior valor recebido; a divisão por partido é exata para os listados', '<div id="fx2"></div>');
+  var f1 = fluxoCandidaturas(L); fluxo(f1.esq, f1.dir, f1.ligs, 'fx1');
+  var f2 = fluxoFornecedores(L); fluxo(f2.esq, f2.dir, f2.ligs, 'fx2');
+  encaixar(passe || 0);
+}
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest('[data-act]'); if(!b) return;
+  var act = b.dataset.act, v = b.dataset.v;
+  if(act === 'partido') F.partido = (v === undefined || F.partido === v) ? '' : v;
+  else if(act === 'cargo') F.cargo = (v === undefined || F.cargo === v) ? '' : v;
+  else if(act === 'tipo') F.tipo = (v === undefined || F.tipo === v) ? '' : v;
+  else if(act === 'uf') F.uf = (v === undefined || F.uf === v) ? '' : v;
+  else return;
+  repoe(); render();
+});
+var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ repoe(); render(); }, 120); });
+render();
+</script>
+</body>
+</html>
