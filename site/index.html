@@ -490,6 +490,80 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .blist li[aria-current="true"] .t{color:var(--ac)}
 .blist li[aria-current="true"] .bar i{background:var(--ink)}
 @media(hover:hover){.blist button.t:hover{color:var(--ink)}}
+.blist a.t{text-decoration:none;color:inherit;min-height:44px;align-items:center}
+.blist a.t span:first-child{text-decoration:underline;text-decoration-color:var(--b2);
+  text-underline-offset:3px}
+@media(hover:hover){.blist a.t:hover span:first-child{text-decoration-color:var(--ac)}}
+/* A linha do resto não é botão e não abre nada: ela conta quem ficou de fora. Em tinta
+   secundária e com a barra no cinza do trilho, ela se lê como nota de rodapé da lista,
+   que é o que ela é. */
+.blist li.resto .t{color:var(--mut)}
+.blist li.resto .bar i{background:var(--b2)}
+/* O atributo de leitura ao lado do nome, dentro da barra: partido e cargo de uma
+   candidatura, a natureza de um fornecedor. Mesma regra dos chips da linha: sem cor
+   por partido e sem data-act, porque ele não filtra nada. */
+.battr{display:inline-block;margin-left:7px;padding:0 6px;border-radius:var(--raio);
+  background:var(--chip);color:var(--mut);font-size:11.5px;font-weight:600;
+  vertical-align:1px;white-space:nowrap}
+
+/* ============ VISÃO GERAL ============
+   A grade de cartões, o anel e os dois fluxos. Uma coluna no celular, duas a partir de
+   640 px e três a partir de 960: com quatro, a barra de um cartão de dez legendas fica
+   menor que o nome que ela mede. */
+.grade{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:0 var(--gut)}
+@media(min-width:640px){.grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grade .larga{grid-column:1 / -1}}
+@media(min-width:960px){.grade{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.grade>.cartao{margin:0}
+.cabg{padding:12px var(--gut) 8px;border-bottom:1px solid var(--b)}
+.cabg h2{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.cabg .sm{display:block;font-size:13px;color:var(--mut);margin-top:3px;line-height:1.4}
+.rodape-geral{margin:14px var(--gut) 0;font-size:13px;color:var(--mut);line-height:1.55;
+  max-width:68ch}
+
+/* O anel: dois pedaços, e por isso medidor e não pizza. Ele é o único gráfico redondo da
+   página, e mede a razão que é o número de capa do painel. */
+.anel{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:12px var(--gut) 14px}
+.anel svg{flex:none}
+.anel .anum{font-size:25px;font-weight:800;fill:var(--ink);font-family:var(--sans)}
+.anel .arot{font-size:11.5px;fill:var(--mut);font-family:var(--sans)}
+.anel .leg{font-size:13px;color:var(--mut);min-width:0;flex:1 1 180px;line-height:1.5}
+.anel .leg b{color:var(--ink);font-weight:700}
+.anel .leg i{display:inline-block;width:10px;height:10px;border-radius:2px;
+  margin-right:7px;vertical-align:-1px}
+.anel .leg p{margin:7px 0 0}
+
+/* O fluxo de duas colunas. Uma cor só, a do acento, e a identidade de cada nó vem do
+   nome escrito ao lado dele, nunca da cor: numa tela que aponta gente pelo nome, uma
+   legenda de cores por partido seria a página escolhendo times. */
+.hostfx{padding:8px var(--gut) 0}
+.fluxo{display:block;width:100%;height:auto;overflow:visible}
+.fluxo .rot{font:13px var(--sans);fill:var(--ink)}
+.fluxo .rot.fraco{fill:var(--mut)}
+.fluxo .val{font:11.5px var(--sans);fill:var(--mut)}
+.fluxo rect.no{fill:var(--ac);rx:2}
+.fluxo rect.no.outros{fill:var(--b2)}
+.fluxo path{fill:var(--ac);opacity:.18;transition:opacity .15s}
+.fluxo path.outros{fill:var(--mut)}
+.fluxo.hl path{opacity:.07}
+.fluxo.hl path.on{opacity:.55}
+@media (prefers-reduced-motion:reduce){.fluxo path{transition:none}}
+.fluxo a.fno{cursor:pointer}
+.fluxo a.fno .rot{text-decoration:underline;text-decoration-color:var(--b2);
+  text-underline-offset:3px}
+@media(hover:hover){.fluxo a.fno:hover .rot{text-decoration-color:var(--ac)}}
+.fluxo .fno:focus-visible{outline:2px solid var(--fc);outline-offset:2px}
+/* A tabela irmã, com as mesmas linhas do desenho: ela é o desenho para quem lê por
+   leitor de tela, e a conferência para quem prefere número a figura. */
+.tabfx{border-top:1px solid var(--b);margin-top:10px}
+.tabfx summary{min-height:44px;padding:12px 32px 10px var(--gut);border-bottom:0}
+.tabfx[open] summary{border-bottom:1px solid var(--b)}
+.tabfx summary::after{top:20px}
+.tabfx table{width:100%;border-collapse:collapse;font-size:13px}
+.tabfx th,.tabfx td{text-align:left;padding:6px var(--gut);border-top:1px solid var(--b);
+  color:var(--ink)}
+.tabfx thead th{color:var(--mut);font-weight:600;border-top:0}
+.tabfx th:last-child,.tabfx td:last-child{text-align:right;white-space:nowrap}
 
 /* ---------- ficha ---------- */
 .voltar{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px 0 var(--gut);font-size:13px;font-weight:600;color:var(--ac)}
@@ -706,6 +780,7 @@ footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
      trocar de dimensão. -->
 <div class="dimwrap">
   <nav class="abas" aria-label="Dimensões do painel">
+    <button id="ab-geral" data-act="aba" data-v="geral">Visão geral</button>
     <button id="ab-candidato" data-act="aba" data-v="candidato" aria-current="page">Candidato</button>
     <button id="ab-partido" data-act="aba" data-v="partido">Partido</button>
     <button id="ab-estado" data-act="aba" data-v="estado">Estado</button>
@@ -756,6 +831,7 @@ function limparCacheUF(manter){
   Object.keys(cache).forEach(function(k){
     if(k.indexOf('uf/') === 0 && k !== 'uf/' + manter + '.json') delete cache[k];
     if(k.indexOf('forn-recorte/') === 0 && k !== 'forn-recorte/' + manter + '.json') delete cache[k];
+    if(k.indexOf('forn-cruzado/') === 0 && k !== 'forn-cruzado/' + manter + '.json') delete cache[k];
   });
 }
 function esc(s){
@@ -798,6 +874,10 @@ function fedCurta(f){
 
 /* ---------- estado ---------- */
 var META = null, UFD = null, IDX = null, FRC = null;
+/* O fornecedor cruzado com tipo de despesa e com partido, e o tipo por candidatura no
+   país. Os dois são pedidos só por quem abre a visão geral ou liga o filtro de tipo:
+   quem nunca vai lá não paga por eles. */
+var FCR = null, TIPOS_BR = null;
 /* `v` é a dimensão da tela, e é a única coisa da navegação que vai no endereço.
    `view` é derivado: uma ficha é uma ficha em qualquer dimensão, e a busca também.
    Os filtros são os mesmos nas cinco dimensões, e sobrevivem à troca. */
@@ -805,9 +885,11 @@ var S = {
   v:'candidato', view:'lista', uf:'', cargo:'', partido:'', fed:'', ord:'receita',
   sinal:'', tipo:'', q:'', cand:'', forn:'', limite:60
 };
-var DIMS = {candidato:1, partido:1, estado:1, cargo:1, fornecedor:1};
-var ROT_DIM = {candidato:'candidato', partido:'partido', estado:'estado',
-               cargo:'cargo', fornecedor:'fornecedor'};
+/* A sexta entrada não é uma dimensão: é o cruzamento das cinco. Ela abre a pergunta,
+   e as outras cinco respondem em lista, com os mesmos filtros. */
+var DIMS = {geral:1, candidato:1, partido:1, estado:1, cargo:1, fornecedor:1};
+var ROT_DIM = {geral:'visão geral', candidato:'candidato', partido:'partido',
+               estado:'estado', cargo:'cargo', fornecedor:'fornecedor'};
 /* AS CINCO DIMENSÕES TÊM UMA ORDEM SÓ. Ordenar por gasto contratado, por índice de
    conferência, por número de sinais, por quantidade de candidaturas ou por campanhas
    que pagaram trocava a cifra da linha, e o mesmo nome aparecia com números diferentes
@@ -820,14 +902,15 @@ var ROT_DIM = {candidato:'candidato', partido:'partido', estado:'estado',
    #ord=campanhas) continua abrindo: `ordValida` devolve o padrão da dimensão em vez de
    deixar a lista ordenada por uma coluna que não existe mais. */
 var ORD_DIM = {
+  geral:['receita'],
   candidato:['receita'],
   partido:['receita'],
   estado:['receita'],
   cargo:['receita'],
   fornecedor:['valor']
 };
-var PADRAO_ORD = {candidato:'receita', partido:'receita', estado:'receita',
-                  cargo:'receita', fornecedor:'valor'};
+var PADRAO_ORD = {geral:'receita', candidato:'receita', partido:'receita',
+                  estado:'receita', cargo:'receita', fornecedor:'valor'};
 var COLS = {receita:8};
 function ordPadrao(){ return PADRAO_ORD[S.v] || 'receita'; }
 function ordsDaDimensao(){ return (ORD_DIM[S.v] || ORD_DIM.candidato).slice(); }
@@ -937,9 +1020,9 @@ function nomeDe(cod){
 }
 
 /* um erro por fonte: sucesso numa dimensao nao pode apagar a falha de outra */
-var erros = {uf:null, indice:null, frc:null, forn:null, cand:null};
+var erros = {uf:null, indice:null, frc:null, fcr:null, forn:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
-var tiposAberto = null, ufEmVoo = '', frcEmVoo = '';
+var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', fcrEmVoo = '';
 
 function lerHash(){
   var h = location.hash.replace(/^#/,''), o = {};
@@ -1332,8 +1415,14 @@ function codigosDaLinha(r){
 /* O que cada dimensão NÃO recorta. O agregado de fornecedor é somado por partido e por
    cargo, e não carrega sinal, tipo de gasto nem federação: ali esses três filtros ficam
    guardados e desligados, e o chip diz isso na barra em vez de mentir que recortam. */
+/* Na visão geral saem sinal e federação, e pela mesma razão: os cartões de fornecedor
+   não sabem honrá-los, e uma tela em que dois cartões contam recortes diferentes com o
+   mesmo rótulo é pior que uma tela com dois filtros guardados. O chip explica isso na
+   barra, desligado, com o valor guardado à vista. Sinal também ficaria fora por outro
+   motivo, e ele vale mais: aqui não há sinal nem índice em lugar nenhum. */
 function foraDaDimensao(){
-  return S.v === 'fornecedor' ? 'sinal,tipo,fed' : '';
+  if(S.v === 'fornecedor') return 'sinal,tipo,fed';
+  return S.v === 'geral' ? 'sinal,fed' : '';
 }
 function passa(r, ignorar){
   var ig = (ignorar ? ignorar + ',' : '') + foraDaDimensao();
@@ -1480,14 +1569,22 @@ function barras(itens, total, opts){
   if(!itens.length) return '<p class="vazio">Nada declarado por aqui até agora.</p>';
   var max = itens[0][1] || 1;
   return '<ul class="blist">' + itens.map(function(it, i){
+    /* o quarto campo é opcional e chega só da visão geral: um atributo de leitura ao
+       lado do nome, um endereço de ficha, ou a marca de que a linha é o resto */
+    var ex = it[3] || {};
     var larg = Math.max(2, Math.round(it[1] / max * 100));
-    var linha = '<span>' + esc(it[0]) + '</span><b>' + moeda(it[1]) +
+    var linha = '<span>' + esc(it[0]) +
+      (ex.attr ? '<span class="battr">' + esc(ex.attr) + '</span>' : '') + '</span><b>' + moeda(it[1]) +
       (total ? ' <span class="c" style="color:var(--mut);font-weight:400">' + pct(it[1], total) + '%</span>' : '') + '</b>';
-    var corpo = opts.acao
-      ? '<button class="t" data-act="' + opts.acao + '" data-v="' + esc(it[2]) + '" title="' + esc(moedaCheia(it[1])) + '">' + linha + '</button>'
-      : '<div class="t" title="' + esc(moedaCheia(it[1])) + '">' + linha + '</div>';
-    var cur = (opts.acao && String(it[2]) === String(atual)) ? ' aria-current="true"' : '';
-    return '<li' + cur + '>' + corpo + '<div class="bar"><i style="width:' + larg + '%"></i></div></li>';
+    var tit = esc(moedaCheia(it[1]) + (ex.titulo ? ' · ' + ex.titulo : ''));
+    var corpo;
+    if(ex.resto) corpo = '<div class="t" title="' + tit + '">' + linha + '</div>';
+    else if(ex.href) corpo = '<a class="t" href="#' + esc(ex.href) + '" title="' + tit + '">' + linha + '</a>';
+    else if(opts.acao) corpo = '<button class="t" data-act="' + opts.acao + '" data-v="' + esc(it[2]) + '" title="' + tit + '">' + linha + '</button>';
+    else corpo = '<div class="t" title="' + tit + '">' + linha + '</div>';
+    var cur = (opts.acao && !ex.resto && !ex.href && String(it[2]) === String(atual)) ? ' aria-current="true"' : '';
+    return '<li' + cur + (ex.resto ? ' class="resto"' : '') + '>' + corpo +
+           '<div class="bar"><i style="width:' + larg + '%"></i></div></li>';
   }).join('') + '</ul>';
 }
 
@@ -1603,11 +1700,17 @@ function quadroMediana(){
    1 MB comprimido para alimentar um painel que nasce fechado no celular. Lá o
    painel lê o agregado do cabeçalho, e o corte por tipo, que precisa da linha,
    continua existindo dentro de cada estado, como a régua do grupo. */
-function temTipoPorLinha(){ return ufDaTela() !== 'BRASIL'; }
+/* No país ele passa a valer assim que `tipos/BRASIL.json` chega e as linhas são
+   preenchidas: daí em diante o corte por tipo funciona nas seis telas, e não só dentro
+   de um estado. Enquanto o arquivo não chegou, o comportamento é o de sempre. */
+var tiposAplicados = false;
+function temTipoPorLinha(){ return ufDaTela() !== 'BRASIL' || tiposAplicados; }
 /* Um tipo escolhido só vale onde a linha carrega tipo. Guardado sem valer, ele não
    muda a lista nem os números, e quem conta isso é o chip desligado. */
 function noTipo(){ return S.tipo !== '' && S.v !== 'fornecedor' && temTipoPorLinha(); }
-function blocoTipos(lista){
+/* O gasto por tipo do recorte, somado das linhas quando elas carregam tipo e lido do
+   agregado do cabeçalho quando não. Duas telas fazem a mesma conta, e uma conta só. */
+function tiposDoRecorte(lista){
   var itens, total = 0;
   if(temTipoPorLinha()){
     var soma = {};
@@ -1619,8 +1722,12 @@ function blocoTipos(lista){
     var agg = (UFD && UFD.tipos) || [];
     itens = agg.map(function(t){ total += t[1]; return [META.dic.tipo[+t[0]] || 'sem tipo', t[1], t[0]]; });
   }
-  if(!itens.length) return '';
   itens.sort(function(a,b){ return b[1] - a[1]; });
+  return {itens:itens, total:total};
+}
+function blocoTipos(lista){
+  var t = tiposDoRecorte(lista), itens = t.itens, total = t.total;
+  if(!itens.length) return '';
   /* o estado vive em S: filtrar por tipo redesenha a tela, e o painel nao pode
      fechar sozinho o que a pessoa acabou de abrir */
   if(tiposAberto === null) tiposAberto = window.matchMedia('(min-width:960px)').matches;
@@ -1963,6 +2070,537 @@ function linhaGrupoCartao(g, i, maior){
 }
 
 /* ---------- visão: busca ---------- */
+/* ============ VISÃO GERAL: o cruzamento, e não uma sexta dimensão ============
+
+   As cinco dimensões mostram uma lista por vez, cada uma respondendo por um eixo. Esta
+   tela mostra os cinco eixos ao mesmo tempo, e o que a torna uma tela e não um painel é
+   que os cartões filtram uns aos outros: tocar numa barra liga o filtro que já existe na
+   barra de cima, e tudo recalcula, inclusive a lista das outras cinco quando a pessoa
+   troca de aba.
+
+   Três decisões de desenho que valem escritas:
+
+   **Uma medida só na tela inteira: o gasto contratado no recorte.** Com um tipo de gasto
+   escolhido, é o gasto naquele tipo. Misturar receita num cartão e gasto no vizinho
+   faria a mesma tela carregar dois eixos com o mesmo rótulo.
+
+   **Nenhuma cor por partido, nem aqui.** Cada barra e cada faixa saem no mesmo acento, e
+   quem identifica é o nome escrito ao lado, nunca a cor. Num painel que aponta gente pelo
+   nome, uma legenda de cores por legenda partidária seria a tela escolhendo times.
+
+   **Sem sinal e sem índice.** Os dois ficam de fora desta tela inteira, e não por
+   esquecimento: quem presta contas é a candidatura, e um número de conferência ao lado de
+   um agregado de partido seria nota dada a um partido pela soma de gente. */
+
+/* A grandeza de toda barra desta tela. */
+function medidaDe(r){ return noTipo() ? valorTipo(r) : (r[6] || 0); }
+
+function cartaoGeral(titulo, sub, corpo, classe){
+  return '<section class="cartao geral' + (classe ? ' ' + classe : '') + '">' +
+    '<div class="cabg"><h2>' + esc(titulo) + '</h2>' +
+    (sub ? '<span class="sm">' + esc(sub) + '</span>' : '') + '</div>' + corpo + '</section>';
+}
+function skCartao(){ return '<div class="sk" aria-busy="true"><i></i><i></i><i></i></div>'; }
+/* O topo de uma lista, com o resto somado numa linha final que não é botão: ela conta
+   quem ficou de fora, e sem ela o topo pareceria o conjunto inteiro. */
+function topoComResto(itens, n, rotulo){
+  var vis = itens.slice(0, n), resto = itens.slice(n);
+  if(!resto.length) return vis;
+  var soma = resto.reduce(function(s, i){ return s + i[1]; }, 0);
+  return vis.concat([[rotulo(resto.length), soma, '', {resto:1}]]);
+}
+function somaMedida(lista){
+  return lista.reduce(function(s, r){ return s + medidaDe(r); }, 0);
+}
+function gruposPorMedida(lista, dim){
+  var g = agrupar(lista, dim);
+  g.sort(function(a, b){ return b.contratado - a.contratado; });
+  return g;
+}
+function itensDeGrupo(g){
+  return g.map(function(x){
+    return [x.nome, x.contratado, x.k,
+            {attr: inteiro(x.n) + (x.n === 1 ? ' candidatura' : ' candidaturas')}];
+  });
+}
+function cartaoPartidosGeral(lista, total){
+  var g = gruposPorMedida(lista, 'partido');
+  if(!g.length) return '';
+  var vis = topoComResto(itensDeGrupo(g), 10, function(n){
+    return 'outras ' + inteiro(n) + ' legendas';
+  });
+  return cartaoGeral('Partidos', inteiro(g.length) +
+    (g.length === 1 ? ' legenda' : ' legendas') + ' · toque para filtrar',
+    barras(vis, total, {acao:'gpartido', atual:S.partido}));
+}
+function cartaoCargosGeral(lista, total){
+  var g = gruposPorMedida(lista, 'cargo');
+  if(!g.length) return '';
+  return cartaoGeral('Cargos', 'toque para filtrar',
+                     barras(itensDeGrupo(g), total, {acao:'gcargo', atual:S.cargo}));
+}
+function cartaoEstadosGeral(lista, total){
+  if(ufDaTela() !== 'BRASIL') return '';
+  var g = gruposPorMedida(lista, 'estado');
+  if(g.length < 2) return '';
+  var vis = topoComResto(itensDeGrupo(g), 10, function(n){
+    return 'outros ' + inteiro(n) + (n === 1 ? ' estado' : ' estados');
+  });
+  return cartaoGeral('Estados', inteiro(g.length) +
+    ' unidades · toque para abrir uma delas',
+    barras(vis, total, {acao:'guf', atual:''}), 'larga');
+}
+function cartaoTiposGeral(lista){
+  var t = tiposDoRecorte(lista);
+  if(!t.itens.length) return '';
+  var pode = temTipoPorLinha();
+  var vis = topoComResto(t.itens, 8, function(n){
+    return 'outros ' + inteiro(n) + (n === 1 ? ' tipo' : ' tipos');
+  });
+  var sub = inteiro(t.itens.length) + ' tipos · ' +
+            (pode ? 'toque para filtrar' : 'do país inteiro, enquanto o corte por tipo carrega');
+  return cartaoGeral('Tipos de despesa', sub,
+                     barras(vis, t.total, pode ? {acao:'tipo', atual:S.tipo} : {}));
+}
+function cartaoCandidaturasGeral(lista, total){
+  if(!lista.length) return '';
+  var top = lista.slice().sort(function(a, b){ return medidaDe(b) - medidaDe(a); }).slice(0, 10);
+  var itens = top.map(function(r){
+    var uf = ufDaLinha(r);
+    return [r[1], medidaDe(r), r[0], {
+      href: hashCom({cand:r[0], q:'', forn:''}),
+      attr: (META.dic.partido[r[3]] || '') + ' · ' +
+            cargoCurto(META.cargos[r[4]] || r[4]) + (uf ? ' · ' + uf : '')
+    }];
+  });
+  var fora = lista.length - top.length;
+  if(fora > 0){
+    itens.push(['outras ' + inteiro(fora) + ' candidaturas',
+                total - top.reduce(function(s, r){ return s + medidaDe(r); }, 0),
+                '', {resto:1}]);
+  }
+  return cartaoGeral('Maiores candidaturas', 'toque abre a ficha',
+                     barras(itens, total, {}));
+}
+/* ---- quem recebeu, nos dois arquivos ---- */
+/* A chave do recorte no arquivo cruzado, com os mesmos índices que a linha do ranking
+   carrega. Ela é a mesma conta que o pipeline faz em Python: se uma das duas mudar, a
+   outra tem de mudar junto. */
+function chaveCruzado(){
+  var p = [];
+  if(S.partido) p.push('p:' + META.dic.partido.indexOf(S.partido));
+  if(S.cargo) p.push('c:' + S.cargo);
+  return p.length ? p.join(':') : 'geral';
+}
+/* A chave do fluxo: ali não há recorte de partido, porque com um partido escolhido a
+   coluna da esquerda tem uma fonte só e não há divisão a fazer. */
+function chaveFluxo(){
+  var p = [];
+  if(S.cargo) p.push('c:' + S.cargo);
+  if(noTipo()) p.push('t:' + (+S.tipo));
+  return p.length ? p.join(':') : 'geral';
+}
+function fornDoIndice(i){
+  var f = (FCR && FCR.forn && FCR.forn[i]) || ['', 'Não informado', 0, 0];
+  return {endereco:f[0], nome:f[1], pj:f[2], ficha:f[3]};
+}
+/* A lista de quem recebeu no recorte, na fonte certa: sem filtro de tipo ela vem do
+   recorte de fornecedor, que é o mesmo arquivo da dimensão Fornecedor; com filtro de
+   tipo ela vem do cruzado, que é o único que sabe separar por tipo de despesa. */
+function fornDoRecorteGeral(){
+  if(noTipo()){
+    if(!FCR) return null;
+    var ch = chaveCruzado(), tid = String(+S.tipo);
+    var l = ((FCR.tipo && FCR.tipo[ch]) || {})[tid] || [];
+    var fr = ((FCR.fora && FCR.fora[ch]) || {})[tid] || [0, 0];
+    return {fora:fr, lista:l.map(function(e){
+      var f = fornDoIndice(e[0]);
+      return {nome:f.nome, pj:f.pj, ficha:f.ficha, endereco:f.endereco, valor:e[1]};
+    })};
+  }
+  if(!FRC) return null;
+  var d = listaDoRecorte();
+  return {fora:d.fora, lista:d.lista.map(function(e){
+    return {nome:e[1], pj:e[3], ficha:e[7], endereco:e[0], valor:e[4]};
+  })};
+}
+function cartaoFornecedoresGeral(){
+  var d = fornDoRecorteGeral();
+  var sub = noTipo() ? 'no tipo escolhido · toque abre a ficha quando há'
+                     : 'por valor recebido · toque abre a ficha quando há';
+  if(!d) return cartaoGeral('Maiores fornecedores', sub, skCartao());
+  var top = d.lista.slice(0, 10);
+  var itens = top.map(function(f){
+    return [f.nome, f.valor, '', {
+      href: f.ficha ? hashCom({forn:f.endereco, cand:'', q:''}) : '',
+      attr: f.pj ? 'empresa' : 'pessoa física',
+      titulo: f.ficha ? '' : 'sem ficha própria'
+    }];
+  });
+  var nFora = d.fora[0] + Math.max(0, d.lista.length - 10);
+  var vFora = d.fora[1] + d.lista.slice(10).reduce(function(s, f){ return s + f.valor; }, 0);
+  var total = d.lista.reduce(function(s, f){ return s + f.valor; }, 0) + d.fora[1];
+  if(nFora > 0){
+    itens.push(['outros ' + inteiro(nFora) + ' fornecedores', vFora, '',
+                {resto:1, titulo:'somando ' + moedaCheia(vFora)}]);
+  }
+  return cartaoGeral('Maiores fornecedores', sub, barras(itens, total, {}));
+}
+/* ---- o anel: a razão que é o número de capa da página ---- */
+/* Dois pedaços é medidor, não pizza, e é o único gráfico redondo desta tela. Ele mostra a
+   fatia do que foi pago que saiu de fundo eleitoral ou partidário, que é a conta de capa
+   do painel; a cor é a mesma do fio do dinheiro público, para as duas peças serem lidas
+   como a mesma coisa. */
+function cartaoAnel(lista){
+  var pago = 0, pub = 0;
+  lista.forEach(function(r){ pago += r[7]; pub += r[9]; });
+  var p = pago > 0 ? pub / pago : 0;
+  var R = 52, cx = 64, cy = 64, circ = 2 * Math.PI * R;
+  var rot = pago > 0 ? pct(pub, pago) + '%' : 'sem pagamento';
+  var svg = '<svg viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="' +
+    (pago > 0 ? 'Dinheiro público: ' + pct(pub, pago) + ' por cento do que foi pago'
+              : 'Nenhum pagamento declarado neste recorte') + '">' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--b2)" stroke-width="15"/>' +
+    (pago > 0 ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--ac)" ' +
+      'stroke-width="15" stroke-dasharray="' + (circ * p).toFixed(2) + ' ' + circ.toFixed(2) + '" ' +
+      'transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' : '') +
+    '<text class="anum" x="64" y="60" text-anchor="middle">' + esc(rot) + '</text>' +
+    '<text class="arot" x="64" y="79" text-anchor="middle">público</text></svg>';
+  var leg = '<div class="leg">' +
+    '<div><i style="background:var(--ac)"></i><b>' + moeda(pub) + '</b> de fundo eleitoral e partidário</div>' +
+    '<div><i style="background:var(--b2)"></i><b>' + moeda(pago - pub) + '</b> de outros recursos</div>' +
+    '<p>Pago até agora: <b>' + moeda(pago) + '</b>. Quem define isto é a coluna que diz de que caixa o dinheiro saiu.</p>' +
+    (noTipo() ? '<p>O pagamento não se divide por tipo de despesa: este anel é o do recorte inteiro.</p>' : '') +
+    '</div>';
+  return cartaoGeral('De onde saiu o dinheiro pago', 'a fatia pública do pagamento',
+                     '<div class="anel">' + svg + leg + '</div>');
+}
+
+/* ============ OS DOIS FLUXOS DE DUAS COLUNAS ============
+
+   Duas colunas, e não cinco: medido na pesquisa de 18/09, nenhum painel público do mundo
+   cruza mais que duas colunas de fluxo, e num celular de 360 px a terceira coluna deixa
+   de caber antes de dizer qualquer coisa.
+
+   **O nó "outros" entra fora de escala, e diz isso.** Medido no protótipo com Roraima: as
+   10 maiores candidaturas são 30 % do contratado, e em escala real o nó "outras 366
+   candidaturas" esmagava os dez nomes numa faixa de 12 px. A altura dele é limitada a
+   30 % do desenho, o rótulo traz o valor por extenso e a nota "fora de escala", e a faixa
+   que chega nele afina só na ponta que o toca: a outra ponta continua em escala.
+
+   Cada nó carrega o valor ao lado do nome, cada faixa tem o título com origem, destino e
+   o valor por extenso, e a tabela irmã, embaixo, traz as mesmas linhas para quem lê por
+   leitor de tela ou prefere número a desenho. */
+var TETO_OUTROS = 0.30;
+function fluxoDuasColunas(esq, dir, ligs, id){
+  var host = document.getElementById(id);
+  if(!host) return;
+  var W = Math.max(280, host.clientWidth || 640);
+  var estreito = W < 520;
+  var lab = Math.max(96, Math.min(240, Math.round(W * (estreito ? 0.34 : 0.28))));
+  var nw = 10, gap = 6, alt = Math.max(esq.length, dir.length);
+  var H = Math.max(280, 34 * alt);
+  function medida(n){ return n.outros ? Math.min(n.valor, n.teto) : n.valor; }
+  function prepara(nos){
+    var listados = nos.reduce(function(s, n){ return s + (n.outros ? 0 : n.valor); }, 0);
+    nos.forEach(function(n){
+      if(!n.outros) return;
+      n.teto = listados * TETO_OUTROS / (1 - TETO_OUTROS);
+      n.compr = n.valor > n.teto ? n.teto / n.valor : 1;
+    });
+    return nos.reduce(function(s, n){ return s + medida(n); }, 0);
+  }
+  /* CADA COLUNA TEM A SUA ESCALA, e isso não é licença poética: as duas somam o mesmo
+     dinheiro, mas o nó "outros" de cada lado é comprimido em proporção diferente, e uma
+     escala só fazia a coluna mais comprimida encolher junto. Medido no país: os dez
+     maiores fornecedores somam R$ 10 mi de R$ 69 mi, e com escala única eles saíam com
+     dois pixels cada, os dez nomes empilhados em cima uns dos outros. Com escala por
+     coluna, os listados ocupam sempre 70 % do desenho de cada lado, que é o que a regra
+     do nó "outros" promete. A faixa continua exata: ela afina só na ponta comprimida. */
+  var te = prepara(esq) || 1, td = prepara(dir) || 1;
+  /* o menor nó listado precisa de 14 px para o nome caber ao lado dele: a altura do
+     desenho cresce até isso, com teto de 640 px */
+  var fracao = 0;
+  [[esq, te], [dir, td]].forEach(function(par){
+    par[0].forEach(function(n){
+      if(n.outros || n.valor <= 0) return;
+      var f = n.valor / par[1];
+      if(!fracao || f < fracao) fracao = f;
+    });
+  });
+  if(fracao) H = Math.min(640, Math.max(H, Math.round(14 / fracao + gap * alt)));
+  function posiciona(nos, tot){
+    var k = (H - gap * (nos.length - 1)) / tot, y = 0;
+    nos.forEach(function(n){
+      n.h = Math.max(1.5, medida(n) * k); n.y = y; y += n.h + gap; n.off = 0;
+    });
+    var sobra = H - (y - gap);
+    if(sobra > 0) nos.forEach(function(n){ n.y += sobra / 2; });
+    return k;
+  }
+  var Ke = posiciona(esq, te), Kd = posiciona(dir, td);
+  var xl = lab + 8, xr = W - lab - 8 - nw, xm = (xl + nw + xr) / 2;
+  /* 7,6 px por caractere, e não 6,8: com o valor mais folgado o nome cortado cabe dentro
+     da coluna de rótulo, e não passa por baixo da borda do cartão, que recorta */
+  var maxCh = Math.max(8, Math.floor(lab / 7.6));
+  function corta(s){ return s.length > maxCh ? s.slice(0, maxCh - 1) + '…' : s; }
+  var svg = '<svg class="fluxo" viewBox="0 0 ' + W + ' ' + H + '" width="' + W +
+            '" height="' + H + '" role="img" aria-label="Diagrama de fluxo; os mesmos ' +
+            'números estão na tabela logo abaixo">';
+  var ordenadas = ligs.slice().sort(function(a, b){ return b[2] - a[2]; });
+  ordenadas.forEach(function(l){
+    var a = esq[l[0]], b = dir[l[1]];
+    var t0 = l[2] * Ke * (a.outros ? a.compr : 1), t1 = l[2] * Kd * (b.outros ? b.compr : 1);
+    var y0 = a.y + a.off, y1 = b.y + b.off;
+    a.off += t0; b.off += t1;
+    var d = 'M' + (xl + nw) + ',' + y0.toFixed(1) + ' C' + xm + ',' + y0.toFixed(1) + ' ' +
+      xm + ',' + y1.toFixed(1) + ' ' + xr + ',' + y1.toFixed(1) +
+      ' L' + xr + ',' + (y1 + t1).toFixed(1) + ' C' + xm + ',' + (y1 + t1).toFixed(1) + ' ' +
+      xm + ',' + (y0 + t0).toFixed(1) + ' ' + (xl + nw) + ',' + (y0 + t0).toFixed(1) + ' Z';
+    svg += '<path d="' + d + '" data-e="' + l[0] + '" data-d="' + l[1] + '"' +
+      ((a.outros || b.outros) ? ' class="outros"' : '') + '><title>' + esc(a.nome) +
+      ' para ' + esc(b.nome) + ': ' + esc(moedaCheia(l[2])) + '</title></path>';
+  });
+  function desenhaNos(nos, lado){
+    nos.forEach(function(n, i){
+      var x = lado === 'e' ? xl : xr;
+      var cy = n.y + n.h / 2;
+      var tx = lado === 'e' ? xl - 8 : xr + nw + 8;
+      var anc = lado === 'e' ? ' text-anchor="end"' : '';
+      var corpo = '<rect class="no' + (n.outros ? ' outros' : '') + '" x="' + x + '" y="' +
+        n.y.toFixed(1) + '" width="' + nw + '" height="' + n.h.toFixed(1) + '"/>' +
+        '<text class="rot' + (n.outros ? ' fraco' : '') + '" x="' + tx + '" y="' +
+        (cy + 4).toFixed(1) + '"' + anc + '>' + esc(corta(n.nome)) + '</text>' +
+        (n.h >= 22 ? '<text class="val" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc +
+          '>' + esc(moeda(n.valor) + (n.outros && n.compr < 1 ? ', fora de escala' : '')) +
+          '</text>' : '');
+      var titulo = '<title>' + esc(n.nome + ': ' + moedaCheia(n.valor) +
+        (n.outros ? '. Este nó não abre nada' : (n.href ? '' : '. Sem ficha própria'))) + '</title>';
+      svg += n.href
+        ? '<a class="fno" href="#' + esc(n.href) + '" data-no="' + i + '" data-lado="' + lado + '">' + titulo + corpo + '</a>'
+        : '<g class="fno" data-no="' + i + '" data-lado="' + lado + '" tabindex="0">' + titulo + corpo + '</g>';
+    });
+  }
+  desenhaNos(esq, 'e');
+  desenhaNos(dir, 'd');
+  svg += '</svg>';
+  var tab = '<details class="tabfx"><summary><b>Ver como tabela</b></summary>' +
+    '<table><thead><tr><th scope="col">De</th><th scope="col">Para</th>' +
+    '<th scope="col">Valor</th></tr></thead><tbody>' +
+    ordenadas.map(function(l){
+      return '<tr><td>' + esc(esq[l[0]].nome) + '</td><td>' + esc(dir[l[1]].nome) +
+             '</td><td class="num">' + esc(moedaCheia(l[2])) + '</td></tr>';
+    }).join('') + '</tbody></table></details>';
+  host.innerHTML = svg + tab;
+  ligarFluxo(host.querySelector('svg.fluxo'));
+}
+/* Passar o mouse ou chegar pelo teclado a um nó acende as faixas dele e apaga as outras.
+   É a única coisa desta tela que depende de evento: o resto é endereço. */
+function ligarFluxo(el){
+  if(!el) return;
+  function marca(sel){
+    el.classList.add('hl');
+    var todos = el.querySelectorAll('path');
+    for(var i = 0; i < todos.length; i++){
+      todos[i].classList.toggle('on', todos[i].matches(sel));
+    }
+  }
+  function limpa(){ el.classList.remove('hl'); }
+  var nos = el.querySelectorAll('.fno');
+  for(var i = 0; i < nos.length; i++){
+    (function(n){
+      var sel = 'path[data-' + n.getAttribute('data-lado') + '="' + n.getAttribute('data-no') + '"]';
+      n.addEventListener('mouseenter', function(){ marca(sel); });
+      n.addEventListener('mouseleave', limpa);
+      n.addEventListener('focus', function(){ marca(sel); });
+      n.addEventListener('blur', limpa);
+    })(nos[i]);
+  }
+}
+/* Quantos nós cabem de cada lado. No celular a coluna dupla continua, com menos nós: o
+   formato cabe em 360 px, a lista de dez nomes não. */
+function quantosNos(){ return window.innerWidth < 560 ? 6 : 10; }
+
+/* Fluxo 1, do partido para as maiores candidaturas. Ele sai só das linhas do ranking, e
+   por isso é exato sob qualquer filtro. */
+function fluxoCandidaturas(lista){
+  var n = quantosNos();
+  var top = lista.slice().sort(function(a, b){ return medidaDe(b) - medidaDe(a); }).slice(0, n);
+  var totalP = {};
+  lista.forEach(function(r){
+    var p = META.dic.partido[r[3]] || 'sem partido';
+    totalP[p] = (totalP[p] || 0) + medidaDe(r);
+  });
+  var parts = [];
+  top.forEach(function(r){
+    var p = META.dic.partido[r[3]] || 'sem partido';
+    if(parts.indexOf(p) < 0) parts.push(p);
+  });
+  parts.sort(function(a, b){ return totalP[b] - totalP[a]; });
+  var esq = parts.map(function(p){
+    return {nome:p, valor:totalP[p], href:hashCom({partido:(S.partido === p ? '' : p), fed:'', cand:'', q:'', forn:''})};
+  });
+  var outrasP = Object.keys(totalP).filter(function(p){ return parts.indexOf(p) < 0; });
+  var somaOutrasP = outrasP.reduce(function(s, p){ return s + totalP[p]; }, 0);
+  if(outrasP.length){
+    esq.push({nome:'outras ' + inteiro(outrasP.length) + ' legendas', valor:somaOutrasP, outros:1});
+  }
+  var dir = top.map(function(r){
+    return {nome:r[1], valor:medidaDe(r), href:hashCom({cand:r[0], q:'', forn:''})};
+  });
+  var nFora = lista.length - top.length;
+  var somaFora = somaMedida(lista) - top.reduce(function(s, r){ return s + medidaDe(r); }, 0);
+  if(nFora > 0){
+    dir.push({nome:'outras ' + inteiro(nFora) + ' candidaturas', valor:somaFora, outros:1});
+  }
+  var ligs = [], listado = {};
+  top.forEach(function(r, j){
+    var p = META.dic.partido[r[3]] || 'sem partido';
+    ligs.push([parts.indexOf(p), j, medidaDe(r)]);
+    listado[p] = (listado[p] || 0) + medidaDe(r);
+  });
+  if(nFora > 0){
+    parts.forEach(function(p, i){
+      var v = totalP[p] - (listado[p] || 0);
+      if(v > 0) ligs.push([i, dir.length - 1, v]);
+    });
+    if(outrasP.length && somaOutrasP > 0) ligs.push([esq.length - 1, dir.length - 1, somaOutrasP]);
+  }
+  return {esq:esq, dir:dir, ligs:ligs};
+}
+/* Fluxo 2, do partido para os maiores fornecedores. A divisão por partido vem pronta do
+   arquivo cruzado, e é exata para os fornecedores listados. Com um partido escolhido há
+   uma fonte só, e a divisão deixa de existir. */
+function fluxoFornecedores(lista){
+  if(!FCR) return null;
+  var n = quantosNos();
+  var totalP = {};
+  lista.forEach(function(r){
+    var p = META.dic.partido[r[3]] || 'sem partido';
+    totalP[p] = (totalP[p] || 0) + medidaDe(r);
+  });
+  var ligs = [], esq, dir, listado = {}, topo;
+  if(S.partido){
+    var d = fornDoRecorteGeral();
+    if(!d) return null;
+    topo = d.lista.slice(0, n).map(function(f){
+      return {nome:f.nome, valor:f.valor, pares:[[S.partido, f.valor]],
+              href:f.ficha ? hashCom({forn:f.endereco, cand:'', q:''}) : ''};
+    });
+    esq = [{nome:S.partido, valor:totalP[S.partido] || 0,
+            href:hashCom({partido:'', fed:'', cand:'', q:'', forn:''})}];
+  } else {
+    var fluxo = (FCR.partido || {})[chaveFluxo()] || [];
+    topo = fluxo.slice(0, n).map(function(e){
+      var f = fornDoIndice(e[0]);
+      return {
+        nome:f.nome,
+        valor:e[1].reduce(function(s, x){ return s + x[1]; }, 0),
+        pares:e[1].map(function(x){ return [META.dic.partido[x[0]] || 'sem partido', x[1]]; }),
+        href:f.ficha ? hashCom({forn:f.endereco, cand:'', q:''}) : ''
+      };
+    });
+    var parts = Object.keys(totalP).sort(function(a, b){ return totalP[b] - totalP[a]; });
+    var vis = parts.slice(0, 8), fora = parts.slice(8);
+    esq = vis.map(function(p){
+      return {nome:p, valor:totalP[p],
+              href:hashCom({partido:p, fed:'', cand:'', q:'', forn:''})};
+    });
+    var somaFora = fora.reduce(function(s, p){ return s + totalP[p]; }, 0);
+    if(fora.length){
+      esq.push({nome:'outras ' + inteiro(fora.length) + ' legendas', valor:somaFora, outros:1});
+    }
+    esq.visiveis = vis;
+  }
+  if(!topo.length) return null;
+  dir = topo.map(function(f){ return {nome:f.nome, valor:f.valor, href:f.href}; });
+  var rec = fornDoRecorteGeral();
+  var totalRec = Object.keys(totalP).reduce(function(s, p){ return s + totalP[p]; }, 0);
+  var somaTopo = topo.reduce(function(s, f){ return s + f.valor; }, 0);
+  var nFora = rec ? (rec.fora[0] + Math.max(0, rec.lista.length - topo.length)) : 0;
+  if(nFora > 0 && totalRec > somaTopo){
+    dir.push({nome:'outros ' + inteiro(nFora) + ' fornecedores',
+              valor:totalRec - somaTopo, outros:1});
+  }
+  topo.forEach(function(f, j){
+    f.pares.forEach(function(par){
+      var i = S.partido ? 0 : esq.visiveis.indexOf(par[0]);
+      if(i < 0) i = esq.length - 1;
+      ligs.push([i, j, par[1]]);
+      listado[i] = (listado[i] || 0) + par[1];
+    });
+  });
+  if(dir.length > topo.length){
+    esq.forEach(function(no, i){
+      var v = no.valor - (listado[i] || 0);
+      if(v > 0) ligs.push([i, dir.length - 1, v]);
+    });
+  }
+  return {esq:esq, dir:dir, ligs:ligs};
+}
+var fluxosPendentes = [];
+function desenharFluxos(){
+  fluxosPendentes.forEach(function(f){ fluxoDuasColunas(f.esq, f.dir, f.ligs, f.id); });
+}
+function viewGeral(){
+  var m = document.getElementById('conteudo');
+  var uf = ufDaTela();
+  fluxosPendentes = [];
+  if(erros.uf && erros.uf.u === uf){
+    m.innerHTML = painelErro('Não foi possível carregar as candidaturas ' + ondeUF(uf) +
+                             '. Verifique a conexão.', 'retryuf');
+    return;
+  }
+  if(!UFD || UFD.uf !== uf){
+    if(ufEmVoo !== uf) carregarUF();
+    porResumo(blocoResumo([]));
+    m.innerHTML = '<div class="wrap solo"><div class="lista">' + esqueleto(6) + '</div></div>';
+    return;
+  }
+  /* Os dois agregados de fornecedor são pedidos aqui, e só aqui e na dimensão
+     Fornecedor: quem não abre nenhuma das duas telas não paga por eles. */
+  if((!FRC || FRC.uf !== uf) && !erros.frc && frcEmVoo !== uf) carregarFornRecorte();
+  if((!FCR || FCR.uf !== uf) && !erros.fcr && fcrEmVoo !== uf) carregarFornCruzado();
+  var lista = filtradas();
+  var total = somaMedida(lista);
+  recorteTela = descreverRecorte() + ' · ' + inteiro(lista.length) +
+                (lista.length === 1 ? ' candidatura' : ' candidaturas');
+  var h = '<div class="wrap solo"><div class="lista"><section class="secao">' +
+    '<h2 class="ocultavisual">Visão geral · ' + esc(nomeUnidade(uf)) + '</h2>';
+  if(!lista.length){
+    h += '<div class="vazio">Nenhuma candidatura com esses filtros.<br>' +
+         '<button class="bt" data-act="limpar">Limpar filtros</button></div></section></div></div>';
+    porResumo(blocoResumo(lista));
+    m.innerHTML = h;
+    return;
+  }
+  h += '<div class="grade">' +
+    cartaoPartidosGeral(lista, total) +
+    cartaoCargosGeral(lista, total) +
+    cartaoTiposGeral(lista) +
+    cartaoCandidaturasGeral(lista, total) +
+    cartaoFornecedoresGeral() +
+    cartaoAnel(lista) +
+    cartaoEstadosGeral(lista, total);
+  var f1 = fluxoCandidaturas(lista);
+  h += cartaoGeral('Do partido para as maiores candidaturas',
+    'a largura da faixa é o gasto contratado; tocar num partido filtra a tela inteira',
+    '<div id="fx1" class="hostfx"></div>', 'larga');
+  fluxosPendentes.push({esq:f1.esq, dir:f1.dir, ligs:f1.ligs, id:'fx1'});
+  var f2 = fluxoFornecedores(lista);
+  h += cartaoGeral('Do partido para os maiores fornecedores',
+    'fornecedores com o maior valor contratado; a divisão por partido é exata para os listados',
+    f2 ? '<div id="fx2" class="hostfx"></div>' : skCartao(), 'larga');
+  if(f2) fluxosPendentes.push({esq:f2.esq, dir:f2.dir, ligs:f2.ligs, id:'fx2'});
+  h += '</div><p class="rodape-geral">Cada barra é o gasto contratado no recorte. ' +
+    'Toque numa barra para filtrar; a lista das cinco dimensões obedece ao mesmo filtro. ' +
+    'Sem sinal nem índice aqui: quem presta contas é a candidatura.</p>';
+  porResumo(blocoResumo(lista));
+  h += '</section></div></div>';
+  m.innerHTML = h;
+  desenharFluxos();
+}
+
 function viewBusca(){
   var m = document.getElementById('conteudo');
   if(erros.indice){ m.innerHTML = painelErro('Não foi possível carregar o índice de nomes.', 'retryidx'); return; }
@@ -2537,6 +3175,8 @@ function carregarUF(){
     if(ufEmVoo === uf) ufEmVoo = '';
     if(ufDaTela() !== uf) return;
     UFD = d;
+    tiposAplicados = false;
+    aplicarTiposBrasil();
     /* este pedido sai junto com o do meta, e pode chegar antes dele: sem o meta
        não há dicionário para conferir nem tela para desenhar, e quem termina o
        serviço é o próprio `iniciar` quando o meta responder */
@@ -2562,6 +3202,50 @@ function carregarFornRecorte(){
     if(frcEmVoo === uf) frcEmVoo = '';
     if(ufDaTela() !== uf) return;
     erros.frc = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
+  });
+}
+/* O fornecedor cruzado com tipo de despesa e com partido. Mesmo desenho do recorte: um
+   arquivo por unidade, pedido só por quem abre a visão geral. */
+function carregarFornCruzado(){
+  var uf = ufDaTela();
+  FCR = null; erros.fcr = null; fcrEmVoo = uf;
+  get('forn-cruzado/' + uf + '.json').then(function(d){
+    if(fcrEmVoo === uf) fcrEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    FCR = d;
+    if(META) render();
+  })['catch'](function(e){
+    if(fcrEmVoo === uf) fcrEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    erros.fcr = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
+  });
+}
+/* O tipo por candidatura no país. A linha do arquivo nacional vem sem ele, por tamanho;
+   este arquivo traz o mesmo dado e é baixado só quando a tela precisa. Ao chegar, ele
+   preenche o campo 11 de cada linha, e daí em diante o corte por tipo vale no país
+   inteiro, em todas as telas, como já valia dentro de cada estado. */
+function aplicarTiposBrasil(){
+  if(!TIPOS_BR || !UFD || UFD.uf !== 'BRASIL') return;
+  var c = TIPOS_BR.c || {};
+  UFD.c.forEach(function(r){
+    if(!r[11] || !r[11].length) r[11] = c[r[0]] || [];
+  });
+  tiposAplicados = true;
+}
+function carregarTiposBrasil(){
+  if(TIPOS_BR || carregarTiposBrasil.ocupado) return;
+  if(ufDaTela() !== 'BRASIL') return;
+  if(S.v !== 'geral' && S.tipo === '') return;
+  carregarTiposBrasil.ocupado = true;
+  get('tipos/BRASIL.json').then(function(d){
+    carregarTiposBrasil.ocupado = false;
+    TIPOS_BR = d;
+    aplicarTiposBrasil();
+    if(META) render();
+  })['catch'](function(){
+    /* sem ele a tela continua de pé, com o agregado do cabeçalho e o chip de tipo
+       desligado: é o comportamento que o país já tinha */
+    carregarTiposBrasil.ocupado = false;
   });
 }
 /* A ficha do fornecedor mora num bloco com outras cento e poucas: o arquivo sai
@@ -2670,9 +3354,11 @@ function render(){
   porResumo('');
   /* Primeiro o que está aberto por cima da lista (uma ficha, uma busca), e só depois a
      dimensão: uma ficha é uma ficha em qualquer dimensão. */
+  carregarTiposBrasil();
   if(S.view === 'cand') viewCand();
   else if(S.view === 'forn') viewForn();
   else if(S.view === 'busca') viewBusca();
+  else if(S.v === 'geral') viewGeral();
   else if(S.v === 'fornecedor') viewFornRecorte();
   else if(S.v === 'candidato') viewRanking();
   else viewGrupos();
@@ -2708,6 +3394,22 @@ document.addEventListener('click', function(e){
   if(a === 'ajuda'){ abrirAjuda(); return; }
   if(a === 'retryforn'){ erros.forn = null; carregarFornBloco(); render(); return; }
   if(a === 'retryfrc'){ erros.frc = null; carregarFornRecorte(); render(); return; }
+  if(a === 'retryfcr'){ erros.fcr = null; carregarFornCruzado(); render(); return; }
+  /* As barras da visão geral ligam os mesmos filtros da barra de cima, e tocar de novo
+     na que está em vigor limpa. O estado é o mesmo: quem trocar de aba leva o recorte. */
+  if(a === 'gpartido'){
+    var np = t.getAttribute('data-v');
+    ir({partido: np === S.partido ? '' : np, fed:'', cand:'', q:'', forn:''});
+    return;
+  }
+  if(a === 'gcargo'){
+    var nc = t.getAttribute('data-v');
+    ir({cargo: String(nc) === String(S.cargo) ? '' : nc, cand:'', q:'', forn:''});
+    return;
+  }
+  /* O estado não é filtro, é a unidade da tela: tocar nele troca o arquivo que a página
+     lê, e o cartão de estados deixa de existir, porque a unidade passa a ser um só. */
+  if(a === 'guf'){ ir({uf:t.getAttribute('data-v'), cand:'', q:'', forn:''}); return; }
   if(a === 'opt'){
     var k = t.getAttribute('data-k'), v = t.getAttribute('data-v'), p = {};
     fecharFolha(); fecharMenu(true);
@@ -2773,7 +3475,8 @@ function descreverRecorte(){
        testeira, para o título da aba e para o link copiado, e descrever um recorte que
        a lista embaixo não fez é pior do que não descrever nada. */
     var foraDaqui = foraDaDimensao();
-    if(S.v !== 'candidato') p.push('por ' + ROT_DIM[S.v]);
+    if(S.v === 'geral') p.push('visão geral');
+    else if(S.v !== 'candidato') p.push('por ' + ROT_DIM[S.v]);
     p.push(nomeUnidade(ufDaTela()));
     if(S.cargo) p.push(cargoCurto(META.cargos[S.cargo] || S.cargo));
     if(S.partido) p.push(S.partido);
@@ -3028,6 +3731,15 @@ document.addEventListener('keydown', function(e){
   }
 });
 window.addEventListener('resize', medirBarras);
+/* O fluxo é medido no contêiner, e não escalado por viewBox: mudar a largura da janela
+   pede um desenho novo, e não uma imagem esticada. Com espera, porque arrastar a borda
+   da janela dispara isto dezenas de vezes por segundo. */
+var redesenho = null;
+window.addEventListener('resize', function(){
+  if(S.v !== 'geral' || !fluxosPendentes.length) return;
+  clearTimeout(redesenho);
+  redesenho = setTimeout(desenharFluxos, 140);
+});
 
 /* ---------- início ---------- */
 function iniciar(){
