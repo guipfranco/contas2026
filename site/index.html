@@ -1638,7 +1638,10 @@ function barras(itens, total, opts){
          unidades são porta para trocar de tela, e a tela não mediu nenhuma delas */
       (ex.semValor ? '' : '<b>' + moeda(it[1]) +
       (total ? ' <span class="c" style="color:var(--mut);font-weight:400">' + pct(it[1], total) + '%</span>' : '') + '</b>');
-    var tit = esc(moedaCheia(it[1]) + (ex.titulo ? ' · ' + ex.titulo : ''));
+    /* a linha sem valor também não tem valor no título do mouse: dizer "R$ 0,00" sobre
+       uma unidade que esta tela nem leu seria afirmar o que ela não mediu */
+    var tit = esc((ex.semValor ? '' : moedaCheia(it[1])) +
+                  (ex.titulo ? (ex.semValor ? '' : ' · ') + ex.titulo : ''));
     var corpo;
     if(ex.resto) corpo = '<div class="t" title="' + tit + '">' + linha + '</div>';
     else if(ex.href) corpo = '<a class="t" href="#' + esc(ex.href) + '" title="' + tit + '">' + linha + '</a>';
@@ -2226,9 +2229,20 @@ function topoComCorte(itens, chave, rotulo, atual){
 function somaMedida(lista){
   return lista.reduce(function(s, r){ return s + medidaDe(r); }, 0);
 }
+/* As contas pesadas da visão geral, guardadas enquanto a tela é a mesma. O alinhamento
+   por corte remonta os cartões até quatro vezes, e só o número de linhas muda entre uma
+   passada e outra: refazer o agrupamento de 29 mil candidaturas cinco vezes seguidas era
+   o preço escondido do alinhamento. A chave é a própria lista, que `filtradas()` cria
+   nova a cada recorte, então recorte novo nunca lê conta velha. */
+var cacheGeral = {lista:null, grupos:{}, tipos:null, forn:undefined};
+function zeraCacheGeral(lista){
+  cacheGeral = {lista:lista, grupos:{}, tipos:null, forn:undefined};
+}
 function gruposPorMedida(lista, dim){
+  if(cacheGeral.lista === lista && cacheGeral.grupos[dim]) return cacheGeral.grupos[dim];
   var g = agrupar(lista, dim);
   g.sort(function(a, b){ return b.contratado - a.contratado; });
+  if(cacheGeral.lista === lista) cacheGeral.grupos[dim] = g;
   return g;
 }
 function itensDeGrupo(g){
@@ -2281,8 +2295,11 @@ function cartaoEstadosGeral(lista, total){
   if(temBrasil()) outras.unshift('BRASIL');
   if(!outras.length) return '';
   var itens = [[nomeUnidade(uf), total, uf, {}]];
-  var n = Math.max(1, linhasDe('estados') - 1);
   TOPO_LINHAS.estados = outras.length + 1;
+  /* uma linha vai para a unidade desta tela, e mais uma para o "outras N" quando sobra
+     alguém: o cartão tem de caber nas linhas que o alinhamento pediu, nem uma a mais */
+  var cabem = linhasDe('estados') - 1;
+  var n = Math.max(1, cabem < outras.length ? cabem - 1 : cabem);
   outras.slice(0, n).forEach(function(u){
     itens.push([nomeUnidade(u), 0, u, {semValor:1, titulo:'abrir esta unidade'}]);
   });
@@ -2309,8 +2326,12 @@ function cartaoEstadosGeral(lista, total){
    totais para a mesma medida na mesma tela. O tipo em vigor sai marcado, e tocar nele
    de novo limpa. */
 function cartaoTiposGeral(lista){
-  var base = noTipo() ? UFD.c.filter(function(r){ return passa(r, 'tipo'); }) : lista;
-  var t = tiposDoRecorte(base);
+  var t = (cacheGeral.lista === lista && cacheGeral.tipos) ? cacheGeral.tipos : null;
+  if(!t){
+    var base = noTipo() ? UFD.c.filter(function(r){ return passa(r, 'tipo'); }) : lista;
+    t = tiposDoRecorte(base);
+    if(cacheGeral.lista === lista) cacheGeral.tipos = t;
+  }
   if(!t.itens.length) return '';
   var pode = temTipoPorLinha();
   var vis = topoComCorte(t.itens, 'tipos', function(n){
@@ -2374,6 +2395,13 @@ function fornDoIndice(i){
    recorte de fornecedor, que é o mesmo arquivo da dimensão Fornecedor; com filtro de
    tipo ela vem do cruzado, que é o único que sabe separar por tipo de despesa. */
 function fornDoRecorteGeral(){
+  /* mesma razão do cache de grupos: o alinhamento pede esta lista uma vez por passada */
+  if(cacheGeral.forn !== undefined) return cacheGeral.forn;
+  var r = montaFornDoRecorteGeral();
+  cacheGeral.forn = r;
+  return r;
+}
+function montaFornDoRecorteGeral(){
   if(noTipo()){
     if(!FCR) return null;
     var ch = chaveCruzado(), tid = String(+S.tipo);
@@ -2762,9 +2790,13 @@ function fluxoFornecedores(lista){
   }
   return {esq:esq, dir:dir, ligs:ligs};
 }
-var fluxosPendentes = [], nosDesenhados = 0;
+var fluxosPendentes = [], ultimaLargura = 0;
 function desenharFluxos(){
-  nosDesenhados = quantosNos();
+  /* a largura em que esta tela foi desenhada. Ela mora aqui, e não no ouvinte de
+     tamanho de janela: o ouvinte sai cedo fora da visão geral, e a largura guardada por
+     ele envelhecia enquanto a pessoa estava noutra aba, deixando um desenho largo dentro
+     de uma janela estreita. */
+  ultimaLargura = window.innerWidth;
   fluxosPendentes.forEach(function(f){ fluxoDuasColunas(f.esq, f.dir, f.ligs, f.id); });
 }
 /* ---- o alinhamento, que é por corte e não por ar ----
@@ -2779,6 +2811,10 @@ function desenharFluxos(){
    A partir da segunda passada ela só encolhe: deixar crescer de novo produzia um ciclo
    entre dois desenhos que se mediam um ao outro. */
 var GAP_GRADE = 10, MIN_LINHAS = 4, PISO_LINHAS = 8;
+function temLargura(px){
+  try{ return window.matchMedia('(min-width:' + px + 'px)').matches; }
+  catch(e){ return window.innerWidth >= px; }
+}
 function cartoesDaGeral(lista, total){
   return cartaoCargosGeral(lista, total) +
          cartaoEstadosGeral(lista, total) +
@@ -2821,22 +2857,27 @@ function ajustaLinhas(m, chave, sobra, soEncolher){
    linha inteira, e as listas de partidos e de candidaturas cairiam para quatro nomes.
    Quando o alvo vem do piso, quem fica com a sobra é a grade, não o cartão. */
 function alinhar(passe){
-  var W = window.innerWidth, mudou = false, so = passe > 0;
+  /* Quem decide o arranjo é a media query, e ela mede a janela SEM a calha da barra de
+     rolagem, que agora está sempre reservada. `innerWidth` a conta, e os dois discordavam
+     em 15 px: entre 1000 e 1014 o alinhamento fazia a conta das três colunas sobre uma
+     tela que ainda estava em duas, e encurtava lista que não dividia linha com ninguém. */
+  var mudou = false, so = passe > 0;
+  var larga = temLargura(1000), media = temLargura(660);
   var g = document.getElementById('gradeg');
-  if(!g || W < 660) return false;
+  if(!g || !media) return false;
   var c = corpoDoCartao('.p-cargos'), e = corpoDoCartao('.p-estados'),
       p = corpoDoCartao('.p-partidos'), d = corpoDoCartao('.p-cand');
   if(!c || !p) return false;
   var fina = c.alt + (e ? e.alt + GAP_GRADE : 0);
   var piso = p.cab + PISO_LINHAS * (p.linha || 40);
   var candidatos = [p.alt, fina];
-  if(W >= 1000 && d) candidatos.push(d.alt);
+  if(larga && d) candidatos.push(d.alt);
   var alvo = Math.max(Math.min.apply(null, candidatos), piso);
   g.classList.toggle('finabaixa', fina < alvo - 1);
   if(ajustaLinhas(p, 'partidos', p.alt - alvo, so)) mudou = true;
-  if(W >= 1000 && d && ajustaLinhas(d, 'cand', d.alt - alvo, so)) mudou = true;
+  if(larga && d && ajustaLinhas(d, 'cand', d.alt - alvo, so)) mudou = true;
   if(e && ajustaLinhas(e, 'estados', e.alt - (alvo - c.alt - GAP_GRADE), so)) mudou = true;
-  if(W >= 1000){
+  if(larga){
     /* A segunda linha: o anel não tem lista para encurtar, então quem cede é a lista de
        tipos, ou a de fornecedores, conforme qual dos dois lados passou do alvo. Um cartão
        de fornecedor em erro ou em esqueleto não tem lista e não define alvo nenhum: uma
@@ -2896,6 +2937,7 @@ function viewGeral(){
   /* A ordem aqui é a do celular, de cima para baixo. Quem monta as três colunas da tela
      larga é o CSS, que dá lugar marcado a cada cartão. */
   repoeLinhas();
+  zeraCacheGeral(lista);
   h += '<div class="grade" id="gradeg">' + cartoesDaGeral(lista, total) + '</div>' +
     '<div class="grade" id="gradefx">';
   var f1 = fluxoCandidaturas(lista);
@@ -4068,7 +4110,7 @@ window.addEventListener('resize', medirBarras);
 /* O fluxo é medido no contêiner, e não escalado por viewBox: mudar a largura da janela
    pede um desenho novo, e não uma imagem esticada. Com espera, porque arrastar a borda
    da janela dispara isto dezenas de vezes por segundo. */
-var redesenho = null, ultimaLargura = 0;
+var redesenho = null;
 window.addEventListener('resize', function(){
   if(S.v !== 'geral') return;
   clearTimeout(redesenho);
