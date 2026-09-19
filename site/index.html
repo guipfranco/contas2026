@@ -81,7 +81,6 @@
 
   --fc:#0E6E78;       /* anel de foco: o acento, visível sobre papel e sobre cartão */
   --calha:32px;       /* a calha esquerda, onde mora o numeral de posição */
-  --ixc:48px;         /* a coluna da direita, onde mora o selo do índice de conferência */
   --gut:16px;         /* o recuo lateral, um só na página inteira: testeira, busca e corpo */
   --raio:6px;         /* o raio de botão, chip e campo */
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -345,18 +344,6 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
                       "pos fio fio" "pos pub pub" "pos cel cel";
   gap:1px 10px;padding:14px var(--gut) 15px;text-decoration:none;color:inherit;
 }
-/* Com o selo do índice na linha, ele ganha coluna própria na grade e sobe para a altura
-   do valor. Antes ele ficava centrado na altura do fio do dinheiro público e a 5px do fim
-   dele: os dois liam como uma figura só, "uma barra que enche até aqui e dá 5 de 100",
-   casando na retina o dinheiro público com o índice de conferência, que é exatamente o
-   que as travas da página exigem manter separado. Agora o fio corre sozinho, largura
-   inteira, e não termina onde nada começa. */
-.row.temix .rowmain{
-  grid-template-columns:var(--calha) minmax(0,1fr) auto var(--ixc);
-  grid-template-areas:"pos nome val ix" "pos meta meta ix" "pos chips chips chips"
-                      "pos fio fio fio" "pos pub pub pub" "pos cel cel cel";
-}
-.r-ixgap{grid-area:ix}
 .rowmain:active{background:var(--sf2)}
 @media(hover:hover){.rowmain:hover{background:var(--sf2)}}
 /* Todo container que recorta o que passa da borda precisa do anel de foco desenhado
@@ -364,9 +351,8 @@ main{max-width:1180px;margin:0 auto;padding:16px 0 18px}
    dentro do container: com overflow:clip ele some inteiro, e quem navega por teclado
    não vê onde está. Vale para o cartão, para o segmentado das dimensões e para o
    controle de organizar por, que são as três superfícies recortadas da página. */
-.rowmain:focus-visible,.mais:focus-visible,.status .ordbt:focus-visible,
-details summary:focus-visible,.abas button:focus-visible,
-.ordc .ord button:focus-visible{outline-offset:-3px;border-radius:0}
+.rowmain:focus-visible,.mais:focus-visible,
+details summary:focus-visible,.abas button:focus-visible{outline-offset:-3px;border-radius:0}
 /* O numeral de posição, na calha da esquerda: ele é o metrônomo da lista. Cinza
    e leve, ele sumia; agora é grande e leva o segundo acento, que é frio e não
    diz nada sobre o dado, só separa a navegação do dinheiro. */
@@ -388,14 +374,14 @@ details summary:focus-visible,.abas button:focus-visible,
 /* CHIPS DE ATRIBUTO. Quem é a candidatura antes do nome ser conhecido: partido,
    cargo e unidade, número de urna, federação. Eram cinco itens cinza separados por
    pontos, na mesma linha e com o mesmo peso, e ninguém os lia. Agora cada um é uma
-   pastilha com fundo próprio, a 13 px.
+   pastilha com fundo próprio, maior e com borda, para pesar mais que texto solto.
    **Eles são leitura, e não filtro**: não têm data-act e não abrem nada. E todos têm
    a mesma cor, para qualquer partido e qualquer cargo: neste repositório nenhuma cor
    depende do dado. */
-.chips-attr{grid-area:chips;display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;min-width:0}
-.attr{display:inline-block;max-width:100%;padding:2px 8px;border-radius:var(--raio);
-  background:var(--chip);color:var(--ink);font-size:13px;font-weight:600;line-height:1.35;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips-attr{grid-area:chips;display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;min-width:0}
+.attr{display:inline-block;max-width:100%;padding:4px 10px;border-radius:var(--raio);
+  background:var(--chip);border:1px solid var(--b2);color:var(--ink);font-size:14px;font-weight:700;
+  line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* CÉLULAS. Partido, estado e cargo não têm ficha para guardar as contas deles, então
    as contas ficam na linha, em pares de número e rótulo, e não em prosa separada por
    pontos: uma conta pela metade não é conta, e uma fileira de contas em prosa é uma
@@ -424,9 +410,6 @@ details summary:focus-visible,.abas button:focus-visible,
 @media(max-width:480px){
   .rowmain{grid-template-areas:"pos nome nome" "pos val val" "pos meta meta"
                               "pos chips chips" "pos fio fio" "pos pub pub" "pos cel cel"}
-  .row.temix .rowmain{grid-template-areas:"pos nome nome ix" "pos val val ix" "pos meta meta meta"
-                                          "pos chips chips chips" "pos fio fio fio"
-                                          "pos pub pub pub" "pos cel cel cel"}
   .r-nome{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .r-val{justify-self:start;margin-top:3px}
 }
@@ -464,69 +447,16 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
   .selos .selomais.desk{display:inline-flex}
 }
 
-/* Indice de conferencia: coluna propria na linha, fora do link, com a ressalva a um toque.
-   Tres decisoes que seguem valendo: (1) o botao tem borda, porque ele e a unica porta para
-   a ressalva e precisa parecer controle; (2) a escala vai escrita ('/100'), porque numero
-   nu ao lado de um nome le como nota dada a pessoa; (3) nao ha cor por faixa nem regua na
-   lista, porque duas cores sem legenda viram semaforo. A palavra da faixa esta no rotulo
-   de acessibilidade, na folha e na ficha.
-   O que ele nunca faz é tomar o lugar da cifra: o assunto da página é o dinheiro, e a
-   lista tem uma ordem só, que é a receita declarada. */
-.ixbt{
-  position:absolute;right:calc(var(--gut) - 2px);top:10px;
-  width:44px;min-height:38px;padding:3px 0;border:1px solid var(--b);border-radius:var(--raio);
-  background:var(--sf);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:1px;
-}
-.ixbt::after{content:"";position:absolute;top:-3px;bottom:-3px;left:0;right:0}
-.ixbt:active{background:var(--sf2)}
-@media(hover:hover){.ixbt:hover{background:var(--sf2);border-color:var(--b2)}}
-.ixbt .n{font-size:15px;font-weight:700;line-height:1.05;color:var(--ink)}
-.ixbt .de{font-size:11.5px;font-weight:600;line-height:1;color:var(--mut)}
-.ixbt[data-f="0"] .n{color:var(--mut)}
-.ixficha{
-  padding:14px var(--gut);border-top:1px solid var(--b);display:grid;
-  grid-template-columns:auto minmax(0,1fr);gap:3px 16px;align-items:center;
-}
-.ixficha .ixn{font-size:34px;font-weight:800;line-height:1;color:var(--ink);letter-spacing:-.025em}
-.ixficha[data-f="0"] .ixn{color:var(--mut)}
-.ixficha[data-f="2"] .ixn,.ixficha[data-f="3"] .ixn{color:var(--am3)}
-.ixficha .ixn .de{font-size:15px;font-weight:600;color:var(--mut)}
-.ixficha .ixt{font-size:15px}
-.ixficha .ixs{display:block;color:var(--mut);font-size:13px;margin-top:3px;line-height:1.45}
-.ixficha .nao{grid-column:1/-1;margin-top:0}
-
-/* A BARRA "ORDEM" SAIU. Ela ocupava o lugar mais visível da tela, logo acima da lista,
-   com quatro critérios que trocavam a cifra da linha, e o lugar dela agora é das cinco
-   dimensões. A lista tem uma ordem só, a receita declarada; contratado, a conferir e
-   pago moram na ficha da candidatura, que é onde eles são a conta de alguém.
-   O que sobrou é um controle discreto, dentro do rótulo da lista, e só na dimensão
-   Fornecedor: ali "Valor" e "Campanhas" são duas leituras da mesma lista, e não duas
-   listas. Ele tem dois botões de 32 px e um rótulo em caixa baixa, para não voltar a
-   ser lido como aba de conteúdo. */
-.ordc{display:flex;align-items:center;gap:6px;flex:none}
-.ordrot{font-size:11.5px;letter-spacing:.01em;font-weight:600;color:var(--mut);flex:none}
-.ordc .ord{display:flex;gap:0;border:1px solid var(--b);border-radius:var(--raio);
-  overflow:hidden;overflow:clip;background:var(--cs)}
-.ordc .ord button{min-height:32px;padding:0 10px;font-size:13px;font-weight:600;color:var(--mut);
-  white-space:nowrap;border-right:1px solid var(--b)}
-.ordc .ord button:last-child{border-right:0}
-.ordc .ord button[aria-pressed="true"]{background:var(--ac);color:var(--acink);font-weight:700}
-@media(hover:hover){.ordc .ord button:not([aria-pressed="true"]):hover{color:var(--ink);background:var(--sf2)}}
 /* O botão que diz que um tipo de gasto está mandando na ordem da lista. Ele morava na
    barra "Ordem"; agora mora no rótulo da lista, que é onde se lê o que a lista é. */
 .status .tipobt{min-height:32px;padding:0 10px;border:1px solid var(--ac);border-radius:var(--raio);
   background:var(--ac);color:var(--acink);font-size:13px;font-weight:700;white-space:nowrap;flex:none}
 
-/* O botao da direita e, ao mesmo tempo, o rotulo da coluna de indice. Solto, ele saia da
-   tela na primeira rolada e sobravam numeros de 0 a 100 sem uma palavra que os explicasse. */
 .status{margin:0;padding:6px var(--gut);min-height:46px;font-size:13px;font-weight:600;letter-spacing:.01em;
   color:var(--mut);border-bottom:1px solid var(--b);display:flex;align-items:center;
   justify-content:space-between;gap:8px 12px;flex-wrap:wrap;
   position:sticky;top:var(--hh,132px);z-index:5;background:var(--pap)}
 .status>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.status .ordbt{min-height:44px;padding:0 2px;color:var(--ac);font-weight:600;font-size:13px;text-align:right;white-space:nowrap}
-@media(hover:hover){.status .ordbt:hover{text-decoration:underline}}
 
 .vazio{padding:34px var(--gut);text-align:center;color:var(--mut);font-size:15px;line-height:1.55}
 .vazio .bt{margin-top:14px}
@@ -600,17 +530,20 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
   border-top:1px solid var(--b);padding-top:6px}
 .pares .rs{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.45}
 
-.sinal{padding:12px var(--gut);border-bottom:1px solid var(--b)}
-.sinal:last-child{border-bottom:0}
-.sinal .top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-.sinal .tx{font-size:15px;color:var(--ink);line-height:1.5;max-width:66ch}
+/* O sinal sem cartão próprio: um fio fino separa um do outro, sem fundo, sem borda
+   cheia, porque um sinal é uma pergunta a conferir, não um destaque a olhar primeiro.
+   A interrogação e o nome vêm juntos na frente; a intensidade é o "!" ao lado. */
+.sinalx{padding:8px var(--gut);border-bottom:1px solid var(--b)}
+.sinalx:last-child{border-bottom:0}
+.sinalx .tx{display:block;margin-top:4px;font-size:14px;color:var(--mut);line-height:1.5;max-width:66ch}
+.sinalx .mot{font-size:13px;font-style:italic}
 .nao{display:block;font-size:13px;font-weight:600;color:var(--ac);min-height:44px;text-align:left}
-.sinal .nao{margin-top:6px}
+.sinalx .nao{margin-top:4px}
 .nota .nao{margin-top:2px}
 .grav{font-size:13px;color:var(--mut)}
-/* traços quadrados, não bolinhas: a página é feita de fios */
-.pontos i{display:inline-block;width:6px;height:6px;background:var(--sf);margin-right:3px;border:1px solid var(--b2)}
-.pontos i.on{background:var(--am3);border-color:var(--am3)}
+.sinalq{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+  border-radius:50%;border:1px solid var(--b2);color:var(--mut);font-size:11px;font-weight:700}
+.sinaln{margin:0 6px 0 4px;color:var(--mut);font-weight:700;letter-spacing:1px}
 .kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px var(--gut);font-size:13px}
 .kv .k{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kv .v{font-weight:600;text-align:right;white-space:nowrap}
@@ -875,24 +808,23 @@ var S = {
 var DIMS = {candidato:1, partido:1, estado:1, cargo:1, fornecedor:1};
 var ROT_DIM = {candidato:'candidato', partido:'partido', estado:'estado',
                cargo:'cargo', fornecedor:'fornecedor'};
-var ORDS = {receita:'receita declarada',
-            valor:'valor recebido', campanhas:'campanhas que pagaram'};
-/* QUATRO DAS CINCO DIMENSÕES TÊM UMA ORDEM SÓ, e ela é a receita declarada. Ordenar por
-   gasto contratado, por índice de conferência, por número de sinais ou por quantidade de
-   candidaturas trocava a cifra da linha, e o mesmo nome aparecia com números diferentes
+/* AS CINCO DIMENSÕES TÊM UMA ORDEM SÓ. Ordenar por gasto contratado, por índice de
+   conferência, por número de sinais, por quantidade de candidaturas ou por campanhas
+   que pagaram trocava a cifra da linha, e o mesmo nome aparecia com números diferentes
    conforme a tela. Contratado, a conferir e pago moram na ficha da candidatura, e
    "candidaturas" virou célula da linha de grupo, que é onde eles são conta de alguém.
-   A dimensão Fornecedor mantém duas, porque ali "Valor" e "Campanhas" são duas leituras
-   da mesma lista, e não duas listas.
-   Endereço antigo com uma ordem que saiu (#ord=indice, #ord=sinais, #ord=n) continua
-   abrindo: `ordValida` devolve o padrão da dimensão em vez de deixar a lista ordenada
-   por uma coluna que não existe mais. */
+   A dimensão Fornecedor também ficou com uma ordem só, por valor recebido: "Campanhas
+   que pagaram" saiu do controle, e o botão de organizar por saiu junto, porque uma
+   dimensão com uma ordem só não tem o que escolher.
+   Endereço antigo com uma ordem que saiu (#ord=indice, #ord=sinais, #ord=n,
+   #ord=campanhas) continua abrindo: `ordValida` devolve o padrão da dimensão em vez de
+   deixar a lista ordenada por uma coluna que não existe mais. */
 var ORD_DIM = {
   candidato:['receita'],
   partido:['receita'],
   estado:['receita'],
   cargo:['receita'],
-  fornecedor:['valor','campanhas']
+  fornecedor:['valor']
 };
 var PADRAO_ORD = {candidato:'receita', partido:'receita', estado:'receita',
                   cargo:'receita', fornecedor:'valor'};
@@ -910,11 +842,6 @@ var NOTA_SINAL = '<div class="nota">Cada sinal é um <b>padrão automático</b> 
   'declarado, nunca uma acusação. Toque em <b>o que isso não significa</b> antes de tirar conclusão. ' +
   'Quem presta serviço a uma campanha não faz parte dela: o fornecedor citado no texto de um sinal é ' +
   '<b>terceiro</b>, e tem o mesmo direito de pedir correção.</div>';
-/* o indice ordena a fila de conferencia; a ressalva anda junto dele em toda tela */
-var NOTA_INDICE = '<div class="nota">O <b>índice de conferência</b> ordena uma fila do que vale conferir ' +
-  'primeiro, a partir dos sinais levantados. Ele <b>não mede irregularidade</b>: nenhum sinal afirma ilícito, ' +
-  'e vários apontam padrão inteiramente legal.' +
-  '<button class="nao" data-act="oindice">o que o índice não é ›</button></div>';
 var UFNOME = {
   BRASIL:'no Brasil inteiro', BR:'na disputa presidencial',
   AC:'no Acre', AL:'em Alagoas', AM:'no Amazonas', AP:'no Amapá', BA:'na Bahia',
@@ -979,17 +906,14 @@ function unidadeInicial(){
   }catch(e){ }
   return 'SP';
 }
+/* A Presidência (BR) saiu do seletor de unidade: o filtro de estado é para escolher um
+   estado, e a disputa presidencial já entra na soma do Brasil inteiro. */
 function unidadesAgrupadas(){
-  var out = [], pais = [];
-  if(temBrasil()) pais.push('BRASIL');
-  if(META.ufs && META.ufs.BR) pais.push('BR');
-  if(pais.length){
-    out.push({sep:'País'});
-    pais.forEach(function(u){ out.push({v:u, r:nomeUnidade(u)}); });
-  }
+  var out = [];
+  if(temBrasil()) out.push({sep:'País'}, {v:'BRASIL', r:nomeUnidade('BRASIL')});
   var estados = estadosOrdenados();
   if(estados.length){
-    if(pais.length) out.push({sep:'Estados'});
+    if(out.length) out.push({sep:'Estados'});
     estados.forEach(function(u){ out.push({v:u, r:nomeUnidade(u)}); });
   }
   return out;
@@ -1012,34 +936,6 @@ function nomeDe(cod){
   return curtoDe(cod);
 }
 
-/* ---------- índice de conferência ---------- */
-var FAIXAS_PADRAO = [[50,'confira primeiro'],[20,'vale conferir'],[1,'pouco a conferir'],[0,'nada apontado']];
-function faixasIndice(){
-  var fx = META && META.indice && META.indice.faixas;
-  return (fx && fx.length) ? fx : FAIXAS_PADRAO;
-}
-function faixaDe(v){
-  var fx = faixasIndice(), n = typeof v === 'number' ? v : 0;
-  for(var i=0;i<fx.length;i++){
-    if(n >= fx[i][0]) return {n:Math.max(0, Math.min(3, fx.length - 1 - i)), t:String(fx[i][1] || '')};
-  }
-  return {n:0, t:String((fx[fx.length-1] || [])[1] || '')};
-}
-function temIndice(r){ return typeof r[14] === 'number' && isFinite(r[14]); }
-function indiceDe(r){ return temIndice(r) ? r[14] : 0; }
-/* A régua da lista saiu nesta rodada. Ela enchia por faixa, com piso de 10 %, então um
-   índice 1, o menor que existe, já acendia um décimo da barra, e quase todo índice cai
-   abaixo de 20: quem comparasse barra com barra via distância onde havia sinal fraco.
-   No lugar dela entra a escala escrita, que é o que faltava para o número não ser lido
-   como nota dada à pessoa. A palavra da faixa continua no rótulo de acessibilidade. */
-function botaoIndice(v){
-  var fx = faixaDe(v);
-  return '<button class="ixbt" data-act="oindice" data-f="' + fx.n + '" ' +
-    'aria-label="Índice de conferência ' + v + ' de 100' + (fx.t ? ', ' + esc(fx.t) : '') +
-    '. Ver o que o índice é e o que ele não é">' +
-    '<span class="n">' + v + '</span>' +
-    '<span class="de" aria-hidden="true">/100</span></button>';
-}
 /* um erro por fonte: sucesso numa dimensao nao pode apagar a falha de outra */
 var erros = {uf:null, indice:null, frc:null, forn:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
@@ -1067,7 +963,6 @@ function mapaAntigo(o){
   } else if('fornecedores' in o){
     /* a cota de dinheiro público virou coluna da linha de partido */
     o.v = (o.fo === 'cota') ? 'partido' : 'fornecedor';
-    if(o.fo === 'candidatos') o.ord = 'campanhas';
   }
   return o;
 }
@@ -1362,69 +1257,11 @@ function abrirSinaisDaLinha(pacote){
   var c = NOTA_SINAL;
   itens.forEach(function(it){
     var s = sinalDe(it.cod);
-    c += '<div class="sinal">' +
-      '<div class="top"><span class="selo" data-g="' + it.g + '" aria-hidden="true">' + esc(curtoDe(it.cod)) + '</span>' +
-      pontos(it.g) + (it.n > 1 ? '<span class="grav">· ' + it.n + ' ocorrências</span>' : '') + '</div>' +
-      '<div class="tx">' + esc(s ? s.significa : 'A explicação deste sinal não veio nesta versão dos dados.') + '</div>' +
-      '<button class="nao" data-act="aviso" data-cod="' + esc(it.cod) + '">o que isso não significa ›</button></div>';
+    var texto = s ? s.significa : 'A explicação deste sinal não veio nesta versão dos dados.';
+    c += linhaSinal(it.cod, it.g, texto, it.n > 1 ? (it.n + ' ocorrências') : '');
   });
   abrirFolha('Sinais a conferir', c);
 }
-/* O motivo de cada sinal ficar fora do índice vem escrito no meta, e agora vem
-   acentuado: o teste que garante isso passou a funcionar em 17/09 (ele tinha um
-   caractere de backspace onde devia haver a borda de palavra da expressão
-   regular, e aprovava qualquer texto). Havia aqui uma tabela de tradução que
-   casava o texto do pipeline com uma versão acentuada escrita à mão, e ela
-   silenciosamente parou de casar quando a frase de origem mudou: a tela passou a
-   imprimir "o motivo está na metodologia" no lugar do motivo. */
-function motivoFora(cod, txt){
-  var t = String(txt || 'fica fora da soma do índice').replace(/\.$/, '');
-  /* a frase entra depois de "Rótulo do sinal: ", então ela começa em minúscula */
-  return t.charAt(0).toLowerCase() + t.slice(1);
-}
-/* a ressalva do índice, a um toque de todo lugar onde ele aparece */
-function abrirIndice(){
-  var ix = (META && META.indice) || {};
-  var c = '<p class="rot">O que é</p><p>' + esc(ix.o_que_e ||
-    'Soma dos sinais levantados, pesada pela intensidade de cada um. Vai de 0 a 100 e serve para ordenar ' +
-    'uma fila de conferência.') + '</p>';
-  c += '<p class="rot">O que ele não é</p><p>' + esc(ix.o_que_nao_e ||
-    'Não é medida de irregularidade. Nenhum sinal afirma ilícito, vários apontam padrão inteiramente legal, ' +
-    'e o índice não sabe nada que os sinais já não digam.') + '</p>';
-  var fx = faixasIndice();
-  c += '<p class="rot">As faixas</p>';
-  fx.forEach(function(f, i){
-    var ate = i > 0 ? (fx[i-1][0] - 1) : 100;
-    c += '<div class="tecla"><span>' + esc(f[1]) + '</span><span class="num">' +
-         f[0] + (ate > f[0] ? ' a ' + ate : '') + '</span></div>';
-  });
-  if(ix.peso){
-    var pesos = Object.keys(ix.peso).map(function(k){
-      var g = (META.gravidades && META.gravidades[k]) ? META.gravidades[k] : ('intensidade ' + k);
-      return g + ' vale ' + ix.peso[k];
-    });
-    c += '<p class="rot">Como é somado</p><p>Cada sinal entra com um peso pela intensidade: ' +
-      esc(pesos.join(', ')) + '. ' +
-      (ix.quantos_somam ? 'Somam no máximo <b>' + esc(String(ix.quantos_somam)) + '</b> sinais por candidatura, ' +
-        'para que uma candidatura com muitos sinais fracos não passe na frente de uma com poucos sinais fortes. ' : '') +
-      'O peso também considera quanto do dinheiro daquela campanha o sinal alcança.</p>';
-  }
-  if(ix.fora && Object.keys(ix.fora).length){
-    c += '<p class="rot">O que fica de fora da conta</p>' +
-      '<p>Nem todo sinal entra no índice, e o motivo não é o mesmo para todos.</p>';
-    Object.keys(ix.fora).forEach(function(k){
-      c += '<p><b>' + esc(curtoDe(k)) + '</b>: ' + esc(motivoFora(k, ix.fora[k])) + '.</p>';
-    });
-    c += '<p><button class="nao" data-act="ajuda" style="min-height:36px">' +
-      'ver a metodologia e o contato do projeto ›</button></p>';
-  }
-  c += '<p class="rot">Lembrete</p><p>O índice é automático e derivado só do que foi declarado ao TSE. ' +
-    'Ele serve para escolher por onde começar a conferir, não para concluir nada sobre ninguém. ' +
-    'Um índice alto não é acusação, e um índice zero não é selo de aprovação.</p>';
-  var tit = String(ix.nome || 'Índice de conferência');
-  abrirFolha(tit.charAt(0).toUpperCase() + tit.slice(1), c);
-}
-
 /* ---------- selos de sinal ---------- */
 function selosDe(lista){
   var m = {}, ordem = [];
@@ -1450,14 +1287,42 @@ function selosDe(lista){
   if(ordem.length > 3) h += maisBt('desk', ordem.length - 3);
   return h;
 }
-function pontos(g){
+/* A intensidade em pontos de exclamação, e não em cor: um sinal é discreto por natureza,
+   e um cartão com borda e fundo próprios lia como destaque, quase como veredito. Contar
+   "!" é acessível sem depender de cor nenhuma, o que a régua anterior não era sozinha. */
+function marcasNivel(g){
   var n = (typeof g === 'number' && g >= 1 && g <= 3) ? Math.round(g) : 0;
-  if(!n) return '<span class="grav">intensidade não informada</span>';
-  var h = '';
-  for(var i=1;i<=3;i++) h += '<i class="' + (i <= n ? 'on' : '') + '"></i>';
+  if(!n) return '';
+  var ex = '';
+  for(var i=0;i<n;i++) ex += '!';
+  return '<span class="sinaln" aria-hidden="true">' + ex + '</span>';
+}
+function rotNivel(g){
+  var n = (typeof g === 'number' && g >= 1 && g <= 3) ? Math.round(g) : 0;
+  if(!n) return 'intensidade não informada';
   var rot = (META && META.gravidades && META.gravidades[n]) ? ' · ' + META.gravidades[n] : '';
-  return '<span class="pontos" aria-hidden="true">' + h + '</span><span class="grav">intensidade ' +
-         n + ' de 3' + esc(rot) + '</span>';
+  return 'intensidade ' + n + ' de 3' + rot;
+}
+/* Uma linha de sinal, sem cartão próprio: a interrogação na frente diz "isto é uma
+   pergunta, não uma acusação", o nome vem antes de qualquer outra coisa, e a
+   intensidade é a quantidade de "!" ao lado, nunca cor. */
+function linhaSinal(cod, g, texto, extra, nota){
+  return '<div class="sinalx">' +
+    '<span class="sinalq" aria-hidden="true">?</span> ' +
+    '<b>' + esc(nomeDe(cod)) + '</b>' + marcasNivel(g) +
+    (extra ? '<span class="grav">· ' + esc(extra) + '</span>' : '') +
+    '<span class="ocultavisual">, ' + esc(rotNivel(g)) + '</span>' +
+    '<div class="tx">' + esc(texto) + '</div>' +
+    (nota ? '<div class="tx mot">' + esc(nota) + '</div>' : '') +
+    '<button class="nao" data-act="aviso" data-cod="' + esc(cod) + '">o que isso não significa ›</button></div>';
+}
+/* O motivo de um fato ficar fora da fila vem escrito no meta, por código. Ele morava na
+   explicação do índice, que saiu desta tela: agora vem na própria linha, porque a frase
+   que promete um motivo tem de mostrá-lo. */
+function motivoDeFora(cod){
+  var f = (META && META.indice && META.indice.fora) || {};
+  if(Object.prototype.toString.call(f) === '[object Array]') return '';
+  return String(f[cod] || '').replace(/\.$/, '');
 }
 
 /* ---------- filtros sobre a UF ---------- */
@@ -1517,9 +1382,12 @@ function filtradas(){
 function chip(act, rotulo, valor, ligado, off){
   var txt = ligado && valor ? valor : rotulo;
   if(off){
+    /* O chip desligado escreve o valor guardado mesmo quando ele não está ligado: é ele
+       que conta que o recorte sobreviveu à troca de dimensão, e o rótulo sozinho some
+       com essa informação. */
     return '<button class="chip" data-off="1" aria-disabled="true" aria-label="' + esc(rotulo) +
       ': ' + esc(valor || 'todos') + '. Não recorta esta visão">' +
-      '<span>' + esc(txt) + '</span></button>';
+      '<span>' + esc(valor || rotulo) + '</span></button>';
   }
   return '<button class="chip" data-act="' + act + '" data-on="' + (ligado ? 1 : 0) + '" aria-haspopup="true" ' +
     'aria-expanded="false" aria-label="' + esc(rotulo) + ': ' + esc(valor || 'todos') + '. Tocar para escolher">' +
@@ -1546,8 +1414,10 @@ function renderChips(){
     var naoRecorta = foraDaDimensao();
     /* A unidade é escolha da pessoa em quatro dimensões; na de Estado a lista é o país
        inteiro, porque é ele que tem uma linha por estado, e o chip mostra a unidade
-       guardada sem recortar nada. */
-    h += chip('f-uf','Unidade eleitoral', nomeUnidade(ufDaTela()), true, S.v === 'estado');
+       guardada sem recortar nada. Sem um estado escolhido, o chip fica desligado e
+       escrito "UF": a cor de escolhido é para quem recortou um estado, não para o
+       Brasil inteiro, que é o padrão e não uma escolha. */
+    h += chip('f-uf','UF', nomeUnidade(ufDaTela()), ufDaTela() !== 'BRASIL', S.v === 'estado');
     /* na disputa presidencial há um cargo só, e um filtro de um item não é filtro */
     if(ufDaTela() !== 'BR'){
       h += chip('f-cargo','Cargo', S.cargo ? cargoCurto(META.cargos[S.cargo] || S.cargo) : '',
@@ -1564,8 +1434,10 @@ function renderChips(){
        aparecia só com um tipo escolhido, e quem não sabia que o filtro existia nunca
        o encontrava. O corte por tipo é conta de estado, porque a linha do país não
        carrega tipo de gasto. */
-    h += chip('f-tipo','Tipo de gasto', META.dic.tipo[+S.tipo] || '', S.tipo !== '',
-              !temTipoPorLinha() || naoRecorta.indexOf('tipo') >= 0);
+    /* sem tipo escolhido o valor é vazio, e não `dic.tipo[0]`: `+''` é zero, e o chip
+       desligado escrevia o primeiro tipo do dicionário como se ele estivesse guardado */
+    h += chip('f-tipo','Tipo de gasto', S.tipo === '' ? '' : (META.dic.tipo[+S.tipo] || ''),
+              S.tipo !== '', !temTipoPorLinha() || naoRecorta.indexOf('tipo') >= 0);
     if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== ordPadrao())
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
@@ -1818,7 +1690,7 @@ function celulas(lista){
    quem a soma. */
 function linhaCartao(o){
   var tag = o.href ? 'a' : 'div';
-  var cls = 'row cartao' + (o.ix == null ? '' : ' temix') + (o.classe ? ' ' + o.classe : '');
+  var cls = 'row cartao' + (o.classe ? ' ' + o.classe : '');
   return '<li class="' + cls + '"' + (o.selos ? ' data-selos="1"' : '') + '>' +
     '<' + tag + ' class="rowmain"' +
       (o.href ? ' href="#' + o.href + '"' : ' style="cursor:default"') + '>' +
@@ -1833,10 +1705,8 @@ function linhaCartao(o){
     (o.medida || '') +
     (o.pub ? '<span class="r-pub">' + o.pub + '</span>' : '') +
     (o.celulas || '') +
-    (o.ix == null ? '' : '<span class="r-ixgap" aria-hidden="true"></span>') +
     '</' + tag + '>' +
     (o.selos || '') +
-    (o.ix == null ? '' : botaoIndice(o.ix)) +
   '</li>';
 }
 function linhaRanking(r, i){
@@ -1873,26 +1743,12 @@ function linhaRanking(r, i){
      escrevendo "0/100" ao lado de um nome próprio, que é exatamente a leitura de
      nota dada à pessoa que as travas mandam não construir, e ainda obrigava a
      ressalva no alto da lista por causa de uma coluna de zeros. */
-  var ix = (temIndice(r) && indiceDe(r) > 0) ? indiceDe(r) : null;
   return linhaCartao({
     pos:i + 1, nome:r[1], href:hashCom({cand:sq}),
     valor:rot, valorCheio:moedaCheia(vm), chips:chips,
-    medida:fioPublico(r[9], r[7]), pub:esc(pub), ix:ix,
+    medida:fioPublico(r[9], r[7]), pub:esc(pub),
     selos:sinais ? '<span class="selos">' + selosDe(r[12]) + '</span>' : ''
   });
-}
-/* O controle compacto de organização, dentro do rótulo da lista. Ele existe numa
-   dimensão só, a de Fornecedor, onde "Valor" e "Campanhas" são duas leituras da mesma
-   lista. `segs` é uma lista de [valor, rótulo curto, rótulo por extenso]. */
-function ordCompacta(segs, atual){
-  var h = '<span class="ordc"><span class="ordrot" id="rotord">organizar por</span>' +
-    '<span class="ord" role="group" aria-labelledby="rotord">';
-  h += segs.map(function(sg){
-    return '<button data-act="ord" data-v="' + esc(sg[0]) + '" aria-pressed="' +
-      (String(atual) === String(sg[0])) + '" aria-label="Organizar por ' + esc(sg[2] || sg[1]) + '">' +
-      esc(sg[1]) + '</button>';
-  }).join('');
-  return h + '</span></span>';
 }
 /* O botão que diz que um tipo de gasto está mandando na cifra da lista. Ele morava na
    barra "Ordem", que saiu; agora fica no rótulo da lista, ao lado da contagem, com o
@@ -1944,12 +1800,10 @@ function viewRanking(){
   h += '<section class="secao"><h2 class="ocultavisual">Candidaturas ' + esc(ondeUF(uf)) + '</h2>' +
        /* A barra da lista diz de quem é a lista e quantos são. Ela substituiu a frase de
           abertura em serifa: a frase dizia o mesmo em cinco linhas e desaparecia na
-          primeira rolagem, enquanto esta fica presa no alto. O botão ao lado é, ao mesmo
-          tempo, o rótulo da coluna de índice e a porta da ressalva dela. */
+          primeira rolagem, enquanto esta fica presa no alto. */
        '<div class="status"><span>' + inteiro(lista.length) + ' candidatura' +
        (lista.length === 1 ? '' : 's') + ' · ' + esc(nomeUnidade(uf)) + '</span>' +
-       botaoTipo() +
-       '<button class="ordbt" data-act="oindice">índice de conferência ›</button></div>';
+       botaoTipo() + '</div>';
   if(!lista.length){
     h += '<div class="vazio">Nenhuma candidatura com esses filtros.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
@@ -2182,18 +2036,10 @@ function listaDoRecorte(){
     }
   } else if(c){
     escopo = 'cargo'; chave = 'c:' + c; lista = FRC.cargo[c] || [];
-  } else if(S.ord === 'campanhas'){
-    escopo = 'geral'; chave = 'geral_por_camp'; lista = FRC.geral_por_camp || [];
   } else {
     escopo = 'geral'; chave = 'geral'; lista = FRC.geral || [];
   }
   var fora = (FRC.fora && FRC.fora[chave]) || [0, 0];
-  /* O recorte de partido e de cargo vem cortado pelo valor, e é só ele que existe: por
-     campanhas, a ordem se aplica ao que foi recebido, e a barra da lista diz de onde
-     saiu essa lista, para ninguém a ler como "os maiores por campanhas do país". */
-  if(escopo !== 'geral' && S.ord === 'campanhas'){
-    lista = lista.slice().sort(function(a, b){ return (b[5] - a[5]) || (b[4] - a[4]); });
-  }
   return {lista:lista, fora:fora, escopo:escopo};
 }
 function viewFornRecorte(){
@@ -2230,8 +2076,7 @@ function viewFornRecorte(){
   var d = listaDoRecorte();
   var total = d.lista.length + d.fora[0];
   var vis = d.lista.slice(0, S.limite);
-  var porCamp = (S.ord === 'campanhas');
-  var max = vis.length ? (porCamp ? vis[0][5] : vis[0][4]) : 1;
+  var max = vis.length ? vis[0][4] : 1;
   var lista = filtradas();
   recorteTela = descreverRecorte() + ' · ' + inteiro(total) +
                 (total === 1 ? ' fornecedor' : ' fornecedores');
@@ -2239,32 +2084,27 @@ function viewFornRecorte(){
   var conta = d.fora[0] > 0
     ? 'os ' + inteiro(d.lista.length) + ' maiores · de ' + inteiro(total)
     : inteiro(total) + (total === 1 ? ' fornecedor' : ' fornecedores');
-  if(d.escopo !== 'geral' && porCamp)
-    conta += ' · entre os ' + inteiro(d.lista.length) + ' maiores por valor';
   /* Aqui nunca há coluna do lado: o agregado de fornecedor não carrega tipo de gasto,
      e o resumo do recorte mora na banda do topo. */
   var h = '<div class="wrap solo"><div class="lista"><section class="secao">' +
     '<h2 class="ocultavisual">Quem recebeu · ' + esc(nomeUnidade(uf)) + '</h2>' +
-    '<div class="status"><span>' + esc(conta) + ' · ' + esc(nomeUnidade(uf)) +
-    '</span>' + ordCompacta([['valor', 'Valor', ORDS.valor],
-                             ['campanhas', 'Campanhas', ORDS.campanhas]], S.ord) + '</div>';
+    '<div class="status"><span>' + esc(conta) + ' · ' + esc(nomeUnidade(uf)) + '</span></div>';
   if(!d.lista.length){
     h += '<div class="vazio">Nenhum fornecedor neste recorte.<br>' +
          '<button class="bt" data-act="limpar">Limpar filtros</button></div>';
   } else {
     h += '<ul class="l">' + vis.map(function(f, i){
-      var v = porCamp ? f[5] : f[4];
       return linhaCartao({
         pos:i + 1, nome:f[1] || 'sem nome',
         /* o nome só abre ficha quando existe ficha: nome apontando para página que não
            existe é pior que nome sem link */
         href:f[7] ? hashCom({forn:f[0]}) : '',
-        valor:porCamp ? inteiro(f[5]) : moeda(f[4]),
+        valor:moeda(f[4]),
         valorCheio:moedaCheia(f[4]),
         /* o documento já vem mascarado do pipeline, e é ele que distingue dois
            fornecedores de mesmo nome */
         chips:chipsAttr([f[3] ? 'empresa' : 'pessoa física', f[2]]),
-        medida:barraMagnitude(v, max),
+        medida:barraMagnitude(f[4], max),
         celulas:celulas([[inteiro(f[6]), f[6] === 1 ? 'Lançamento' : 'Lançamentos'],
                          [inteiro(f[5]), f[5] === 1 ? 'Campanha' : 'Campanhas']])
       });
@@ -2272,13 +2112,10 @@ function viewFornRecorte(){
     /* quem não caberia na lista continua contado: sem esta linha, a lista dos maiores
        pareceria o conjunto inteiro */
     if(d.fora[0] > 0 && d.lista.length <= S.limite){
-      /* A coluna da direita é a grandeza da ordem, e o que ficou de fora só tem soma em
-         dinheiro: ordenada por campanhas, a cifra sairia no meio de uma coluna de
-         contagens e não seria nem o resto dela. Ali o valor vai escrito por extenso. */
       h += linhaCartao({classe:'resto',
         nome:'outros ' + inteiro(d.fora[0]) + ' fornecedores',
-        valor:porCamp ? '' : moeda(d.fora[1]),
-        valorCheio:porCamp ? '' : moedaCheia(d.fora[1]),
+        valor:moeda(d.fora[1]),
+        valorCheio:moedaCheia(d.fora[1]),
         pub:esc('somam ' + moeda(d.fora[1]) + ' e ficam fora dos ' +
                 inteiro(d.lista.length) + ' maiores por valor')});
     }
@@ -2395,13 +2232,7 @@ function viewForn(){
       /* a intensidade vem do pipeline, no quarto campo. Ela era lida do
          segundo, que e o sq da candidatura, e todo selo saia no grau 1 */
       f.sinais.map(function(sn){
-        var g = sn[3] || 1;
-        return '<div class="sinal"><div class="top">' +
-          '<span class="selo" data-g="' + g + '">' + esc(nomeDe(sn[0])) + '</span>' +
-          pontos(g) + '<span class="grav">· ' + esc(FAMS[sn[0].charAt(0)] || '') + '</span></div>' +
-          '<div class="tx">' + esc(sn[2]) + '</div>' +
-          '<button class="nao" data-act="aviso" data-cod="' + esc(sn[0]) + '">o que isso não significa ›</button>' +
-          '</div>';
+        return linhaSinal(sn[0], sn[3] || 1, sn[2], FAMS[sn[0].charAt(0)] || '');
       }).join('') + '</div>';
   }
   var cands = f.cands || [];
@@ -2488,37 +2319,12 @@ function blocoPares(f){
     '<div class="rs">A comparação é só entre quem disputa o mesmo cargo no mesmo estado e já declarou gasto. ' +
     'Gastar mais ou menos que o grupo não é irregularidade: é contexto para ler o número, e vale conferir na fonte.</div></div>';
 }
-/* o índice na ficha, ao lado dos outros números, com a faixa escrita por extenso */
 /* O quadro "para conferir" da ficha segue a regra do resumo: não conta os códigos
    que o próprio pipeline tira do índice e da lista nacional, como "nada
    declarado". Contar tudo fazia a ficha dizer um número e a aba Sinais, outro. */
 function sinaisDaFicha(f){
   var fora = foraDoIndice();
   return (f.alarmes || []).filter(function(x){ return !fora[x.cod]; }).length;
-}
-/* O sub-rótulo do quadro de sinais. Com índice, ele escreve o índice, porque foi a
-   ordenação por índice que saiu da lista e "a conferir" precisa de casa visível na
-   ficha. Sem índice, ele diz o que o quadro conta. O zero não vira número aqui pelo
-   mesmo motivo que saiu da lista: "0/100" ao lado de um nome próprio lê como nota
-   dada à pessoa. */
-function subIndice(f){
-  if(typeof f.indice === 'number' && isFinite(f.indice) && f.indice > 0)
-    return 'para conferir · índice ' + f.indice + '/100';
-  return 'para conferir';
-}
-function blocoIndiceFicha(f){
-  if(typeof f.indice !== 'number' || !isFinite(f.indice)) return '';
-  /* zero não vira selo aqui pelo mesmo motivo que saiu da lista: "0/100" ao lado
-     de um nome próprio lê como nota dada à pessoa. Quem responde por esta ficha,
-     nesse caso, é a frase de "nenhum sinal automático nesta candidatura". */
-  if(!f.indice) return '';
-  var fx = faixaDe(f.indice);
-  return '<div class="ixficha" data-f="' + fx.n + '">' +
-    '<div class="ixn">' + f.indice + '<span class="de">/100</span></div>' +
-    '<div class="ixt"><b>Índice de conferência</b> · ' + esc(f.faixa || fx.t) +
-    '<span class="ixs">Ordena o que vale conferir primeiro, a partir dos sinais listados abaixo. ' +
-    'Não mede irregularidade.</span></div>' +
-    '<button class="nao" data-act="oindice">o que o índice não é ›</button></div>';
 }
 function viewCand(){
   var m = document.getElementById('conteudo');
@@ -2563,8 +2369,7 @@ function viewCand(){
       'A prestação de contas é entregue aos poucos, e quem não movimenta dinheiro presta contas ao final, ' +
       'sem nada a declarar. Por isso não há valores para mostrar aqui.</div>';
     h += '<div class="tiles"><div class="tile sin"><div class="r">Sinais</div><div class="v num">' +
-      inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + subIndice(f) + '</div></div></div>';
-    h += blocoIndiceFicha(f);
+      inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + 'para conferir' + '</div></div></div>';
   } else {
     /* A régua do grupo abre a ficha. Ela é a única frase daqui que responde "isso
        é muito ou pouco?", e entrava depois de quatro cifras absolutas, fora da
@@ -2573,13 +2378,12 @@ function viewCand(){
     h += blocoPares(f);
     /* A ordem dos quadros é a mesma da banda que abre a tela: receita, contratado, já
        pago, sinais. Contratado e pago saíram da lista nesta rodada, e é aqui que eles
-       são a conta de alguém, então é aqui que eles precisam de destaque. O quadro de
-       sinais leva o índice no sub-rótulo, para "a conferir" ter casa visível na ficha. */
+       são a conta de alguém, então é aqui que eles precisam de destaque. */
     h += '<div class="tiles">' +
       '<div class="tile"><div class="r">Receita</div><div class="v num" title="' + esc(moedaCheia(f.receita)) + '">' + moeda(f.receita) + '</div><div class="n">' + (f.estimavel ? moeda(f.estimavel) + ' estimável' : 'sem estimável') + '</div></div>' +
       '<div class="tile"><div class="r">Contratado</div><div class="v num" title="' + esc(moedaCheia(f.contratado)) + '">' + moeda(f.contratado) + '</div><div class="n">' + inteiro(f.n_despesas) + (f.n_despesas === 1 ? ' despesa' : ' despesas') + '</div></div>' +
       '<div class="tile"><div class="r">Já pago</div><div class="v num" title="' + esc(moedaCheia(f.pago)) + '">' + moeda(f.pago) + '</div><div class="n">' + pct(f.pago, f.contratado) + '% do contratado</div></div>' +
-      '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + subIndice(f) + '</div></div>' +
+      '<div class="tile sin"><div class="r">Sinais</div><div class="v num">' + inteiro(sinaisDaFicha(f)) + '</div><div class="n">' + 'para conferir' + '</div></div>' +
       '</div>';
     if(f.pago > 0){
       h += '<div class="dest"><div class="g num">' + pubPct + ' % público</div>' +
@@ -2587,7 +2391,6 @@ function viewCand(){
         'Receita pública declarada: ' + moeda(f.receita_publica) + '.</div>' +
         '<div class="fio" aria-hidden="true"><i style="width:' + pubPct + '%"></i></div></div>';
     }
-    h += blocoIndiceFicha(f);
   }
   h += '<div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">' +
     '<button class="bt" data-act="copiar">Copiar o link desta ficha</button></div></div>';
@@ -2601,10 +2404,7 @@ function viewCand(){
   var naFila = f.alarmes.filter(function(a){ return !foraIx[a.cod]; });
   var foraDaFila = f.alarmes.filter(function(a){ return foraIx[a.cod]; });
   var desenharSinal = function(a){
-    return '<div class="sinal"><div class="top"><span class="selo" data-g="' + a.grav + '">' + esc(nomeDe(a.cod)) + '</span>' +
-      pontos(a.grav) + '<span class="grav">· ' + esc(FAMS[a.cod.charAt(0)] || '') + '</span></div>' +
-      '<div class="tx">' + esc(a.texto) + '</div>' +
-      '<button class="nao" data-act="aviso" data-cod="' + esc(a.cod) + '">o que isso não significa ›</button></div>';
+    return linhaSinal(a.cod, a.grav, a.texto, FAMS[a.cod.charAt(0)] || '');
   };
   if(naFila.length){
     /* a ficha é a tela que nomeia terceiro por extenso dentro do texto do sinal, e a mais
@@ -2616,8 +2416,12 @@ function viewCand(){
     h += '<div class="cartao full"><div class="cab"><h2>Fatos que não entram na fila</h2>' +
       '<span class="cont">' + foraDaFila.length + '</span></div>' +
       '<p class="subcab">Estes o painel levanta e não conta como item a conferir, ' +
-      'pelo motivo escrito ao lado de cada um na explicação do índice.</p>' +
-      foraDaFila.map(desenharSinal).join('') + '</div>';
+      'pelo motivo escrito em cada um.</p>' +
+      foraDaFila.map(function(a){
+        var mot = motivoDeFora(a.cod);
+        return linhaSinal(a.cod, a.grav, a.texto, FAMS[a.cod.charAt(0)] || '',
+                          mot ? 'Fora da fila: ' + mot + '.' : '');
+      }).join('') + '</div>';
   }
   if(!f.alarmes.length){
     h += '<div class="cartao full"><div class="nota">Nenhum sinal automático nesta candidatura até agora. ' +
@@ -2901,9 +2705,7 @@ document.addEventListener('click', function(e){
   if(a === 'fecharmenu'){ fecharMenu(); return; }
   if(a === 'aviso'){ e.preventDefault(); abrirAviso(t.getAttribute('data-cod')); return; }
   if(a === 'sinaisdalinha'){ e.preventDefault(); abrirSinaisDaLinha(t.getAttribute('data-cods')); return; }
-  if(a === 'oindice'){ e.preventDefault(); abrirIndice(); return; }
   if(a === 'ajuda'){ abrirAjuda(); return; }
-  if(a === 'ord'){ fecharMenu(true); ir({ord:t.getAttribute('data-v')}); return; }
   if(a === 'retryforn'){ erros.forn = null; carregarFornBloco(); render(); return; }
   if(a === 'retryfrc'){ erros.frc = null; carregarFornRecorte(); render(); return; }
   if(a === 'opt'){
@@ -3102,6 +2904,8 @@ function abrirAjuda(){
     '<p>Um sinal é um padrão calculado por máquina em cima do que a campanha declarou ao TSE. ' +
     'Ele aponta o que <b>vale conferir</b>. Não é acusação, não é irregularidade, não é conclusão sobre ninguém. ' +
     'Cada sinal traz junto o que ele <b>não</b> significa.</p>' +
+    '<p>Ao lado do nome de cada sinal vêm pontos de exclamação, de <b>!</b> a <b>!!!</b>: eles dizem o quanto ' +
+    'aquele padrão pede conferência, e nada além disso.</p>' +
     '<p class="rot">Os ' + cods.length + ' sinais</p>';
   /* agrupados por família, com a descrição inteira: é mais fácil de ler que uma lista
      corrida de dezesseis, e é o que substitui o corte das frases */
@@ -3118,10 +2922,6 @@ function abrirAjuda(){
         esc(nomeDe(cod)) + '</b> · ' + esc(resumoCod(cod)) + '</span><span class="c">ver ›</span></button>';
     });
   });
-  c += '<p class="rot">O índice de conferência</p>' +
-    '<p>Ao lado de cada candidatura aparece um número de 0 a 100 que ordena o que vale conferir primeiro. ' +
-    'Ele soma os sinais levantados, e <b>não é medida de irregularidade</b>.</p>' +
-    '<button class="opt" data-act="oindice"><span>O que o índice é e o que ele não é</span><span class="c">ver ›</span></button>';
   c += '<p class="rot">Fornecedores</p>' +
     '<p>Um fornecedor grande atender milhares de campanhas é <b>normal</b>, principalmente ' +
     'plataforma de anúncio e gráfica. A maior parte dos fornecedores do país é ' +
@@ -3139,10 +2939,6 @@ function abrirAjuda(){
       '<span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd></span></div>' +
     '<div class="tecla"><span>Filtros: unidade, cargo, partido, sinal, tipo</span>' +
       '<span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>s</kbd> <kbd>t</kbd></span></div>' +
-    (S.v === 'fornecedor'
-      ? '<div class="tecla"><span>Organizar por valor ou por campanhas</span>' +
-        '<span><kbd>o</kbd></span></div>'
-      : '') +
     '<div class="tecla"><span>Voltar, fechar</span><span><kbd>Esc</kbd></span></div>' +
     '<div class="tecla"><span>Esta ajuda</span><span><kbd>?</kbd></span></div>';
   c += '<p class="rot">Os dados</p><p>Prestação de contas da eleição de 2026, dados abertos do TSE, ' +
@@ -3228,12 +3024,6 @@ document.addEventListener('keydown', function(e){
   if(filtro){
     if(filtro === 'cargo' && ufDaTela() === 'BR') return;
     if(naoAbre.indexOf(filtro) < 0) abrirFiltro(filtro);
-    return;
-  }
-  /* a ordem virou controle sempre a vista: a tecla leva o foco ate ele */
-  if(k === 'o'){
-    var b = document.querySelector('.ord button');
-    if(b){ e.preventDefault(); b.focus(); b.scrollIntoView({block:'nearest'}); }
     return;
   }
 });
