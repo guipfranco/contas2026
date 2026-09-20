@@ -40,10 +40,16 @@ def enxugar(d):
     saida['data_inicio_atividade'] = _iso(saida['data_inicio_atividade'])
     saida['data_situacao_cadastral'] = _iso(saida['data_situacao_cadastral'])
     socios = []
-    for s in (d.get('QSA') or [])[:8]:
+    for s in d.get('QSA') or []:
         nome = (s.get('nome_socio') or '').strip()
-        if nome:
-            socios.append(nome)
+        if not nome:
+            continue
+        socios.append({
+            'nome': nome,
+            'qualificacao': (s.get('qualificacao_socio') or '').strip(),
+            # o parcial que a Receita devolve, tipo ***903184**; sem reformatar
+            'doc': (s.get('cnpj_cpf_socio') or '').strip(),
+        })
     if socios:
         saida['socios'] = socios
     return saida
@@ -67,11 +73,22 @@ def carregar_cache(caminho):
     return cache
 
 
+def _formato_antigo(dados):
+    """Cache gravado antes da Entrega 1 guardava 'socios' como lista de nomes.
+
+    Quem tem sócio nesse formato nunca ganhou qualificacao nem doc sozinho:
+    precisa voltar para a fila para ser revisitado.
+    """
+    socios = dados.get('socios')
+    return bool(socios) and isinstance(socios[0], str)
+
+
 def fila_prioridade(nac, cache, hoje=''):
     """Quem consultar primeiro: quem recebeu mais dinheiro.
 
-    Um CNPJ ja respondido nunca volta. Um que deu erro volta depois de uma
-    semana, porque espelho fora do ar e coisa passageira.
+    Um CNPJ ja respondido nunca volta, a nao ser que o cache guarde socio no
+    formato antigo (revisita da Entrega 1). Um que deu erro volta depois de
+    uma semana, porque espelho fora do ar e coisa passageira.
     """
     fila = []
     for doc, e in nac.fornecedores.items():
@@ -79,8 +96,9 @@ def fila_prioridade(nac, cache, hoje=''):
             continue
         antes = cache.get(doc)
         if antes is not None and 'erro' not in antes:
-            continue
-        if antes and hoje:
+            if not _formato_antigo(antes):
+                continue
+        elif antes and hoje:
             quando = antes.get('quando', '')
             if quando and _dias_desde(quando, hoje) < DIAS_PARA_TENTAR_DE_NOVO:
                 continue

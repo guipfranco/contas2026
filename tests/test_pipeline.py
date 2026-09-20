@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipeline import agregar as A          # noqa: E402
 from pipeline import carregar as C         # noqa: E402
+from pipeline import enriquecer as EN      # noqa: E402
 from pipeline import escrever as E         # noqa: E402
 from pipeline import historico as H        # noqa: E402
 from pipeline import validar as V          # noqa: E402
@@ -819,15 +820,20 @@ class TestFichaDeFornecedor(unittest.TestCase):
         self.assertEqual(f['n_camp'], 2)
 
     def test_os_socios_entram_quando_a_receita_ja_respondeu(self):
+        socios = [
+            {'nome': 'MARIA DOS SANTOS', 'qualificacao': 'Sócia-Administradora',
+             'doc': '***123456**'},
+            {'nome': 'JOAO PEREIRA', 'qualificacao': 'Sócio', 'doc': '***654321**'},
+        ]
         receita = {'11222333000181': {
             'razao_social': 'GRAFICA BOA LTDA', 'situacao_cadastral': 'Ativa',
             'data_inicio_atividade': '2019-03-01',
             'natureza_juridica': 'Sociedade Empresária Limitada',
             'porte_empresa': 'MICRO EMPRESA',
-            'socios': ['MARIA DOS SANTOS', 'JOAO PEREIRA']}}
+            'socios': socios}}
         self.blocos = self._escrever(receita=receita)['blocos']
         f = self._bloco_de('11222333000181')
-        self.assertEqual(f['cadastro']['socios'], ['MARIA DOS SANTOS', 'JOAO PEREIRA'])
+        self.assertEqual(f['cadastro']['socios'], socios)
         self.assertEqual(f['cadastro']['situacao'], 'Ativa')
 
     def test_pessoa_fisica_tem_ficha_sem_o_cpf_aparecer_em_lugar_nenhum(self):
@@ -930,6 +936,60 @@ class TestFichaDeFornecedor(unittest.TestCase):
         f = self._bloco_de('11222333000181')
         self.assertEqual(f['sinais'][0][0], 'A1')
         self.assertIn('40 dias', f['sinais'][0][2])
+
+
+class TestEnriquecimentoDeCnpj(unittest.TestCase):
+    """Entrega 1: quadro societario inteiro, sem o teto de 8, e a revisita."""
+
+    def test_qsa_com_doze_socios_sai_com_doze(self):
+        qsa = [{'nome_socio': f'SOCIO {i}', 'qualificacao_socio': 'Sócio',
+                'cnpj_cpf_socio': f'***{i:06d}**'} for i in range(12)]
+        d = {'razao_social': 'EMPRESA GRANDE LTDA', 'QSA': qsa}
+        saida = EN.enxugar(d)
+        self.assertEqual(len(saida['socios']), 12)
+        self.assertEqual(saida['socios'][0],
+                          {'nome': 'SOCIO 0', 'qualificacao': 'Sócio', 'doc': '***000000**'})
+
+    def test_socio_sem_nome_nao_entra(self):
+        qsa = [{'nome_socio': '', 'qualificacao_socio': 'Sócio', 'cnpj_cpf_socio': '***1**'},
+               {'nome_socio': 'MARIA', 'qualificacao_socio': 'Sócia', 'cnpj_cpf_socio': '***2**'}]
+        saida = EN.enxugar({'QSA': qsa})
+        self.assertEqual(len(saida['socios']), 1)
+        self.assertEqual(saida['socios'][0]['nome'], 'MARIA')
+
+    def test_sem_socio_nenhum_o_campo_nao_aparece(self):
+        saida = EN.enxugar({'razao_social': 'SEM QSA LTDA', 'QSA': []})
+        self.assertNotIn('socios', saida)
+
+    def _nac_com_um_fornecedor(self, doc, valor=100000):
+        nac = A.Nacional()
+        nac.fornecedores[doc] = [valor, 1, 'FORNECEDOR', 1, '', 1]
+        return nac
+
+    def test_cache_com_socio_em_formato_antigo_volta_para_a_fila(self):
+        doc = '11222333000181'
+        nac = self._nac_com_um_fornecedor(doc)
+        cache = {doc: {'razao_social': 'X', 'socios': ['MARIA DOS SANTOS']}}
+        self.assertEqual(EN.fila_prioridade(nac, cache), [doc])
+
+    def test_cache_com_socio_em_formato_novo_nao_volta(self):
+        doc = '11222333000181'
+        nac = self._nac_com_um_fornecedor(doc)
+        cache = {doc: {'razao_social': 'X',
+                       'socios': [{'nome': 'MARIA DOS SANTOS', 'qualificacao': 'Sócia',
+                                   'doc': '***903184**'}]}}
+        self.assertEqual(EN.fila_prioridade(nac, cache), [])
+
+    def test_cache_sem_socio_algum_nao_volta(self):
+        doc = '11222333000181'
+        nac = self._nac_com_um_fornecedor(doc)
+        cache = {doc: {'razao_social': 'X'}}
+        self.assertEqual(EN.fila_prioridade(nac, cache), [])
+
+    def test_cnpj_nunca_consultado_entra_na_fila(self):
+        doc = '11222333000181'
+        nac = self._nac_com_um_fornecedor(doc)
+        self.assertEqual(EN.fila_prioridade(nac, {}), [doc])
 
 
 class TestRecorteDeFornecedores(unittest.TestCase):

@@ -3263,8 +3263,11 @@ function viewForn(){
       h += '<div class="cab"><h2>Quem consta como sócio</h2>' +
         '<span class="cont">' + inteiro(c.socios.length) +
         (c.socios.length === 1 ? ' sócio' : ' sócios') + '</span></div>' +
-        '<ul class="blist">' + c.socios.map(function(n){
-          return '<li><div class="t"><span>' + esc(n) + '</span></div></li>';
+        '<ul class="blist">' + c.socios.map(function(s){
+          var sub = [s.qualificacao, s.doc].filter(Boolean).map(esc).join(' · ');
+          return '<li><div class="t"><span>' + esc(s.nome) + '</span></div>' +
+            (sub ? '<div class="n" style="color:var(--mut);font-size:12px;' +
+              'padding:0 var(--gut) 8px">' + sub + '</div>' : '') + '</li>';
         }).join('') + '</ul>' +
         '<div class="nota">O quadro de sócios vem do cadastro público de CNPJ da Receita ' +
         'Federal. Ele diz quem consta como sócio hoje, não quem decidiu o que: ' +
