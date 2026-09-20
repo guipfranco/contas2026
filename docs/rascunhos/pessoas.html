@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Rascunho: quem dá e quem recebe</title>
+<style>
+:root{
+  --pap:#F4F6FA; --sf:#FFFFFF; --sf2:#E7EBF2; --ink:#171B26; --mut:#5B6272;
+  --b:#D9DEE8; --b2:#C3CAD8; --ac:#0E6E78; --acsf:#E3F0F2; --acink:#FFFFFF;
+  --faixa:#0B4A52; --faixatx:#EAF4F5; --ac2:#4F46B8; --ac2tx:#FFFFFF; --chip:#EEF0F6;
+  --nota:#FBF7E8; --notab:#E6DCB4; --notatx:#5A4A14;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pap);color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.faixa{background:var(--faixa);color:var(--faixatx);padding:14px 16px}
+.faixa h1{margin:0;font-size:17px;letter-spacing:.2px}
+.faixa p{margin:4px 0 0;font-size:13px;opacity:.85}
+.env{max-width:1060px;margin:0 auto;padding:0 16px 64px}
+.nota{background:var(--nota);border:1px solid var(--notab);color:var(--notatx);
+  border-radius:8px;padding:10px 12px;font-size:13px;margin:14px 0}
+.nota b{color:var(--notatx)}
+.dim{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 10px}
+.dim button{font:inherit;font-size:13px;padding:7px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--b2);background:var(--sf);color:var(--mut)}
+.dim button.on{background:var(--ac2);border-color:var(--ac2);color:var(--ac2tx)}
+.dim button.novo{border-color:var(--ac);color:var(--ac);font-weight:600}
+.dim button.novo.on{background:var(--ac2);border-color:var(--ac2);color:var(--ac2tx)}
+.filtros{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  background:var(--sf);border:1px solid var(--b);border-radius:8px;padding:8px 10px}
+.chip{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--b2);
+  background:var(--sf);color:var(--mut);cursor:pointer}
+.chip.on{background:var(--acsf);border-color:var(--ac);color:var(--ac);font-weight:600}
+.chip.off{opacity:.45;cursor:not-allowed}
+/* O selo de tipo. As quatro cores são frias e distintas entre si, e nenhuma
+   pertence à escala do sinal (amarelo, âmbar, laranja) nem identifica partido:
+   elas dizem que natureza tem aquele nome, e nada sobre o dinheiro. */
+.selo{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;
+  text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap}
+.selo.pf{background:#ECEAFB;border-color:#B9B2EC;color:#3E36A0}
+.selo.empresa{background:#E3F0F2;border-color:#9CC6CB;color:#0E6E78}
+.selo.partido{background:#EDEFF4;border-color:#C3CAD8;color:#4A5264}
+.selo.campanha{background:#E4EDF7;border-color:#AEC6DF;color:#2C5980}
+.selo.g{font-size:12px;padding:4px 10px;border-radius:5px}
+.chip.pf.on{background:#ECEAFB;border-color:#B9B2EC;color:#3E36A0}
+.chip.empresa.on{background:#E3F0F2;border-color:#9CC6CB;color:#0E6E78}
+.chip.partido.on{background:#EDEFF4;border-color:#C3CAD8;color:#4A5264}
+.chip.campanha.on{background:#E4EDF7;border-color:#AEC6DF;color:#2C5980}
+.vinc{border:1px solid var(--b);border-left:3px solid var(--ac);border-radius:8px;
+  padding:12px;background:var(--pap);margin-top:10px}
+.vinc h4{margin:0 0 2px;font-size:14px}
+.vinc .peq{font-size:12.5px;color:var(--mut)}
+.vinc .val{text-align:left;font-size:15px;margin-top:6px}
+.secao{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);
+  margin:18px 0 6px;border-top:1px solid var(--b);padding-top:12px}
+.busca{flex:1;min-width:160px;font:inherit;font-size:13px;padding:6px 9px;
+  border:1px solid var(--b2);border-radius:6px;background:#fff;color:var(--ink)}
+.cab{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px;gap:12px}
+.cab h2{margin:0;font-size:15px}
+.cab span{font-size:12px;color:var(--mut)}
+.lista{background:var(--sf);border:1px solid var(--b);border-radius:8px;overflow:hidden}
+.lin{display:grid;grid-template-columns:34px 1fr 96px 92px 124px;gap:10px;align-items:center;
+  padding:9px 12px;border-top:1px solid var(--b);cursor:pointer}
+.lin:first-child{border-top:0}
+.lin:hover{background:var(--acsf)}
+.pos{font-size:12px;color:var(--ac2);font-weight:700;text-align:right}
+.nm{font-size:16.5px;font-weight:700;letter-spacing:-.1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub{font-size:11.5px;color:var(--mut);font-weight:400;margin-top:3px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.num{font-size:12.5px;color:var(--mut);text-align:right}
+.val{text-align:right;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.trilho{height:4px;background:var(--sf2);border-radius:2px;margin-top:4px}
+.trilho i{display:block;height:4px;background:var(--ac);border-radius:2px}
+.cabl{display:grid;grid-template-columns:34px 1fr 96px 92px 124px;gap:10px;
+  padding:8px 12px;background:var(--sf2);font-size:11px;color:var(--mut);text-transform:uppercase;
+  letter-spacing:.4px}
+.cabl div:nth-child(3),.cabl div:nth-child(4),.cabl div:nth-child(5){text-align:right}
+.ficha{background:var(--sf);border:1px solid var(--b);border-radius:8px;padding:16px}
+.voltar{font:inherit;font-size:13px;background:none;border:0;color:var(--ac);cursor:pointer;padding:0;margin-bottom:12px}
+.fnome{font-size:23px;font-weight:700;margin:0;letter-spacing:-.2px}
+.fdoc{font-size:13px;color:var(--mut);margin:7px 0 0;font-variant-numeric:tabular-nums;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.papeis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:16px 0}
+.papel{border:1px solid var(--b);border-radius:8px;padding:12px;background:var(--pap)}
+.papel h3{margin:0 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut)}
+.papel .big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.papel .peq{font-size:12.5px;color:var(--mut);margin-top:2px}
+.papel.vazio .big{color:var(--mut);font-weight:400;font-size:15px}
+.mini{margin:6px 0 0;padding:0;list-style:none;font-size:12.5px}
+.mini li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--b)}
+.mini li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini li span:last-child{font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap}
+.cad{border-top:1px solid var(--b);margin-top:14px;padding-top:12px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.cad div{font-size:13px}
+.cad .r{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);display:block}
+.socios{margin:4px 0 0;padding:0;list-style:none;font-size:13px}
+.socios li{padding:2px 0}
+.socios .q{color:var(--mut);font-size:12px}
+.ctx{font-size:12.5px;color:var(--mut);border-left:3px solid var(--b2);padding:2px 0 2px 10px;margin:12px 0 0}
+.rod{font-size:12px;color:var(--mut);margin-top:26px;border-top:1px solid var(--b);padding-top:12px}
+@media (max-width:640px){
+  .lin,.cabl{grid-template-columns:26px 1fr 96px}
+  .lin .num,.cabl div:nth-child(3){display:none}
+  .lin .num.mostra,.cabl div:nth-child(4){display:block}
+}
+</style>
+</head>
+<body>
+<div class="faixa">
+  <h1>Rascunho de tela: quem dá e quem recebe</h1>
+  <p>Roraima, dado real publicado em 19/09/2026. Não é o painel: é um desenho para aprovar a forma.</p>
+</div>
+
+<div class="env">
+
+<div class="nota">
+  <b>O que este arquivo é.</b> Um rascunho das duas mudanças propostas na Entrega 2, com dado
+  verdadeiro de Roraima tirado do painel no ar: 376 candidaturas e os 464 doadores que hoje cabem
+  nas fichas de candidato. No painel de verdade a lista viria completa, porque o pipeline conhece
+  todos eles. As caixas amarelas
+  como esta são comentários de desenho e não fazem parte da tela.
+</div>
+
+<div class="dim" id="dim"></div>
+
+<div class="filtros">
+  <span style="font-size:12px;color:var(--mut)">Filtros</span>
+  <button class="chip on">Roraima</button>
+  <button class="chip">Todos os partidos</button>
+  <button class="chip">Todos os cargos</button>
+  <button class="chip off" title="Nesta dimensão o filtro de sinal fica desligado">Sinais</button>
+  <input class="busca" placeholder="Buscar por nome ou documento">
+</div>
+
+<div class="nota">
+  <b>Os mesmos filtros das outras cinco dimensões.</b> Eles sobrevivem à troca de aba, e o que não
+  recorta esta lista fica desligado mostrando o valor guardado, como já acontece hoje.
+</div>
+
+<div id="tela"></div>
+
+<div class="rod">
+  Fonte do dado: painel contas2026, arquivos publicados em 19/09/2026, a partir da prestação de
+  contas do TSE. Valores parciais, como toda prestação em andamento.
+</div>
+
+</div>
+
+<script src="dados.js"></script>
+<script>
+var moeda = function(c){
+  var v = c/100;
+  if(v >= 1000000) return 'R$ ' + (v/1000000).toFixed(2).replace('.',',') + ' mi';
+  if(v >= 1000) return 'R$ ' + (v/1000).toFixed(1).replace('.',',') + ' mil';
+  return 'R$ ' + v.toFixed(2).replace('.',',');
+};
+var inteiro = function(n){ return n.toLocaleString('pt-BR'); };
+var TIPO = {pf:'Pessoa física', empresa:'Empresa', partido:'Partido', campanha:'Outra campanha'};
+var filtro = 'todos', ver = null;
+
+var DIMS = [
+  ['geral','Visão geral',0], ['candidato','Candidato',0], ['partido','Partido',0],
+  ['estado','Estado',0], ['cargo','Cargo',0], ['fornecedor','Fornecedor',0], ['doador','Doador',1]
+];
+var dim = document.getElementById('dim');
+DIMS.forEach(function(d){
+  var b = document.createElement('button');
+  b.textContent = d[1] + (d[2] ? ' (novo)' : '');
+  b.className = (d[0] === 'doador' ? 'novo on' : '');
+  dim.appendChild(b);
+});
+
+function listaDoadores(){
+  var fs = D.doadores.filter(function(e){ return filtro === 'todos' || e.tipo === filtro; });
+  var teto = fs.length ? fs[0].valor : 1;
+  var h = '';
+  h += '<div class="cab"><h2>Quem deu dinheiro a campanhas em Roraima</h2>' +
+       '<span>' + inteiro(D.n_doadores) + ' doadores, ordenados pelo total declarado</span></div>';
+  h += '<div class="filtros" style="margin-bottom:10px">' +
+       ['todos','pf','empresa','partido','campanha'].map(function(t){
+         return '<button class="chip ' + t + ' ' + (filtro === t ? 'on' : '') + '" data-f="' + t + '">' +
+                (t === 'todos' ? 'Todos' : TIPO[t]) + '</button>';
+       }).join('') + '</div>';
+  h += '<div class="lista"><div class="cabl"><div></div><div>Doador</div><div>Doações</div>' +
+       '<div>Candidaturas</div><div>Total</div></div>';
+  fs.slice(0,18).forEach(function(e,i){
+    var ficha = e.doc === D.fichas.pf.doc ? 'pf' :
+                (e.doc === D.fichas.pf2.doc ? 'pf2' :
+                (e.doc === '39.586.155/0001-97' ? '39586155000197' :
+                (e.doc === '47.521.583/0001-60' ? '47521583000160' : '')));
+    h += '<div class="lin" data-ficha="' + ficha + '">' +
+      '<div class="pos">' + (i+1) + '</div>' +
+      '<div><div class="nm">' + e.nome + '</div>' +
+        '<div class="sub"><span class="selo ' + e.tipo + '">' + TIPO[e.tipo] + '</span>' + e.doc +
+        (ficha ? ' · <span style="color:var(--ac)">abre a ficha</span>' : '') + '</div>' +
+        '<div class="trilho"><i style="width:' + (100*e.valor/teto).toFixed(1) + '%"></i></div></div>' +
+      '<div class="num">' + inteiro(e.n) + '</div>' +
+      '<div class="num mostra">' + inteiro(e.n) + '</div>' +
+      '<div class="val">' + moeda(e.valor) + '</div></div>';
+  });
+  h += '</div>';
+  h += '<p class="ctx">Partido também é doador, e é quase o dinheiro todo: entre os 45 maiores ' +
+       'doadores de Roraima, 98,2 % do valor veio de repasse partidário, 1,6 % de pessoas físicas ' +
+       'e 0,1 % de outras campanhas. Separar os tipos no chip é o que permite ver as pessoas sem ' +
+       'que os partidos ocupem a lista inteira.</p>';
+  h += '<div class="nota"><b>A coluna que cria a pessoa.</b> "Candidaturas" é a quantos candidatos ' +
+       'aquele nome deu dinheiro. É o número que transforma uma linha de tabela em alguém com ' +
+       'história, e o pipeline já o calcula hoje: ele é descartado no fim da rodada.</div>';
+  return h;
+}
+
+function fichaHTML(id){
+  var f = D.fichas[id];
+  var h = '<button class="voltar" data-voltar="1">&lt; voltar para a lista</button>';
+  h += '<div class="ficha">';
+  h += '<h2 class="fnome">' + f.nome + '</h2>' +
+       '<p class="fdoc"><span class="selo g ' + (f.pj ? 'empresa' : 'pf') + '">' +
+       (f.pj ? 'Empresa' : 'Pessoa física') + '</span> &nbsp;' + f.doc + '</p>';
+  h += '<div class="papeis">';
+
+  h += '<div class="papel' + (f.recebido ? '' : ' vazio') + '"><h3>Recebeu de campanhas</h3>';
+  if(f.recebido){
+    h += '<div class="big">' + moeda(f.recebido) + '</div>' +
+         '<div class="peq">' + inteiro(f.n_camp) + ' candidaturas, ' + inteiro(f.n_lanc) + ' lançamentos</div>' +
+         '<ul class="mini">' + f.cands.slice(0,4).map(function(c){
+           return '<li><span>' + c[1] + ' (' + c[4] + ')</span><span>' + moeda(c[5]) + '</span></li>';
+         }).join('') + '</ul>';
+    if(f.cands_fora) h += '<div class="peq">e mais ' + inteiro(f.cands_fora) + ' candidaturas</div>';
+  } else {
+    h += '<div class="big">Nada recebido</div><div class="peq">Não aparece como fornecedor</div>';
+  }
+  h += '</div>';
+
+  h += '<div class="papel' + (f.doado ? '' : ' vazio') + '"><h3>Deu a campanhas</h3>';
+  if(f.doado){
+    h += '<div class="big">' + moeda(f.doado) + '</div>' +
+         '<div class="peq">' + inteiro(f.doado_n) + ' candidatura' + (f.doado_n > 1 ? 's' : '') + ' em Roraima</div>' +
+         '<ul class="mini">' + f.doado_para.slice(0,4).map(function(p){
+           return '<li><span>' + p[0] + ' (' + p[1] + ')</span><span>' + moeda(p[3]) + '</span></li>';
+         }).join('') + '</ul>';
+  } else {
+    h += '<div class="big">Nada doado</div><div class="peq">Não aparece como doador</div>';
+  }
+  h += '</div></div>';
+
+  if(!f.pj){
+    var partidos = {}, cargos = {};
+    (f.doado_para || []).forEach(function(p){
+      partidos[p[1]] = (partidos[p[1]] || 0) + p[3];
+      cargos[p[2]] = (cargos[p[2]] || 0) + p[3];
+    });
+    h += '<div class="secao">Onde este nome aparece</div>';
+    h += '<div class="papeis" style="margin-top:0">';
+
+    h += '<div class="papel"><h3>Campanhas</h3><div class="big">' +
+         inteiro((f.doado_para || []).length) + '</div>' +
+         '<ul class="mini">' + (f.doado_para || []).map(function(p){
+           return '<li><span>' + p[0] + '</span><span>' + moeda(p[3]) + '</span></li>';
+         }).join('') + '</ul></div>';
+
+    h += '<div class="papel"><h3>Partidos alcançados</h3><div class="big">' +
+         inteiro(Object.keys(partidos).length) + '</div><ul class="mini">' +
+         Object.keys(partidos).map(function(k){
+           return '<li><span>' + k + '</span><span>' + moeda(partidos[k]) + '</span></li>';
+         }).join('') + '</ul></div>';
+
+    h += '<div class="papel"><h3>Cargos em disputa</h3><div class="big">' +
+         inteiro(Object.keys(cargos).length) + '</div><ul class="mini">' +
+         Object.keys(cargos).map(function(k){
+           return '<li><span>' + k + '</span><span>' + moeda(cargos[k]) + '</span></li>';
+         }).join('') + '</ul></div>';
+    h += '</div>';
+
+    if(f.socio_de && f.socio_de.length){
+      h += '<div class="secao">Empresas em que consta como sócio</div>';
+      f.socio_de.forEach(function(s){
+        h += '<div class="vinc"><h4><span class="selo empresa">Empresa</span> ' + s.nome + '</h4>' +
+          '<div class="peq">' + s.doc + ' · ' + s.qualificacao.toLowerCase() + ' desde ' +
+          s.desde.split('-').reverse().join('/') + ' · ' + s.situacao.toLowerCase() + ' · ' + s.cnae + '</div>' +
+          '<div class="val">Esta empresa recebeu ' + moeda(s.recebido) + ' de ' +
+          inteiro(s.n_camp) + ' candidaturas</div>' +
+          '<ul class="mini">' + s.cands.map(function(c){
+            return '<li><span>' + c[1] + ' (' + c[4] + ')</span><span>' + moeda(c[5]) + '</span></li>';
+          }).join('') + '</ul>' +
+          '<div class="peq" style="margin-top:6px">Abrir a ficha da empresa &gt;</div></div>';
+      });
+      h += '<p class="ctx">O vínculo vem do quadro de sócios que a Receita publica, e é casado ' +
+           'por nome mais os seis dígitos do documento que TSE e Receita mascaram na mesma ' +
+           'posição. Nesta tela o exemplo foi casado só pelo nome, porque o documento parcial ' +
+           'entra com a Entrega 1.</p>';
+      h += '<div class="nota"><b>Esta é a parte a decidir.</b> A página diz que o nome doou e que ' +
+           'ele consta como sócio de uma empresa que recebeu, dois fatos de registro público, um ' +
+           'embaixo do outro. Ela não soma os dois valores num total, não chama isso de padrão e ' +
+           'não gera sinal. Se a leitura ainda assim parecer acusatória, o lugar de resolver isso ' +
+           'é aqui, antes de existir.</div>';
+    }
+  }
+
+  if(f.cadastro){
+    var c = f.cadastro;
+    h += '<div class="cad">' +
+      '<div><span class="r">Situação na Receita</span>' + c.situacao + '</div>' +
+      '<div><span class="r">Aberta em</span>' + c.abertura.split('-').reverse().join('/') + '</div>' +
+      '<div><span class="r">Porte</span>' + c.porte.toLowerCase() + '</div>' +
+      '<div><span class="r">Atividade principal</span>' + (f.cnae || 'não informada') + '</div>' +
+      '</div>';
+    h += '<div style="margin-top:12px"><span class="r" style="font-size:11px;text-transform:uppercase;' +
+         'letter-spacing:.4px;color:var(--mut)">Sócios no cadastro da Receita</span><ul class="socios">' +
+      (c.socios.length ? c.socios.map(function(s){
+        return '<li>' + s + ' <span class="q">qualificação · ***.###.###-**</span></li>';
+      }).join('') : '<li class="q">Nenhum sócio no cadastro</li>') + '</ul></div>';
+    h += '<p class="ctx">O nome do sócio é dado que já coletamos hoje. A qualificação e o ' +
+         'documento parcial no formato acima entram com a Entrega 1, e servem para separar ' +
+         'homônimos: dois nomes iguais deixam de virar a mesma pessoa.</p>';
+  }
+
+  if(id === '39586155000197'){
+    h += '<p class="ctx"><b>Por que este nome aparece dos dois lados.</b> A empresa é uma ' +
+         'plataforma de arrecadação coletiva: ela repassa às campanhas o que o público doou, e por ' +
+         'isso consta como doadora, e cobra uma taxa pelo serviço, e por isso consta como ' +
+         'fornecedora. Estar nas duas colunas é o funcionamento normal desse tipo de negócio.</p>';
+  }
+  if(!f.pj){
+    h += '<p class="ctx">Pessoa física entra na lista sempre, e ganha página própria a partir de ' +
+         'R$ 10 mil somando o que deu e o que recebeu. O documento sai mascarado em todo campo, ' +
+         'inclusive dentro do nome.</p>';
+  }
+
+  h += '</div>';
+  h += '<div class="nota"><b>A página inteira é descrição.</b> Ela diz quanto, para quem e desde ' +
+       'quando, e não diz se isso é bom ou ruim. Nenhuma frase aqui cruza sócio com candidato: ' +
+       'esse é o passo que ficou de fora de propósito.</div>';
+  return h;
+}
+
+function desenha(){
+  var t = document.getElementById('tela');
+  t.innerHTML = ver ? fichaHTML(ver) : listaDoadores();
+}
+document.addEventListener('click', function(ev){
+  var f = ev.target.closest('[data-f]');
+  if(f){ filtro = f.getAttribute('data-f'); desenha(); return; }
+  if(ev.target.closest('[data-voltar]')){ ver = null; desenha(); return; }
+  var l = ev.target.closest('[data-ficha]');
+  if(l && l.getAttribute('data-ficha')){ ver = l.getAttribute('data-ficha'); desenha(); window.scrollTo(0,0); }
+});
+desenha();
+</script>
+</body>
+</html>
