@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Wireframe 3 · Fluxo longo · Contas de campanha 2026</title>
+<style>
+:root{
+  --pap:#F4F6FA; --sf:#FFFFFF; --sf2:#E7EBF2; --ink:#171B26; --mut:#5B6272; --b:#D9DEE8; --b2:#C3CAD8;
+  --ac:#0E6E78; --acsf:#E3F0F2; --faixa:#0B4A52; --faixatx:#EAF4F5; --ac2:#4F46B8; --ac2tx:#FFFFFF;
+  --cs:#FFFFFF; --cr:10px; --raio:6px; --gut:16px;
+  --nota:#FBF7E8; --notab:#E6DCB4; --notatx:#5A4A14;
+  --t-partido:#8A93A6; --t-pf:#7A71D6; --t-proprio:#5E8FC0; --t-campanha:#3F7FA8; --t-outra:#4BA3AB; --t-sem:#C3CAD8;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --pap:#101319; --sf:#171B24; --sf2:#232A38; --ink:#E8EBF2; --mut:#9AA3B5; --b:#2A3040; --b2:#3A4256;
+  --ac:#5CC4CC; --acsf:#123036; --faixa:#0B3A40; --faixatx:#D7E8EA; --ac2:#9B94F0; --ac2tx:#0B1014;
+  --cs:#171B24; --nota:#2A2614; --notab:#5A4E22; --notatx:#EADFB4;
+}}
+*{box-sizing:border-box}
+html{overflow-x:hidden}
+body{margin:0;background:var(--pap);color:var(--ink);font:15px/1.45 var(--sans)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 var(--gut)}
+.aviso{background:#fdf3d0;color:#6d4708;border-bottom:1px solid #a67c12;padding:6px var(--gut);font-size:13px;text-align:center}
+.masthead{background:var(--faixa);color:var(--faixatx);padding:16px 0 18px}
+.masthead h1{margin:0 0 2px;font-size:22px;font-weight:800}
+.masthead p{margin:0;font-size:13px;opacity:.9}
+h2{font-size:17px;margin:26px 0 8px}
+.nota{background:var(--nota);border:1px solid var(--notab);color:var(--notatx);border-radius:8px;padding:10px 14px;font-size:14px;margin:12px 0}
+.nota ol{margin:6px 0 0;padding-left:20px}
+.nota li{margin:6px 0}
+.ordem{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;margin:8px 0 4px}
+.ordem div{background:var(--sf2);border:1px dashed var(--b2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--mut);min-height:52px}
+.ordem div b{color:var(--ink);display:block;font-size:13.5px}
+.ordem .novo{background:var(--acsf);border:2px solid var(--ac);color:var(--ink)}
+.ordem .sobe{border-style:solid;border-color:var(--ac2)}
+.o-a{grid-column:span 4}.o-full{grid-column:span 12}
+.controles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}
+.controles span{font-size:12px;color:var(--mut);margin:0 4px 0 10px;text-transform:uppercase;letter-spacing:.04em}
+.controles span:first-child{margin-left:0}
+.chip{border:1px solid var(--b2);background:var(--sf);border-radius:999px;padding:5px 11px;font:13px var(--sans);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--acsf);border-color:var(--ac);color:var(--ac);font-weight:600}
+.cartao{background:var(--cs);border:1px solid var(--b);border-radius:var(--cr);overflow:hidden}
+.cartao h3{margin:0;padding:12px var(--gut) 2px;font-size:15px}
+.cartao .sub{padding:0 var(--gut) 10px;font-size:13px;color:var(--mut)}
+.palco{padding:4px 8px 0;margin:0 auto}
+.palco.celular{max-width:390px;border-left:1px dashed var(--b2);border-right:1px dashed var(--b2)}
+.fluxo{display:block;width:100%;height:auto;overflow:visible}
+.fluxo .rot{font:13px var(--sans);fill:var(--ink)}
+.fluxo .rot.fraco{fill:var(--mut)}
+.fluxo .halo{paint-order:stroke;stroke:var(--cs);stroke-width:4px;stroke-linejoin:round}
+.fluxo .val{font:11.5px var(--sans);fill:var(--mut)}
+.fluxo .cab{font:600 12px var(--sans);fill:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.fluxo .meia{font:12px var(--sans);fill:var(--ac2)}
+.fluxo .corte{stroke:var(--ac2);stroke-width:1.5;stroke-dasharray:4 4}
+.fluxo rect.no{fill:var(--ac);rx:2}
+.fluxo rect.no.outros{fill:var(--b2)}
+.fluxo rect.no.gasto{fill:var(--ac2)}
+.fluxo path{fill:var(--ac);opacity:.18;transition:opacity .15s}
+.fluxo path.gasto{fill:var(--ac2)}
+.fluxo path.outros{fill:var(--mut)}
+.fluxo.hl path{opacity:.06}
+.fluxo.hl path.on{opacity:.55}
+.fluxo .fno{cursor:default}
+.fluxo .fno:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.notafx{margin:6px var(--gut) 0;font-size:13px;color:var(--mut);line-height:1.5}
+.notafx b{color:var(--ink)}
+.tabfx{border-top:1px solid var(--b);margin-top:10px}
+.tabfx summary{padding:12px var(--gut);cursor:pointer}
+.tabfx h4{margin:12px var(--gut) 4px;font-size:13px}
+.tabfx table{width:100%;border-collapse:collapse;font-size:13px}
+.tabfx th,.tabfx td{text-align:left;padding:5px var(--gut);border-top:1px solid var(--b)}
+.tabfx thead th{color:var(--mut);font-weight:600}
+.tabfx th:last-child,.tabfx td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<div class="aviso">Rascunho para decidir. Dado real de Roraima, da fixture congelada em <code>tests/fixtures/</code>. Não é a tela publicada.</div>
+<header class="masthead"><div class="wrap">
+  <h1>Visão geral, com o fluxo longo</h1>
+  <p>Entrega 3 do plano de 20/09: a ordem nova da tela e o desenho de doadores, partidos, candidaturas e fornecedores</p>
+</div></header>
+<div class="wrap">
+
+<div class="nota"><b>O que este rascunho pede que você decida</b>
+<ol>
+  <li><b>A quebra no meio.</b> A metade da esquerda é receita declarada, a da direita é gasto contratado, e os dois totais não fecham. O desenho declara isso com o corte tracejado e os dois totais em cima. É a recomendação do plano.</li>
+  <li><b>A coluna de doadores.</b> Em Roraima, 98 % da receita vem de direção de partido, e os dez maiores doadores são todos diretórios, que desaguam no próprio partido. Compare "um nó por doador" com "agrupados por tipo" nos botões abaixo do título.</li>
+  <li><b>O desenho não segue o dinheiro de ponta a ponta</b>, e a legenda diz isso. Dentro da conta da campanha o dinheiro se mistura: o dado não diz que a doação de A pagou o fornecedor B. Com quatro colunas, o olho tende a ler essa ligação mesmo assim, e é a parte do desenho mais perto de parecer acusação.</li>
+  <li><b>No celular</b>, abaixo de 1000 px, o fluxo longo cai para o desenho de duas colunas, do partido para os fornecedores, e a tabela continua tendo as quatro colunas. Veja no botão "celular".</li>
+</ol></div>
+
+<h2>A ordem nova</h2>
+<div class="ordem">
+  <div class="o-a"><b>Cargos e estados</b>como hoje</div>
+  <div class="o-a"><b>Partidos</b>como hoje</div>
+  <div class="o-a"><b>Maiores candidaturas</b>como hoje</div>
+  <div class="o-full sobe"><b>Do partido para as maiores candidaturas</b>sobe para cá, logo depois dos cartões de cima</div>
+  <div class="o-full novo"><b>Fluxo longo: doadores, partidos, candidaturas, fornecedores</b>novo, substitui "do partido para os maiores fornecedores"; desenhado abaixo com dado real</div>
+  <div class="o-a"><b>De onde saiu o dinheiro pago</b>desce</div>
+  <div class="o-a"><b>Tipos de despesa</b>desce</div>
+  <div class="o-a"><b>Maiores fornecedores</b>desce</div>
+</div>
+
+<h2>O fluxo longo</h2>
+<div class="controles" id="ctl"></div>
+<section class="cartao">
+  <h3>De quem doou a quem recebeu</h3>
+  <div class="sub" id="sub"></div>
+  <div class="palco" id="palco"></div>
+</section>
+<p style="font-size:12.5px;color:var(--mut);margin:14px 0 40px">Passe o mouse ou chegue pelo teclado a um nó para acender as faixas dele. As candidaturas são as mesmas dez do fluxo de cima, as de maior gasto contratado. Gerado a partir da fixture de Roraima.</p>
+</div>
+
+<script>
+var R = {"geral": {"nome": "Roraima, todas as candidaturas", "nos": {"44551496000167": {"col": 0, "nome": "UNIAO BRASIL", "tipo": "partido"}, "08517423000195": {"col": 0, "nome": "PARTIDO LIBERAL (PL)", "tipo": "partido"}, "07665132000181": {"col": 0, "nome": "REPUBLICANOS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00676213000138": {"col": 0, "nome": "MOVIMENTO DEMOCRATICO BRASILEIRO - BRASIL - BR - NACIONAL", "tipo": "partido"}, "01248362000169": {"col": 0, "nome": "PODEMOS", "tipo": "partido"}, "00676262000170": {"col": 0, "nome": "PARTIDO DOS TRABALHADORES - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00719575000169": {"col": 0, "nome": "PARTIDO DEMOCRATICO TRABALHISTA", "tipo": "partido"}, "08026413000157": {"col": 0, "nome": "REPUBLICANOS - RORAIMA - RR - ESTADUAL", "tipo": "partido"}, "00887169000105": {"col": 0, "nome": "PROGRESSISTAS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "13629827000100": {"col": 0, "nome": "PARTIDO SOCIAL DEMOCRATICO - PSD DIRETORIO NACIONAL", "tipo": "partido"}, "~d": {"col": 0, "nome": "outros doadores", "n": 130}, "~s": {"col": 0, "nome": "receita sem doador identificado"}, "~t:partido": {"col": 0, "nome": "direções de partido", "tipo": "partido"}, "~t:pf": {"col": 0, "nome": "pessoas físicas", "tipo": "pf"}, "~t:proprio": {"col": 0, "nome": "recursos próprios", "tipo": "proprio"}, "~t:campanha": {"col": 0, "nome": "outras campanhas", "tipo": "campanha"}, "~t:outra": {"col": 0, "nome": "financiamento coletivo e internet", "tipo": "outra"}, "~t:sem": {"col": 0, "nome": "receita sem doador identificado", "tipo": "sem"}, "UNIÃO": {"col": 1, "nome": "UNIÃO"}, "REPUBLICANOS": {"col": 1, "nome": "REPUBLICANOS"}, "PL": {"col": 1, "nome": "PL"}, "MDB": {"col": 1, "nome": "MDB"}, "PODE": {"col": 1, "nome": "PODE"}, "PT": {"col": 1, "nome": "PT"}, "PDT": {"col": 1, "nome": "PDT"}, "PP": {"col": 1, "nome": "PP"}, "~p": {"col": 1, "nome": "outros partidos", "n": 10}, "230002534804": {"col": 2, "nome": "NICOLETTI", "partido": "PL", "cargo": "Senador", "receita": 311550000, "contratado": 282549430}, "230002549628": {"col": 2, "nome": "ZÉ HAROLDO CATHEDRAL", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 232984000, "contratado": 272539221}, "230002549223": {"col": 2, "nome": "ARTHUR HENRIQUE", "partido": "PL", "cargo": "Governador", "receita": 250000000, "contratado": 246207559}, "230002549845": {"col": 2, "nome": "HELENA DA ASATUR", "partido": "PSD", "cargo": "Senador", "receita": 300000000, "contratado": 238684132}, "230002534801": {"col": 2, "nome": "GERLANE BACCARIN", "partido": "PL", "cargo": "Deputado Federal", "receita": 250000000, "contratado": 200204203}, "230002549632": {"col": 2, "nome": "PASTOR DINIZ", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 231984000, "contratado": 185114610}, "230002549298": {"col": 2, "nome": "ALBUQUERQUE", "partido": "REPUBLICANOS", "cargo": "Deputado Federal", "receita": 156464706, "contratado": 177223120}, "230002549630": {"col": 2, "nome": "DEFENSOR STÉLIO DENER", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 232627600, "contratado": 161639363}, "230002549629": {"col": 2, "nome": "EDILSON DAMIÃO", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 231984000, "contratado": 154766940}, "230002549304": {"col": 2, "nome": "ROBERTA ACIOLY", "partido": "REPUBLICANOS", "cargo": "Deputado Federal", "receita": 197014897, "contratado": 151586007}, "~c": {"col": 2, "nome": "outras candidaturas", "n": 366}, "84017888000165": {"col": 3, "nome": "FORBRAS RORAIMA LTDA", "pj": 1}, "06514316204": {"col": 3, "nome": "JOAO WALDECY MUNIZ DE SOUZA", "pj": 0}, "09649862000114": {"col": 3, "nome": "IRMAOS SOUTELLO MENDONCA CONSULTORIA, COMUNICACAO E DESENVOLVIMENTO DE PROJETOS LTDA", "pj": 1}, "49700039000100": {"col": 3, "nome": "ISIS R. DE V. MARTINS", "pj": 1}, "14898066000155": {"col": 3, "nome": "E. DE MAGALHAES SILVA LTDA", "pj": 1}, "36899824000192": {"col": 3, "nome": "36.899.824 ANDERSON DE JESUS VIEIRA", "pj": 1}, "56961939000177": {"col": 3, "nome": "BARREIRO E FARIAS COMERCIO E SERVICOS LTDA", "pj": 1}, "46786069000193": {"col": 3, "nome": "GRAFICAZE LTDA", "pj": 1}, "84041011000100": {"col": 3, "nome": "INDUSTRIA E COMERCIO IORIS LTDA", "pj": 1}, "40804632000122": {"col": 3, "nome": "ARENHART QUEIROZ LTDA", "pj": 1}, "~f": {"col": 3, "nome": "outros fornecedores", "n": 9571}, "~g": {"col": 3, "nome": "gasto sem fornecedor identificado"}}, "ordem": [["44551496000167", "08517423000195", "07665132000181", "00676213000138", "01248362000169", "00676262000170", "00719575000169", "08026413000157", "00887169000105", "13629827000100", "~d", "~s"], ["UNIÃO", "REPUBLICANOS", "PL", "MDB", "PODE", "PT", "PDT", "PP", "~p"], ["230002534804", "230002549628", "230002549223", "230002549845", "230002534801", "230002549632", "230002549298", "230002549630", "230002549629", "230002549304", "~c"], ["84017888000165", "06514316204", "09649862000114", "49700039000100", "14898066000155", "36899824000192", "56961939000177", "46786069000193", "84041011000100", "40804632000122", "~f", "~g"]], "lig": [[["44551496000167", "UNIÃO", 2104791664], ["08517423000195", "PL", 1460000000], ["07665132000181", "REPUBLICANOS", 1297968170], ["00676213000138", "MDB", 862000000], ["01248362000169", "PODE", 842499700], ["00676262000170", "PT", 644146798], ["~d", "~p", 575523639], ["00719575000169", "PDT", 504000000], ["08026413000157", "REPUBLICANOS", 424251464], ["00887169000105", "PP", 379037760], ["13629827000100", "~p", 300000000], ["00719575000169", "MDB", 75000000], ["~d", "PODE", 59466000], ["~d", "REPUBLICANOS", 42800000], ["~d", "PDT", 35100000], ["~d", "UNIÃO", 28938592], ["~d", "PL", 11429644], ["~d", "PT", 3360000], ["~d", "MDB", 1910000]], [["REPUBLICANOS", "~c", 1411540031], ["UNIÃO", "~c", 1204150656], ["MDB", "~c", 938910000], ["PODE", "~c", 901965700], ["PL", "~c", 659879644], ["PT", "~c", 647506798], ["~p", "~c", 575523639], ["PDT", "~c", 539100000], ["PP", "~c", 379037760], ["PL", "230002534804", 311550000], ["~p", "230002549845", 300000000], ["PL", "230002534801", 250000000], ["PL", "230002549223", 250000000], ["UNIÃO", "230002549628", 232984000], ["UNIÃO", "230002549630", 232627600], ["UNIÃO", "230002549629", 231984000], ["UNIÃO", "230002549632", 231984000], ["REPUBLICANOS", "230002549304", 197014897], ["REPUBLICANOS", "230002549298", 156464706]], [["~c", "~f", 4200234744], ["230002534804", "~f", 231788400], ["230002549628", "~f", 227989421], ["230002549845", "~f", 208682832], ["230002534801", "~f", 182880853], ["230002549632", "~f", 170110000], ["230002549630", "~f", 161635563], ["230002549629", "~f", 154759790], ["230002549304", "~f", 151580007], ["~c", "84017888000165", 143998000], ["230002549298", "~f", 136533620], ["230002549223", "~f", 121044589], ["~c", "49700039000100", 100000000], ["230002549223", "09649862000114", 100000000], ["~c", "36899824000192", 78000000], ["~c", "56961939000177", 77877800], ["~c", "06514316204", 71650000], ["~c", "46786069000193", 61277500], ["~c", "14898066000155", 52671426], ["230002549628", "40804632000122", 44544200], ["230002549298", "14898066000155", 40689500], ["~c", "84041011000100", 40243000], ["230002534804", "84017888000165", 35720000], ["230002549845", "84041011000100", 30000000], ["230002534804", "06514316204", 15000000], ["230002549632", "06514316204", 15000000], ["230002549223", "06514316204", 15000000], ["~c", "40804632000122", 12004020], ["230002549223", "84017888000165", 10100000], ["230002534801", "46786069000193", 9280000], ["230002534801", "40804632000122", 8033000], ["~c", "~g", 621530], ["230002549223", "~g", 62970], ["230002534804", "~g", 41030], ["230002534801", "~g", 10350], ["230002549629", "~g", 7150], ["230002549304", "~g", 6000], ["230002549628", "~g", 5600], ["230002549632", "~g", 4610], ["230002549630", "~g", 3800], ["230002549845", "~g", 1300]]], "ordem_tipo": ["~t:partido", "~t:pf", "~t:proprio", "~t:campanha", "~t:outra", "~t:sem"], "lig_tipo": [["~t:partido", "UNIÃO", 2104791664], ["~t:partido", "REPUBLICANOS", 1722219634], ["~t:partido", "PL", 1460000000], ["~t:partido", "MDB", 937000000], ["~t:partido", "PODE", 842499700], ["~t:partido", "~p", 824579029], ["~t:partido", "PT", 644146798], ["~t:partido", "PDT", 539000000], ["~t:partido", "PP", 379037760], ["~t:pf", "~p", 42306510], ["~t:proprio", "REPUBLICANOS", 35000000], ["~t:proprio", "PODE", 32641000], ["~t:pf", "UNIÃO", 20688592], ["~t:pf", "PODE", 13825000], ["~t:campanha", "PODE", 13000000], ["~t:proprio", "UNIÃO", 8100000], ["~t:proprio", "~p", 7038000], ["~t:pf", "REPUBLICANOS", 6800000], ["~t:proprio", "PL", 6750000], ["~t:pf", "PT", 3300000], ["~t:outra", "PL", 2875422], ["~t:pf", "MDB", 1860000], ["~t:pf", "PL", 1804222], ["~t:campanha", "~p", 1600000], ["~t:campanha", "REPUBLICANOS", 1000000], ["~t:outra", "UNIÃO", 150000], ["~t:proprio", "PDT", 100000], ["~t:proprio", "PT", 60000], ["~t:proprio", "MDB", 50000], ["~t:outra", "~p", 100]], "lig_pf": [["UNIÃO", "~f", 1381980704], ["REPUBLICANOS", "~f", 1251453184], ["PL", "~f", 921159075], ["~p", "~f", 633128007], ["MDB", "~f", 571633747], ["PODE", "~f", 504101950], ["PDT", "~f", 279928422], ["PT", "~f", 233430015], ["PP", "~f", 170424715], ["UNIÃO", "49700039000100", 100000000], ["PL", "09649862000114", 100000000], ["UNIÃO", "36899824000192", 78000000], ["PL", "84017888000165", 60071000], ["REPUBLICANOS", "84017888000165", 59464000], ["PL", "06514316204", 53800000], ["UNIÃO", "40804632000122", 53547260], ["REPUBLICANOS", "14898066000155", 53413400], ["UNIÃO", "06514316204", 44900000], ["~p", "84017888000165", 32539000], ["MDB", "46786069000193", 31988000], ["REPUBLICANOS", "56961939000177", 31947500], ["~p", "84041011000100", 31373000], ["REPUBLICANOS", "84041011000100", 28700000], ["PDT", "14898066000155", 28176900], ["PT", "56961939000177", 15772800], ["PODE", "84017888000165", 15760000], ["PP", "46786069000193", 14867000], ["PODE", "56961939000177", 14048000], ["PL", "46786069000193", 11280000], ["PL", "40804632000122", 10808960], ["MDB", "84017888000165", 10568500], ["PODE", "06514316204", 9800000], ["UNIÃO", "84017888000165", 9645000], ["UNIÃO", "56961939000177", 8302500], ["PODE", "14898066000155", 7170226], ["PODE", "46786069000193", 7102500], ["UNIÃO", "84041011000100", 7100000], ["~p", "06514316204", 5250000], ["PL", "56961939000177", 4278000], ["REPUBLICANOS", "46786069000193", 4170000], ["MDB", "56961939000177", 3529000], ["PL", "14898066000155", 2595000], ["MDB", "14898066000155", 2005400], ["PDT", "06514316204", 1700000], ["PODE", "84041011000100", 1570000], ["MDB", "84041011000100", 1500000], ["PT", "84017888000165", 1303500], ["REPUBLICANOS", "06514316204", 1200000], ["UNIÃO", "46786069000193", 1150000], ["PP", "84017888000165", 467000], ["UNIÃO", "~g", 303900], ["~p", "40804632000122", 225000], ["PL", "~g", 145120], ["~p", "~g", 99110], ["MDB", "~g", 91130], ["PODE", "~g", 58550], ["PT", "~g", 28590], ["REPUBLICANOS", "~g", 19450], ["PDT", "~g", 15690], ["PP", "~g", 2800]], "receita": 9652223431, "contratado": 6909092605, "n_cand": 376}, "c:3": {"nome": "Roraima, Governador", "nos": {"08517423000195": {"col": 0, "nome": "PARTIDO LIBERAL (PL)", "tipo": "partido"}, "07665132000181": {"col": 0, "nome": "REPUBLICANOS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "68371764200": {"col": 0, "nome": "FRANCISCO DOS SANTOS SAMPAIO", "tipo": "proprio"}, "06954942000195": {"col": 0, "nome": "PARTIDO SOCIALISMO E LIBERDADE (P-SOL)", "tipo": "partido"}, "08026413000157": {"col": 0, "nome": "REPUBLICANOS - RORAIMA - RR - ESTADUAL", "tipo": "partido"}, "52274233268": {"col": 0, "nome": "JOHNATAH DA LUZ VELOSO", "tipo": "pf"}, "73779245272": {"col": 0, "nome": "ROBSON OLIVEIRA DOS SANTOS", "tipo": "pf"}, "76577147272": {"col": 0, "nome": "ALESSANDRO SOARES SIMOES", "tipo": "pf"}, "~d": {"col": 0, "nome": "outros doadores", "n": 0}, "~s": {"col": 0, "nome": "receita sem doador identificado"}, "~t:partido": {"col": 0, "nome": "direções de partido", "tipo": "partido"}, "~t:pf": {"col": 0, "nome": "pessoas físicas", "tipo": "pf"}, "~t:proprio": {"col": 0, "nome": "recursos próprios", "tipo": "proprio"}, "~t:campanha": {"col": 0, "nome": "outras campanhas", "tipo": "campanha"}, "~t:outra": {"col": 0, "nome": "financiamento coletivo e internet", "tipo": "outra"}, "~t:sem": {"col": 0, "nome": "receita sem doador identificado", "tipo": "sem"}, "PL": {"col": 1, "nome": "PL"}, "REPUBLICANOS": {"col": 1, "nome": "REPUBLICANOS"}, "PSOL": {"col": 1, "nome": "PSOL"}, "~p": {"col": 1, "nome": "outros partidos", "n": 0}, "230002549223": {"col": 2, "nome": "ARTHUR HENRIQUE", "partido": "PL", "cargo": "Governador", "receita": 250000000, "contratado": 246207559}, "230002551571": {"col": 2, "nome": "SOLDADO SAMPAIO", "partido": "REPUBLICANOS", "cargo": "Governador", "receita": 128621972, "contratado": 120703824}, "230002552060": {"col": 2, "nome": "ROSI AIRES", "partido": "PSOL", "cargo": "Governador", "receita": 18000000, "contratado": 13264390}, "~c": {"col": 2, "nome": "outras candidaturas", "n": 2}, "09649862000114": {"col": 3, "nome": "IRMAOS SOUTELLO MENDONCA CONSULTORIA, COMUNICACAO E DESENVOLVIMENTO DE PROJETOS LTDA", "pj": 1}, "84017888000165": {"col": 3, "nome": "FORBRAS RORAIMA LTDA", "pj": 1}, "07972019000149": {"col": 3, "nome": "TORE PRODUCOES DE FILMES E VIDEOS LTDA", "pj": 1}, "04162481000192": {"col": 3, "nome": "ANDRE VIEIRA SILVA LTDA", "pj": 1}, "06514316204": {"col": 3, "nome": "JOAO WALDECY MUNIZ DE SOUZA", "pj": 0}, "68338133000106": {"col": 3, "nome": "HANNA GONCALVES SOCIEDADE INDIVIDUAL DE ADVOCACIA", "pj": 1}, "07610743000122": {"col": 3, "nome": "PERSONAL CONFECCOES RR LTDA", "pj": 1}, "07590103000106": {"col": 3, "nome": "CESAR V. M. SANTANA LTDA", "pj": 1}, "29791180000159": {"col": 3, "nome": "MARCOS VELOSO SOCIEDADE INDIVIDUAL DE ADVOCACIA", "pj": 1}, "53380445000100": {"col": 3, "nome": "GNA COMUNICACAO INTEGRADA LTDA", "pj": 1}, "~f": {"col": 3, "nome": "outros fornecedores", "n": 301}, "~g": {"col": 3, "nome": "gasto sem fornecedor identificado"}}, "ordem": [["08517423000195", "07665132000181", "68371764200", "06954942000195", "08026413000157", "52274233268", "73779245272", "76577147272", "~d", "~s"], ["PL", "REPUBLICANOS", "PSOL", "~p"], ["230002549223", "230002551571", "230002552060", "~c"], ["09649862000114", "84017888000165", "07972019000149", "04162481000192", "06514316204", "68338133000106", "07610743000122", "07590103000106", "29791180000159", "53380445000100", "~f", "~g"]], "lig": [[["08517423000195", "PL", 250000000], ["07665132000181", "REPUBLICANOS", 87121972], ["68371764200", "REPUBLICANOS", 35000000], ["06954942000195", "PSOL", 18000000], ["08026413000157", "REPUBLICANOS", 5000000], ["76577147272", "REPUBLICANOS", 500000], ["52274233268", "REPUBLICANOS", 500000], ["73779245272", "REPUBLICANOS", 500000]], [["PL", "230002549223", 250000000], ["REPUBLICANOS", "230002551571", 128621972], ["PSOL", "230002552060", 18000000]], [["230002549223", "09649862000114", 100000000], ["230002549223", "~f", 85080027], ["230002551571", "84017888000165", 35709000], ["230002551571", "07972019000149", 25000000], ["230002551571", "~f", 22654824], ["230002551571", "04162481000192", 17340000], ["230002549223", "68338133000106", 15000000], ["230002549223", "06514316204", 15000000], ["230002552060", "~f", 13263340], ["230002549223", "07610743000122", 10964560], ["230002549223", "84017888000165", 10100000], ["230002549223", "07590103000106", 10000002], ["230002551571", "53380445000100", 10000000], ["230002551571", "29791180000159", 10000000], ["230002549223", "~g", 62970], ["230002552060", "~g", 1050]]], "ordem_tipo": ["~t:partido", "~t:pf", "~t:proprio", "~t:sem"], "lig_tipo": [["~t:partido", "PL", 250000000], ["~t:partido", "REPUBLICANOS", 92121972], ["~t:proprio", "REPUBLICANOS", 35000000], ["~t:partido", "PSOL", 18000000], ["~t:pf", "REPUBLICANOS", 1500000]], "lig_pf": [["PL", "09649862000114", 100000000], ["PL", "~f", 85080027], ["REPUBLICANOS", "84017888000165", 35709000], ["REPUBLICANOS", "07972019000149", 25000000], ["REPUBLICANOS", "~f", 22654824], ["REPUBLICANOS", "04162481000192", 17340000], ["PL", "68338133000106", 15000000], ["PL", "06514316204", 15000000], ["PSOL", "~f", 13263340], ["PL", "07610743000122", 10964560], ["PL", "84017888000165", 10100000], ["PL", "07590103000106", 10000002], ["REPUBLICANOS", "53380445000100", 10000000], ["REPUBLICANOS", "29791180000159", 10000000], ["PL", "~g", 62970], ["PSOL", "~g", 1050]], "receita": 396621972, "contratado": 380175773, "n_cand": 5}, "c:5": {"nome": "Roraima, Senador", "nos": {"08517423000195": {"col": 0, "nome": "PARTIDO LIBERAL (PL)", "tipo": "partido"}, "13629827000100": {"col": 0, "nome": "PARTIDO SOCIAL DEMOCRATICO - PSD DIRETORIO NACIONAL", "tipo": "partido"}, "00676213000138": {"col": 0, "nome": "MOVIMENTO DEMOCRATICO BRASILEIRO - BRASIL - BR - NACIONAL", "tipo": "partido"}, "01421697000137": {"col": 0, "nome": "PARTIDO SOCIALISTA BRASILEIRO", "tipo": "partido"}, "44551496000167": {"col": 0, "nome": "UNIAO BRASIL", "tipo": "partido"}, "00719575000169": {"col": 0, "nome": "PARTIDO DEMOCRATICO TRABALHISTA", "tipo": "partido"}, "13405866000124": {"col": 0, "nome": "PARTIDO NOVO", "tipo": "partido"}, "06954942000195": {"col": 0, "nome": "PARTIDO SOCIALISMO E LIBERDADE (P-SOL)", "tipo": "partido"}, "56384300249": {"col": 0, "nome": "GILDEVALDO DA LUZ ROCHA", "tipo": "pf"}, "99445700015": {"col": 0, "nome": "ANTONIO CARLOS NICOLETTI", "tipo": "proprio"}, "~d": {"col": 0, "nome": "outros doadores", "n": 6}, "~s": {"col": 0, "nome": "receita sem doador identificado"}, "~t:partido": {"col": 0, "nome": "direções de partido", "tipo": "partido"}, "~t:pf": {"col": 0, "nome": "pessoas físicas", "tipo": "pf"}, "~t:proprio": {"col": 0, "nome": "recursos próprios", "tipo": "proprio"}, "~t:campanha": {"col": 0, "nome": "outras campanhas", "tipo": "campanha"}, "~t:outra": {"col": 0, "nome": "financiamento coletivo e internet", "tipo": "outra"}, "~t:sem": {"col": 0, "nome": "receita sem doador identificado", "tipo": "sem"}, "PL": {"col": 1, "nome": "PL"}, "PSD": {"col": 1, "nome": "PSD"}, "MDB": {"col": 1, "nome": "MDB"}, "PSB": {"col": 1, "nome": "PSB"}, "UNIÃO": {"col": 1, "nome": "UNIÃO"}, "NOVO": {"col": 1, "nome": "NOVO"}, "PSOL": {"col": 1, "nome": "PSOL"}, "PSDB": {"col": 1, "nome": "PSDB"}, "~p": {"col": 1, "nome": "outros partidos", "n": 1}, "230002534804": {"col": 2, "nome": "NICOLETTI", "partido": "PL", "cargo": "Senador", "receita": 311550000, "contratado": 282549430}, "230002549845": {"col": 2, "nome": "HELENA DA ASATUR", "partido": "PSD", "cargo": "Senador", "receita": 300000000, "contratado": 238684132}, "230002553010": {"col": 2, "nome": "PASTOR ISAMAR", "partido": "UNIÃO", "cargo": "Senador", "receita": 102800000, "contratado": 143829150}, "230002553006": {"col": 2, "nome": "TERESA SURITA", "partido": "MDB", "cargo": "Senador", "receita": 246800000, "contratado": 137354074}, "230002550794": {"col": 2, "nome": "CHICO RODRIGUES", "partido": "PSB", "cargo": "Senador", "receita": 110825200, "contratado": 128479452}, "230002534806": {"col": 2, "nome": "HELIO FERNANDO BARBOSA LOPES", "partido": "PL", "cargo": "Senador", "receita": 50000000, "contratado": 21899950}, "230002549330": {"col": 2, "nome": "REGINA TIO IVO", "partido": "NOVO", "cargo": "Senador", "receita": 6000000, "contratado": 21024000}, "230002550787": {"col": 2, "nome": "HILTON XAVIER", "partido": "AVANTE", "cargo": "Senador", "receita": 0, "contratado": 3195800}, "230002553636": {"col": 2, "nome": "MÁRCIO JUNQUEIRA", "partido": "PSDB", "cargo": "Senador", "receita": 1000000, "contratado": 3000000}, "230002549361": {"col": 2, "nome": "BARTÔ MACUXI", "partido": "PSOL", "cargo": "Senador", "receita": 5400000, "contratado": 1728300}, "~c": {"col": 2, "nome": "outras candidaturas", "n": 3}, "49700039000100": {"col": 3, "nome": "ISIS R. DE V. MARTINS", "pj": 1}, "84017888000165": {"col": 3, "nome": "FORBRAS RORAIMA LTDA", "pj": 1}, "24724620000131": {"col": 3, "nome": "G DE S A LTDA", "pj": 1}, "47071025000140": {"col": 3, "nome": "POSITIVA MKT E EMPREENDIMENTOS LTDA", "pj": 1}, "84041011000100": {"col": 3, "nome": "INDUSTRIA E COMERCIO IORIS LTDA", "pj": 1}, "10757737000107": {"col": 3, "nome": "DELGADO GOMES ADVOGADOS", "pj": 1}, "10822894000159": {"col": 3, "nome": "ELVES PRESES FERREIRA DE SOUSA", "pj": 1}, "40226940000118": {"col": 3, "nome": "SADAMATSU SOCIEDADE INDIVIDUAL DE ADVOCACIA", "pj": 1}, "65311309000148": {"col": 3, "nome": "GIRASSOIS , CONSULTORIA, MARKETING, PESQUISA E ESTRATEGIA LTDA", "pj": 1}, "03611874000173": {"col": 3, "nome": "A. P. FACCIO CIA LTDA", "pj": 1}, "~f": {"col": 3, "nome": "outros fornecedores", "n": 1450}, "~g": {"col": 3, "nome": "gasto sem fornecedor identificado"}}, "ordem": [["08517423000195", "13629827000100", "00676213000138", "01421697000137", "44551496000167", "00719575000169", "13405866000124", "06954942000195", "56384300249", "99445700015", "~d", "~s"], ["PL", "PSD", "MDB", "PSB", "UNIÃO", "NOVO", "PSOL", "PSDB", "~p"], ["230002534804", "230002549845", "230002553010", "230002553006", "230002550794", "230002534806", "230002549330", "230002550787", "230002553636", "230002549361", "~c"], ["49700039000100", "84017888000165", "24724620000131", "47071025000140", "84041011000100", "10757737000107", "10822894000159", "40226940000118", "65311309000148", "03611874000173", "~f", "~g"]], "lig": [[["08517423000195", "PL", 360000000], ["13629827000100", "PSD", 300000000], ["00676213000138", "MDB", 170000000], ["01421697000137", "PSB", 110825200], ["44551496000167", "UNIÃO", 100000000], ["00719575000169", "MDB", 75000000], ["13405866000124", "NOVO", 6000000], ["06954942000195", "PSOL", 5400000], ["56384300249", "UNIÃO", 2400000], ["~d", "MDB", 1800000], ["99445700015", "PL", 1550000], ["~d", "PSDB", 1000000], ["~d", "~p", 500000], ["~d", "UNIÃO", 400000], ["~d", "PSOL", 250000]], [["PL", "230002534804", 311550000], ["PSD", "230002549845", 300000000], ["MDB", "230002553006", 246800000], ["PSB", "230002550794", 110825200], ["UNIÃO", "230002553010", 102800000], ["PL", "230002534806", 50000000], ["NOVO", "230002549330", 6000000], ["PSOL", "230002549361", 5400000], ["PSDB", "230002553636", 1000000], ["~p", "~c", 500000], ["PSOL", "~c", 250000]], [["230002534804", "~f", 163749400], ["230002553006", "~f", 130257304], ["230002549845", "~f", 100682832], ["230002553010", "49700039000100", 100000000], ["230002550794", "~f", 71936322], ["230002553010", "~f", 43628500], ["230002549845", "24724620000131", 40000000], ["230002549845", "47071025000140", 38000000], ["230002534804", "84017888000165", 35720000], ["230002549845", "84041011000100", 30000000], ["230002549845", "10757737000107", 30000000], ["230002550794", "65311309000148", 30000000], ["230002534804", "10822894000159", 30000000], ["230002534804", "40226940000118", 30000000], ["230002550794", "84017888000165", 23400000], ["230002534804", "03611874000173", 23039000], ["230002534806", "~f", 21899900], ["230002549330", "~f", 21024000], ["230002553006", "84017888000165", 5010000], ["230002550787", "~f", 3195800], ["230002550794", "03611874000173", 3139950], ["230002553636", "~f", 3000000], ["~c", "~f", 1324000], ["230002553006", "84041011000100", 1020000], ["230002553006", "10757737000107", 1000000], ["230002549361", "~f", 978300], ["230002549361", "84041011000100", 750000], ["230002553010", "10822894000159", 200000], ["230002553006", "~g", 66770], ["230002534804", "~g", 41030], ["230002550794", "~g", 3180], ["230002549845", "~g", 1300], ["230002553010", "~g", 650], ["230002534806", "~g", 50]]], "ordem_tipo": ["~t:partido", "~t:pf", "~t:proprio", "~t:campanha"], "lig_tipo": [["~t:partido", "PL", 360000000], ["~t:partido", "PSD", 300000000], ["~t:partido", "MDB", 245000000], ["~t:partido", "PSB", 110825200], ["~t:partido", "UNIÃO", 100000000], ["~t:partido", "NOVO", 6000000], ["~t:partido", "PSOL", 5400000], ["~t:pf", "UNIÃO", 2800000], ["~t:pf", "MDB", 1800000], ["~t:proprio", "PL", 1550000], ["~t:pf", "PSDB", 1000000], ["~t:campanha", "~p", 500000], ["~t:proprio", "PSOL", 250000]], "lig_pf": [["PL", "~f", 185649300], ["MDB", "~f", 130257304], ["PSD", "~f", 100682832], ["UNIÃO", "49700039000100", 100000000], ["PSB", "~f", 71936322], ["UNIÃO", "~f", 43628500], ["PSD", "24724620000131", 40000000], ["PSD", "47071025000140", 38000000], ["PL", "84017888000165", 35720000], ["PSD", "84041011000100", 30000000], ["PSD", "10757737000107", 30000000], ["PSB", "65311309000148", 30000000], ["PL", "10822894000159", 30000000], ["PL", "40226940000118", 30000000], ["PSB", "84017888000165", 23400000], ["PL", "03611874000173", 23039000], ["NOVO", "~f", 21024000], ["MDB", "84017888000165", 5010000], ["~p", "~f", 3638800], ["PSB", "03611874000173", 3139950], ["PSDB", "~f", 3000000], ["PSOL", "~f", 1859300], ["MDB", "84041011000100", 1020000], ["MDB", "10757737000107", 1000000], ["PSOL", "84041011000100", 750000], ["UNIÃO", "10822894000159", 200000], ["MDB", "~g", 66770], ["PL", "~g", 41080], ["PSB", "~g", 3180], ["PSD", "~g", 1300], ["UNIÃO", "~g", 650]], "receita": 1135125200, "contratado": 983068288, "n_cand": 13}, "c:6": {"nome": "Roraima, Deputado Federal", "nos": {"44551496000167": {"col": 0, "nome": "UNIAO BRASIL", "tipo": "partido"}, "07665132000181": {"col": 0, "nome": "REPUBLICANOS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "01248362000169": {"col": 0, "nome": "PODEMOS", "tipo": "partido"}, "08517423000195": {"col": 0, "nome": "PARTIDO LIBERAL (PL)", "tipo": "partido"}, "00676262000170": {"col": 0, "nome": "PARTIDO DOS TRABALHADORES - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00676213000138": {"col": 0, "nome": "MOVIMENTO DEMOCRATICO BRASILEIRO - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00719575000169": {"col": 0, "nome": "PARTIDO DEMOCRATICO TRABALHISTA", "tipo": "partido"}, "03653474000120": {"col": 0, "nome": "PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA", "tipo": "partido"}, "08026413000157": {"col": 0, "nome": "REPUBLICANOS - RORAIMA - RR - ESTADUAL", "tipo": "partido"}, "05947706000189": {"col": 0, "nome": "PARTIDO DEMOCRATICO TRABALHISTA COMISSO EXECUTIVA NO ESTADO DE RORAIMA", "tipo": "partido"}, "~d": {"col": 0, "nome": "outros doadores", "n": 35}, "~s": {"col": 0, "nome": "receita sem doador identificado"}, "~t:partido": {"col": 0, "nome": "direções de partido", "tipo": "partido"}, "~t:pf": {"col": 0, "nome": "pessoas físicas", "tipo": "pf"}, "~t:proprio": {"col": 0, "nome": "recursos próprios", "tipo": "proprio"}, "~t:campanha": {"col": 0, "nome": "outras campanhas", "tipo": "campanha"}, "~t:outra": {"col": 0, "nome": "financiamento coletivo e internet", "tipo": "outra"}, "~t:sem": {"col": 0, "nome": "receita sem doador identificado", "tipo": "sem"}, "UNIÃO": {"col": 1, "nome": "UNIÃO"}, "REPUBLICANOS": {"col": 1, "nome": "REPUBLICANOS"}, "PODE": {"col": 1, "nome": "PODE"}, "PL": {"col": 1, "nome": "PL"}, "PT": {"col": 1, "nome": "PT"}, "MDB": {"col": 1, "nome": "MDB"}, "PDT": {"col": 1, "nome": "PDT"}, "PSDB": {"col": 1, "nome": "PSDB"}, "~p": {"col": 1, "nome": "outros partidos", "n": 6}, "230002549628": {"col": 2, "nome": "ZÉ HAROLDO CATHEDRAL", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 232984000, "contratado": 272539221}, "230002534801": {"col": 2, "nome": "GERLANE BACCARIN", "partido": "PL", "cargo": "Deputado Federal", "receita": 250000000, "contratado": 200204203}, "230002549632": {"col": 2, "nome": "PASTOR DINIZ", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 231984000, "contratado": 185114610}, "230002549298": {"col": 2, "nome": "ALBUQUERQUE", "partido": "REPUBLICANOS", "cargo": "Deputado Federal", "receita": 156464706, "contratado": 177223120}, "230002549630": {"col": 2, "nome": "DEFENSOR STÉLIO DENER", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 232627600, "contratado": 161639363}, "230002549629": {"col": 2, "nome": "EDILSON DAMIÃO", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 231984000, "contratado": 154766940}, "230002549304": {"col": 2, "nome": "ROBERTA ACIOLY", "partido": "REPUBLICANOS", "cargo": "Deputado Federal", "receita": 197014897, "contratado": 151586007}, "230002549634": {"col": 2, "nome": "GABRIEL MOTA", "partido": "UNIÃO", "cargo": "Deputado Federal", "receita": 231984000, "contratado": 124948618}, "230002552734": {"col": 2, "nome": "REGIANE MATOS", "partido": "MDB", "cargo": "Deputado Federal", "receita": 130000000, "contratado": 124768890}, "230002538185": {"col": 2, "nome": "MAJOR ADRIANE", "partido": "PODE", "cargo": "Deputado Federal", "receita": 195600000, "contratado": 111046650}, "~c": {"col": 2, "nome": "outras candidaturas", "n": 98}, "14898066000155": {"col": 3, "nome": "E. DE MAGALHAES SILVA LTDA", "pj": 1}, "36899824000192": {"col": 3, "nome": "36.899.824 ANDERSON DE JESUS VIEIRA", "pj": 1}, "56961939000177": {"col": 3, "nome": "BARREIRO E FARIAS COMERCIO E SERVICOS LTDA", "pj": 1}, "40804632000122": {"col": 3, "nome": "ARENHART QUEIROZ LTDA", "pj": 1}, "42684580000123": {"col": 3, "nome": "ZETAS DESPACHANTE LTDA", "pj": 1}, "32679585000104": {"col": 3, "nome": "R ANDRADE QUEIROZ LTDA", "pj": 1}, "47241460000175": {"col": 3, "nome": "CONTAPLLAN PLANEJAMENTO E ASSESSORIA CONTABIL LTDA", "pj": 1}, "26805100000189": {"col": 3, "nome": "J DE O CARVALHO", "pj": 1}, "25990167000178": {"col": 3, "nome": "I DANTAS", "pj": 1}, "06514316204": {"col": 3, "nome": "JOAO WALDECY MUNIZ DE SOUZA", "pj": 0}, "~f": {"col": 3, "nome": "outros fornecedores", "n": 4747}, "~g": {"col": 3, "nome": "gasto sem fornecedor identificado"}}, "ordem": [["44551496000167", "07665132000181", "01248362000169", "08517423000195", "00676262000170", "00676213000138", "00719575000169", "03653474000120", "08026413000157", "05947706000189", "~d", "~s"], ["UNIÃO", "REPUBLICANOS", "PODE", "PL", "PT", "MDB", "PDT", "PSDB", "~p"], ["230002549628", "230002534801", "230002549632", "230002549298", "230002549630", "230002549629", "230002549304", "230002549634", "230002552734", "230002538185", "~c"], ["14898066000155", "36899824000192", "56961939000177", "40804632000122", "42684580000123", "32679585000104", "47241460000175", "26805100000189", "25990167000178", "06514316204", "~f", "~g"]], "lig": [[["44551496000167", "UNIÃO", 1411236000], ["07665132000181", "REPUBLICANOS", 804633470], ["01248362000169", "PODE", 765499700], ["08517423000195", "PL", 520000000], ["00676262000170", "PT", 462439655], ["00676213000138", "MDB", 453000000], ["00719575000169", "PDT", 415000000], ["03653474000120", "PSDB", 259000000], ["08026413000157", "REPUBLICANOS", 245240547], ["~d", "~p", 51203829], ["05947706000189", "PDT", 35000000], ["~d", "PODE", 14600000], ["03653474000120", "~p", 10000000], ["~d", "PL", 5165944], ["~d", "REPUBLICANOS", 4500000], ["~d", "PT", 3360000], ["~d", "UNIÃO", 1643600], ["~d", "MDB", 60000]], [["REPUBLICANOS", "~c", 700894414], ["PODE", "~c", 584499700], ["PT", "~c", 465799655], ["PDT", "~c", 450000000], ["MDB", "~c", 323060000], ["PL", "~c", 275165944], ["PSDB", "~c", 259000000], ["UNIÃO", "~c", 251316000], ["PL", "230002534801", 250000000], ["UNIÃO", "230002549628", 232984000], ["UNIÃO", "230002549630", 232627600], ["UNIÃO", "230002549629", 231984000], ["UNIÃO", "230002549632", 231984000], ["UNIÃO", "230002549634", 231984000], ["REPUBLICANOS", "230002549304", 197014897], ["PODE", "230002538185", 195600000], ["REPUBLICANOS", "230002549298", 156464706], ["MDB", "230002552734", 130000000], ["~p", "~c", 61203829]], [["~c", "~f", 1715350704], ["230002549628", "~f", 227989421], ["230002534801", "~f", 177160853], ["230002549632", "~f", 156010000], ["230002549629", "~f", 154759790], ["230002549304", "~f", 151580007], ["230002549630", "~f", 141635563], ["230002549298", "~f", 136533620], ["230002552734", "~f", 101893890], ["230002538185", "~f", 101164350], ["230002549634", "36899824000192", 78000000], ["~c", "32679585000104", 50000000], ["~c", "14898066000155", 47354426], ["~c", "56961939000177", 47098800], ["230002549634", "~f", 46940458], ["230002549628", "40804632000122", 44544200], ["230002549298", "14898066000155", 40689500], ["~c", "47241460000175", 34000000], ["~c", "42684580000123", 30660426], ["~c", "26805100000189", 24750000], ["~c", "06514316204", 24450000], ["230002552734", "42684580000123", 22874700], ["~c", "25990167000178", 15407500], ["230002534801", "26805100000189", 15000000], ["230002549632", "06514316204", 15000000], ["230002549632", "25990167000178", 14100000], ["230002549630", "47241460000175", 10000000], ["230002549630", "25990167000178", 10000000], ["230002538185", "56961939000177", 9868000], ["230002534801", "40804632000122", 8033000], ["~c", "40804632000122", 1504460], ["~c", "~g", 187300], ["230002538185", "~g", 14300], ["230002534801", "~g", 10350], ["230002549634", "~g", 8160], ["230002549629", "~g", 7150], ["230002549304", "~g", 6000], ["230002549628", "~g", 5600], ["230002549632", "~g", 4610], ["230002549630", "~g", 3800], ["230002552734", "~g", 300]]], "ordem_tipo": ["~t:partido", "~t:pf", "~t:proprio", "~t:outra", "~t:sem"], "lig_tipo": [["~t:partido", "UNIÃO", 1411236000], ["~t:partido", "REPUBLICANOS", 1049874017], ["~t:partido", "PODE", 765499700], ["~t:partido", "PL", 520000000], ["~t:partido", "PT", 462439655], ["~t:partido", "MDB", 453000000], ["~t:partido", "PDT", 450000000], ["~t:partido", "PSDB", 259000000], ["~t:partido", "~p", 59953829], ["~t:proprio", "PODE", 13000000], ["~t:pf", "REPUBLICANOS", 4500000], ["~t:pf", "PT", 3300000], ["~t:proprio", "PL", 3100000], ["~t:pf", "PL", 1704222], ["~t:pf", "PODE", 1600000], ["~t:proprio", "~p", 1250000], ["~t:pf", "UNIÃO", 1143600], ["~t:proprio", "UNIÃO", 500000], ["~t:outra", "PL", 361722], ["~t:proprio", "PT", 60000], ["~t:pf", "MDB", 60000]], "lig_pf": [["UNIÃO", "~f", 879993122], ["REPUBLICANOS", "~f", 698065515], ["PODE", "~f", 413547250], ["PL", "~f", 325414803], ["MDB", "~f", 234243271], ["PDT", "~f", 208724412], ["PSDB", "~f", 164041115], ["PT", "~f", 159718239], ["UNIÃO", "36899824000192", 78000000], ["REPUBLICANOS", "14898066000155", 50691400], ["REPUBLICANOS", "32679585000104", 50000000], ["UNIÃO", "40804632000122", 44544200], ["MDB", "42684580000123", 35760126], ["UNIÃO", "06514316204", 30000000], ["REPUBLICANOS", "56961939000177", 30000000], ["PDT", "14898066000155", 28176900], ["~p", "~f", 27270929], ["UNIÃO", "25990167000178", 24100000], ["REPUBLICANOS", "26805100000189", 20000000], ["REPUBLICANOS", "42684580000123", 17775000], ["PT", "56961939000177", 15772800], ["PL", "26805100000189", 15000000], ["PDT", "47241460000175", 12000000], ["UNIÃO", "47241460000175", 10000000], ["PODE", "56961939000177", 9868000], ["PL", "40804632000122", 9537460], ["PODE", "47241460000175", 8000000], ["PODE", "14898066000155", 7170226], ["PL", "25990167000178", 6674500], ["PDT", "25990167000178", 5225000], ["PODE", "06514316204", 5000000], ["REPUBLICANOS", "47241460000175", 5000000], ["MDB", "47241460000175", 5000000], ["PL", "47241460000175", 4000000], ["PODE", "25990167000178", 3508000], ["PDT", "26805100000189", 2750000], ["PL", "06514316204", 2200000], ["MDB", "14898066000155", 2005400], ["PODE", "26805100000189", 2000000], ["PDT", "06514316204", 1700000], ["PL", "56961939000177", 1326000], ["~p", "06514316204", 550000], ["~p", "~g", 82910], ["PODE", "~g", 47170], ["UNIÃO", "~g", 36290], ["PL", "~g", 23620], ["PT", "~g", 16520], ["PDT", "~g", 15540], ["MDB", "~g", 9720], ["REPUBLICANOS", "~g", 9700], ["PSDB", "~g", 6100]], "receita": 5461582745, "contratado": 3654601238, "n_cand": 108}, "c:7": {"nome": "Roraima, Deputado Estadual", "nos": {"44551496000167": {"col": 0, "nome": "UNIAO BRASIL", "tipo": "partido"}, "07665132000181": {"col": 0, "nome": "REPUBLICANOS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00887169000105": {"col": 0, "nome": "PROGRESSISTAS - BRASIL - BR - NACIONAL", "tipo": "partido"}, "08517423000195": {"col": 0, "nome": "PARTIDO LIBERAL (PL)", "tipo": "partido"}, "00676213000138": {"col": 0, "nome": "MOVIMENTO DEMOCRATICO BRASILEIRO - BRASIL - BR - NACIONAL", "tipo": "partido"}, "00676262000170": {"col": 0, "nome": "PARTIDO DOS TRABALHADORES - BRASIL - BR - NACIONAL", "tipo": "partido"}, "08026413000157": {"col": 0, "nome": "REPUBLICANOS - RORAIMA - RR - ESTADUAL", "tipo": "partido"}, "00719575000169": {"col": 0, "nome": "PARTIDO DEMOCRATICO TRABALHISTA", "tipo": "partido"}, "01248362000169": {"col": 0, "nome": "PODEMOS", "tipo": "partido"}, "31886963000168": {"col": 0, "nome": "PARTIDO VERDE", "tipo": "partido"}, "~d": {"col": 0, "nome": "outros doadores", "n": 89}, "~s": {"col": 0, "nome": "receita sem doador identificado"}, "~t:partido": {"col": 0, "nome": "direções de partido", "tipo": "partido"}, "~t:pf": {"col": 0, "nome": "pessoas físicas", "tipo": "pf"}, "~t:proprio": {"col": 0, "nome": "recursos próprios", "tipo": "proprio"}, "~t:campanha": {"col": 0, "nome": "outras campanhas", "tipo": "campanha"}, "~t:outra": {"col": 0, "nome": "financiamento coletivo e internet", "tipo": "outra"}, "~t:sem": {"col": 0, "nome": "receita sem doador identificado", "tipo": "sem"}, "UNIÃO": {"col": 1, "nome": "UNIÃO"}, "REPUBLICANOS": {"col": 1, "nome": "REPUBLICANOS"}, "PP": {"col": 1, "nome": "PP"}, "PL": {"col": 1, "nome": "PL"}, "MDB": {"col": 1, "nome": "MDB"}, "PT": {"col": 1, "nome": "PT"}, "PODE": {"col": 1, "nome": "PODE"}, "PDT": {"col": 1, "nome": "PDT"}, "~p": {"col": 1, "nome": "outros partidos", "n": 5}, "230002549347": {"col": 2, "nome": "CATARINA GUERRA", "partido": "UNIÃO", "cargo": "Deputado Estadual", "receita": 104972760, "contratado": 91101507}, "230002549344": {"col": 2, "nome": "JOILMA TEODORA", "partido": "UNIÃO", "cargo": "Deputado Estadual", "receita": 96660000, "contratado": 68292500}, "230002549337": {"col": 2, "nome": "PASTORA NAZARE RAMALHO", "partido": "UNIÃO", "cargo": "Deputado Estadual", "receita": 96660000, "contratado": 59933790}, "230002549336": {"col": 2, "nome": "MARIA DA GUIA", "partido": "PP", "cargo": "Deputado Estadual", "receita": 77259440, "contratado": 58422500}, "230002549351": {"col": 2, "nome": "NOELIA ALVES", "partido": "UNIÃO", "cargo": "Deputado Estadual", "receita": 96660000, "contratado": 56291650}, "230002549243": {"col": 2, "nome": "DARBI DE JESUS", "partido": "REPUBLICANOS", "cargo": "Deputado Estadual", "receita": 50000000, "contratado": 46308790}, "230002549355": {"col": 2, "nome": "ANGELA ÁGUIDA PORTELLA", "partido": "PP", "cargo": "Deputado Estadual", "receita": 77259440, "contratado": 42123161}, "230002549341": {"col": 2, "nome": "AURELINA MEDEIROS", "partido": "UNIÃO", "cargo": "Deputado Estadual", "receita": 101660000, "contratado": 40419543}, "230002533356": {"col": 2, "nome": "NETO LOUREIRO", "partido": "PL", "cargo": "Deputado Estadual", "receita": 40800000, "contratado": 37049020}, "230002538165": {"col": 2, "nome": "RENATO SILVA", "partido": "PODE", "cargo": "Deputado Estadual", "receita": 42000000, "contratado": 36705800}, "~c": {"col": 2, "nome": "outras candidaturas", "n": 240}, "06514316204": {"col": 3, "nome": "JOAO WALDECY MUNIZ DE SOUZA", "pj": 0}, "84017888000165": {"col": 3, "nome": "FORBRAS RORAIMA LTDA", "pj": 1}, "40226686000158": {"col": 3, "nome": "PONTO DAS IMPRESSOES LTDA", "pj": 1}, "46786069000193": {"col": 3, "nome": "GRAFICAZE LTDA", "pj": 1}, "54783644000122": {"col": 3, "nome": "RR PRODUCOES ENTRETENIMENTOS LTDA", "pj": 1}, "07480407220": {"col": 3, "nome": "JOSE HAROLDO RIBEIRO SOUSA", "pj": 0}, "36850260000101": {"col": 3, "nome": "HONEY FILMES LTDA", "pj": 1}, "47521583000160": {"col": 3, "nome": "GRAFICA G3 LTDA", "pj": 1}, "30002734000170": {"col": 3, "nome": "ENALDO ARAUJO SOCIEDADE INDIVIDUAL DE ADVOCACIA", "pj": 1}, "56961939000177": {"col": 3, "nome": "BARREIRO E FARIAS COMERCIO E SERVICOS LTDA", "pj": 1}, "~f": {"col": 3, "nome": "outros fornecedores", "n": 3533}, "~g": {"col": 3, "nome": "gasto sem fornecedor identificado"}}, "ordem": [["44551496000167", "07665132000181", "00887169000105", "08517423000195", "00676213000138", "00676262000170", "08026413000157", "00719575000169", "01248362000169", "31886963000168", "~d", "~s"], ["UNIÃO", "REPUBLICANOS", "PP", "PL", "MDB", "PT", "PODE", "PDT", "~p"], ["230002549347", "230002549344", "230002549337", "230002549336", "230002549351", "230002549243", "230002549355", "230002549341", "230002533356", "230002538165", "~c"], ["06514316204", "84017888000165", "40226686000158", "46786069000193", "54783644000122", "07480407220", "36850260000101", "47521583000160", "30002734000170", "56961939000177", "~f", "~g"]], "lig": [[["44551496000167", "UNIÃO", 593555664], ["07665132000181", "REPUBLICANOS", 406212728], ["00887169000105", "PP", 379037760], ["08517423000195", "PL", 330000000], ["00676213000138", "MDB", 239000000], ["00676262000170", "PT", 181707143], ["08026413000157", "REPUBLICANOS", 174010917], ["00719575000169", "PDT", 89000000], ["01248362000169", "PODE", 77000000], ["~d", "~p", 68844610], ["~d", "PODE", 44866000], ["31886963000168", "~p", 44500000], ["~d", "UNIÃO", 24494992], ["~d", "PL", 4713700], ["~d", "REPUBLICANOS", 1800000], ["~d", "PDT", 100000], ["~d", "MDB", 50000]], [["REPUBLICANOS", "~c", 532023645], ["PL", "~c", 293913700], ["MDB", "~c", 239050000], ["PP", "~c", 224518880], ["PT", "~c", 181707143], ["UNIÃO", "~c", 121437896], ["~p", "~c", 113344610], ["UNIÃO", "230002549347", 104972760], ["UNIÃO", "230002549341", 101660000], ["UNIÃO", "230002549337", 96660000], ["UNIÃO", "230002549351", 96660000], ["UNIÃO", "230002549344", 96660000], ["PDT", "~c", 89100000], ["PODE", "~c", 79866000], ["PP", "230002549336", 77259440], ["PP", "230002549355", 77259440], ["REPUBLICANOS", "230002549243", 50000000], ["PODE", "230002538165", 42000000], ["PL", "230002533356", 40800000]], [["~c", "~f", 1174727455], ["230002549347", "~f", 52127347], ["230002549344", "~f", 47467000], ["230002549336", "~f", 44857500], ["230002549243", "~f", 43326790], ["230002549337", "~f", 42933790], ["~c", "06514316204", 42700000], ["230002549355", "~f", 42123161], ["230002549341", "~f", 40158143], ["~c", "84017888000165", 38186500], ["230002549351", "~f", 36290800], ["230002549347", "54783644000122", 30000000], ["230002533356", "~f", 28935800], ["230002538165", "~f", 26646150], ["~c", "40226686000158", 24947000], ["~c", "46786069000193", 23572000], ["~c", "56961939000177", 20911000], ["~c", "07480407220", 20900000], ["230002549351", "30002734000170", 20000000], ["230002549337", "36850260000101", 15000000], ["230002549336", "46786069000193", 11365000], ["230002549344", "40226686000158", 10825000], ["230002549344", "36850260000101", 10000000], ["230002538165", "47521583000160", 9056200], ["230002533356", "47521583000160", 8108500], ["~c", "47521583000160", 6587900], ["230002549347", "84017888000165", 5472500], ["230002549347", "06514316204", 3500000], ["230002549243", "84017888000165", 2982000], ["230002549336", "07480407220", 2200000], ["~c", "30002734000170", 2000000], ["230002549337", "07480407220", 2000000], ["230002538165", "06514316204", 1000000], ["230002549341", "~g", 261400], ["~c", "~g", 67190], ["230002533356", "~g", 4720], ["230002538165", "~g", 3450], ["230002549347", "~g", 1660], ["230002549351", "~g", 850], ["230002549344", "~g", 500]]], "ordem_tipo": ["~t:partido", "~t:pf", "~t:proprio", "~t:campanha", "~t:outra", "~t:sem"], "lig_tipo": [["~t:partido", "UNIÃO", 593555664], ["~t:partido", "REPUBLICANOS", 580223645], ["~t:partido", "PP", 379037760], ["~t:partido", "PL", 330000000], ["~t:partido", "MDB", 239000000], ["~t:partido", "PT", 181707143], ["~t:partido", "PDT", 89000000], ["~t:partido", "PODE", 77000000], ["~t:partido", "~p", 65400000], ["~t:pf", "~p", 41306510], ["~t:proprio", "PODE", 19641000], ["~t:pf", "UNIÃO", 16744992], ["~t:campanha", "PODE", 13000000], ["~t:pf", "PODE", 12225000], ["~t:proprio", "UNIÃO", 7600000], ["~t:proprio", "~p", 5538000], ["~t:outra", "PL", 2513700], ["~t:proprio", "PL", 2100000], ["~t:campanha", "~p", 1100000], ["~t:campanha", "REPUBLICANOS", 1000000], ["~t:pf", "REPUBLICANOS", 800000], ["~t:outra", "UNIÃO", 150000], ["~t:proprio", "PDT", 100000], ["~t:pf", "PL", 100000], ["~t:proprio", "MDB", 50000], ["~t:outra", "~p", 100]], "lig_pf": [["REPUBLICANOS", "~f", 395956845], ["UNIÃO", "~f", 350837142], ["PL", "~f", 202671883], ["MDB", "~f", 179290046], ["PP", "~f", 156624715], ["~p", "~f", 85328519], ["PODE", "~f", 83294000], ["PT", "~f", 74361776], ["PDT", "~f", 51229010], ["UNIÃO", "54783644000122", 30000000], ["UNIÃO", "36850260000101", 25000000], ["PL", "06514316204", 21600000], ["UNIÃO", "30002734000170", 20000000], ["REPUBLICANOS", "84017888000165", 18679000], ["REPUBLICANOS", "40226686000158", 15479000], ["UNIÃO", "06514316204", 14900000], ["PP", "46786069000193", 14867000], ["PP", "07480407220", 11800000], ["PODE", "47521583000160", 10977200], ["MDB", "46786069000193", 10900000], ["UNIÃO", "40226686000158", 10825000], ["UNIÃO", "84017888000165", 9645000], ["PL", "84017888000165", 8954000], ["UNIÃO", "56961939000177", 8302500], ["PL", "47521583000160", 8108500], ["~p", "07480407220", 6900000], ["MDB", "40226686000158", 5000000], ["PODE", "06514316204", 4800000], ["~p", "06514316204", 4700000], ["PODE", "84017888000165", 4490000], ["PODE", "56961939000177", 4180000], ["REPUBLICANOS", "46786069000193", 4170000], ["MDB", "56961939000177", 3529000], ["MDB", "47521583000160", 3521000], ["UNIÃO", "07480407220", 3500000], ["PL", "40226686000158", 3000000], ["PL", "56961939000177", 2952000], ["MDB", "84017888000165", 2688500], ["PP", "30002734000170", 2000000], ["MDB", "07480407220", 2000000], ["PL", "46786069000193", 2000000], ["REPUBLICANOS", "56961939000177", 1947500], ["PODE", "46786069000193", 1850000], ["REPUBLICANOS", "06514316204", 1200000], ["UNIÃO", "46786069000193", 1150000], ["~p", "84017888000165", 1064000], ["~p", "40226686000158", 1000000], ["~p", "47521583000160", 965900], ["PT", "84017888000165", 653500], ["REPUBLICANOS", "07480407220", 500000], ["PODE", "40226686000158", 468000], ["PP", "84017888000165", 467000], ["PODE", "07480407220", 400000], ["UNIÃO", "~g", 266960], ["REPUBLICANOS", "47521583000160", 180000], ["PL", "~g", 17450], ["MDB", "~g", 14640], ["PT", "~g", 12070], ["PODE", "~g", 11380], ["REPUBLICANOS", "~g", 9750], ["~p", "~g", 4570], ["PP", "~g", 2800], ["PDT", "~g", 150]], "receita": 2658893514, "contratado": 1891247306, "n_cand": 250}};
+</script>
+<script>
+var TETO_OUTROS = 0.32, MIN_NO_FX = 13, ALTURA_MAX_FX = 520;
+var estado = {rec: 'geral', doador: 'nome', largura: 'larga'};
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function moeda(c){
+  var r = c / 100, a = Math.abs(r);
+  if(a >= 1e6) return 'R$ ' + (r / 1e6).toLocaleString('pt-BR', {maximumFractionDigits: 1}) + ' mi';
+  if(a >= 1e3) return 'R$ ' + Math.round(r / 1e3).toLocaleString('pt-BR') + ' mil';
+  return 'R$ ' + Math.round(r).toLocaleString('pt-BR');
+}
+function moedaCheia(c){ return (c / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); }
+
+/* ============ O FLUXO DE N COLUNAS ============
+
+   Generaliza o fluxo de duas colunas, com as mesmas regras:
+
+   - o nó "outros" entra fora de escala, com teto de 32 % da coluna, e diz isso;
+   - uma escala só para todas as colunas enquanto o menor nó listado ainda ganhar 13 px
+     nela; quando não ganha, cada coluna tem a sua, e a legenda diz qual caso vale;
+   - o desenho cabe em 520 px de altura.
+
+   A coluna `quebra` é a candidatura: ela recebe na medida da esquerda (receita) e emite
+   na medida da direita (gasto contratado). O nó dela tem duas barras, uma para cada
+   medida, e o fio tracejado que passa por ela é a declaração de que as duas metades
+   não somam o mesmo dinheiro. */
+function fluxoN(host, cols, ligs, quebra, cabecalhos, meias){
+  var W = Math.max(300, host.clientWidth || 1000);
+  var N = cols.length;
+  var estreito = W < 520;
+  var lab = N > 2 ? Math.min(210, Math.round(W * 0.17))
+                  : Math.max(96, Math.min(240, Math.round(W * (estreito ? 0.34 : 0.28))));
+  var nw = 10, gap = 6, topo = meias ? 52 : 30;
+  var alt = Math.max.apply(null, cols.map(function(c){ return c.length; }));
+  var H = Math.max(300, Math.min(ALTURA_MAX_FX, 34 * alt + 70));
+  function medida(n){ return n.outros ? Math.min(n.valor, n.teto) : n.valor; }
+  function prepara(nos){
+    var listados = nos.reduce(function(s, n){ return s + (n.outros ? 0 : n.valor); }, 0);
+    nos.forEach(function(n){
+      if(!n.outros) return;
+      n.teto = listados * TETO_OUTROS / (1 - TETO_OUTROS);
+      n.compr = n.valor > n.teto ? n.teto / n.valor : 1;
+    });
+    return nos.reduce(function(s, n){ return s + medida(n); }, 0);
+  }
+  var tots = cols.map(prepara);
+  var disp = cols.map(function(c){ return H - gap * (c.length - 1); });
+  var Kuni = Infinity, menor = 0;
+  cols.forEach(function(c, i){ Kuni = Math.min(Kuni, disp[i] / (tots[i] || 1)); });
+  cols.forEach(function(c){ c.forEach(function(n){
+    if(n.outros || n.resto || n.valor <= 0) return;
+    if(!menor || n.valor < menor) menor = n.valor;
+  }); });
+  var unica = !!menor && menor * Kuni >= MIN_NO_FX;
+  var K = cols.map(function(c, i){ return unica ? Kuni : disp[i] / (tots[i] || 1); });
+  cols.forEach(function(nos, i){
+    var y = 0;
+    nos.forEach(function(n){ n.h = Math.max(1.5, medida(n) * K[i]); n.y = y; y += n.h + gap; });
+    var sobra = H - (y - gap);
+    if(sobra > 0) nos.forEach(function(n){ n.y += sobra / 2; });
+    nos.forEach(function(n){ n.y += topo; });
+  });
+  var x0 = lab + 8, x1 = W - lab - 8 - nw;
+  var xs = cols.map(function(c, i){ return N === 1 ? x0 : x0 + i * (x1 - x0) / (N - 1); });
+  var passo = N > 1 ? (x1 - x0) / (N - 1) : W;
+  var chLado = Math.max(8, Math.floor(lab / 7.6));
+  var chMeio = Math.max(8, Math.floor((passo - nw - 24) / 7.4));
+  function corta(s, k){ return s.length > k ? s.slice(0, k - 1) + '…' : s; }
+  function fator(n){ return n.outros ? n.compr : 1; }
+
+  var svg = '<svg class="fluxo" viewBox="0 0 ' + W + ' ' + (H + topo + 4) + '" width="' + W +
+    '" height="' + (H + topo + 4) + '" role="img" aria-label="Diagrama de fluxo; os mesmos números estão na tabela logo abaixo">';
+  if(cabecalhos){
+    cabecalhos.forEach(function(t, i){
+      var anc = i === 0 ? 'end' : (i === N - 1 ? 'start' : 'middle');
+      var x = i === 0 ? xs[i] + nw : (i === N - 1 ? xs[i] : xs[i] + nw / 2);
+      svg += '<text class="cab" x="' + x + '" y="14" text-anchor="' + anc + '">' + esc(t) + '</text>';
+    });
+  }
+  if(meias && quebra >= 0){
+    var xq = xs[quebra] + nw / 2;
+    svg += '<text class="meia" x="' + (xq - 10) + '" y="36" text-anchor="end">' + esc(meias[0]) + '</text>';
+    svg += '<text class="meia" x="' + (xq + 10) + '" y="36">' + esc(meias[1]) + '</text>';
+    svg += '<line class="corte" x1="' + xq + '" y1="42" x2="' + xq + '" y2="' + (H + topo + 4) + '"/>';
+  }
+  /* As faixas. A ordem de saída de cada nó segue a ordem dos destinos, e a de chegada
+     segue a ordem das origens: é o que tira o cruzamento de dentro do próprio nó. */
+  ligs.forEach(function(L, g){
+    var A = cols[g], B = cols[g + 1];
+    A.forEach(function(n){ n.offo = 0; });
+    B.forEach(function(n){ n.offi = 0; });
+    var y0s = {}, y1s = {};
+    L.map(function(l, i){ return i; }).sort(function(p, q){
+      return L[p][0] - L[q][0] || L[p][1] - L[q][1];
+    }).forEach(function(i){
+      var a = A[L[i][0]], t0 = L[i][2] * K[g] * fator(a);
+      y0s[i] = a.y + a.offo; a.offo += t0;
+    });
+    L.map(function(l, i){ return i; }).sort(function(p, q){
+      return L[p][1] - L[q][1] || L[p][0] - L[q][0];
+    }).forEach(function(i){
+      var b = B[L[i][1]], t1 = L[i][2] * K[g + 1] * fator(b);
+      y1s[i] = b.y + b.offi; b.offi += t1;
+    });
+    var xa = xs[g] + nw, xb = xs[g + 1], xm = (xa + xb) / 2;
+    var gasto = quebra >= 0 && g >= quebra;
+    L.forEach(function(l, i){
+      var a = A[l[0]], b = B[l[1]];
+      var t0 = l[2] * K[g] * fator(a), t1 = l[2] * K[g + 1] * fator(b);
+      var y0 = y0s[i], y1 = y1s[i];
+      var d = 'M' + xa + ',' + y0.toFixed(1) + ' C' + xm + ',' + y0.toFixed(1) + ' ' + xm + ',' + y1.toFixed(1) + ' ' + xb + ',' + y1.toFixed(1) +
+        ' L' + xb + ',' + (y1 + t1).toFixed(1) + ' C' + xm + ',' + (y1 + t1).toFixed(1) + ' ' + xm + ',' + (y0 + t0).toFixed(1) + ' ' + xa + ',' + (y0 + t0).toFixed(1) + ' Z';
+      var cls = [];
+      if(a.outros || b.outros) cls.push('outros');
+      if(gasto) cls.push('gasto');
+      svg += '<path d="' + d + '" data-a="' + g + ':' + l[0] + '" data-b="' + (g + 1) + ':' + l[1] + '"' +
+        (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '><title>' + esc(a.nome) + ' para ' + esc(b.nome) +
+        ': ' + esc(moedaCheia(l[2])) + (gasto ? ' de gasto contratado' : ' de receita') + '</title></path>';
+    });
+  });
+  cols.forEach(function(nos, i){
+    var ultima = i === N - 1, primeira = i === 0;
+    nos.forEach(function(n, j){
+      var x = xs[i], cy = n.y + n.h / 2;
+      var tx = primeira ? x - 8 : x + nw + 8;
+      var anc = primeira ? ' text-anchor="end"' : '';
+      var halo = (!primeira && !ultima) ? ' halo' : '';
+      var k = (primeira || ultima) ? chLado : chMeio;
+      var corpo;
+      if(i === quebra && n.ve !== undefined){
+        var he = Math.max(1.5, n.ve * K[i] * fator(n)), hd = Math.max(1.5, n.vd * K[i] * fator(n));
+        var fr = n.outros ? ' outros' : '';
+        corpo = '<rect class="no' + fr + '" x="' + x + '" y="' + n.y.toFixed(1) + '" width="' + (nw / 2 - 0.5) + '" height="' + he.toFixed(1) + '"/>' +
+                '<rect class="no gasto' + fr + '" x="' + (x + nw / 2 + 0.5) + '" y="' + n.y.toFixed(1) + '" width="' + (nw / 2 - 0.5) + '" height="' + hd.toFixed(1) + '"/>';
+      } else {
+        var cor = n.cor ? ' style="fill:' + n.cor + '"' : '';
+        corpo = '<rect class="no' + (n.outros || n.resto ? ' outros' : '') + (quebra >= 0 && i > quebra ? ' gasto' : '') +
+                '" x="' + x + '" y="' + n.y.toFixed(1) + '" width="' + nw + '" height="' + n.h.toFixed(1) + '"' + cor + '/>';
+      }
+      /* a candidatura traz as duas medidas, na ordem das barras: receita | gasto */
+      var valor = n.ve !== undefined ? moeda(n.ve) + ' | ' + moeda(n.vd) : moeda(n.valor);
+      if(n.h >= 9) corpo += '<text class="rot' + halo + (n.outros || n.resto ? ' fraco' : '') + '" x="' + tx + '" y="' + (cy + 4).toFixed(1) + '"' + anc + '>' + esc(corta(n.nome, k)) + '</text>';
+      if(n.h >= 22) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc + '>' + esc(corta(valor, k + 4)) + '</text>';
+      if(n.outros && n.compr < 1 && n.h >= 36) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc + '>fora de escala</text>';
+      var titulo = '<title>' + esc(n.nome + ': ' + (n.ve !== undefined
+        ? 'receita de ' + moedaCheia(n.ve) + ' e gasto contratado de ' + moedaCheia(n.vd)
+        : moedaCheia(n.valor)) + (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '')) + '</title>';
+      svg += '<g class="fno" data-no="' + i + ':' + j + '" tabindex="0">' + titulo + corpo + '</g>';
+    });
+  });
+  svg += '</svg>';
+  return {svg: svg, unica: unica,
+          compr: cols.some(function(c){ return c.some(function(n){ return n.compr < 1; }); })};
+}
+function ligarFluxo(el){
+  if(!el) return;
+  function marca(id){
+    el.classList.add('hl');
+    var ps = el.querySelectorAll('path');
+    for(var i = 0; i < ps.length; i++){
+      ps[i].classList.toggle('on', ps[i].getAttribute('data-a') === id || ps[i].getAttribute('data-b') === id);
+    }
+  }
+  function limpa(){ el.classList.remove('hl'); }
+  var nos = el.querySelectorAll('.fno');
+  for(var i = 0; i < nos.length; i++){
+    (function(n){
+      var id = n.getAttribute('data-no');
+      n.addEventListener('mouseenter', function(){ marca(id); });
+      n.addEventListener('mouseleave', limpa);
+      n.addEventListener('focus', function(){ marca(id); });
+      n.addEventListener('blur', limpa);
+    })(nos[i]);
+  }
+}
+
+var COR_TIPO = {partido: 'var(--t-partido)', pf: 'var(--t-pf)', proprio: 'var(--t-proprio)',
+                campanha: 'var(--t-campanha)', outra: 'var(--t-outra)', sem: 'var(--t-sem)'};
+var NOME_TIPO = {partido: 'direção de partido', pf: 'pessoa física', proprio: 'recursos próprios',
+                 campanha: 'outra campanha', outra: 'financiamento coletivo e internet', sem: 'sem doador identificado'};
+
+/* Das chaves do arquivo para colunas de nós e ligações por índice. Nó sem valor some,
+   e a ligação que apontava para ele some junto. */
+function monta(rec, colunas, ligacoes){
+  var idx = colunas.map(function(){ return {}; });
+  var cols = colunas.map(function(chaves, i){
+    var tot = {};
+    ligacoes.forEach(function(L, g){
+      L.forEach(function(l){
+        if(g === i) tot[l[0]] = (tot[l[0]] || 0) + l[2];
+        if(g + 1 === i) tot[l[1]] = Math.max(tot[l[1]] || 0, 0);
+      });
+    });
+    var entra = {}, sai = {};
+    if(i > 0) ligacoes[i - 1].forEach(function(l){ entra[l[1]] = (entra[l[1]] || 0) + l[2]; });
+    if(i < ligacoes.length) ligacoes[i].forEach(function(l){ sai[l[0]] = (sai[l[0]] || 0) + l[2]; });
+    var nos = [];
+    chaves.forEach(function(k){
+      var e = entra[k] || 0, s = sai[k] || 0;
+      var v = Math.max(e, s);
+      if(!v) return;
+      var info = rec.nos[k] || {};
+      var n = {chave: k, nome: info.nome || k, valor: v, outros: k === '~d' || k === '~p' || k === '~c' || k === '~f',
+               resto: k === '~s' || k === '~g' || k === '~t:sem'};
+      if(n.outros && info.n) n.nome = info.nome.replace('outros', 'outros ' + info.n).replace('outras', 'outras ' + info.n);
+      if(info.tipo) n.cor = COR_TIPO[info.tipo];
+      if(colunas.length === 4 && i === 2){ n.ve = e; n.vd = s; }
+      idx[i][k] = nos.length;
+      nos.push(n);
+    });
+    return nos;
+  });
+  var ligs = ligacoes.map(function(L, g){
+    return L.filter(function(l){ return idx[g][l[0]] !== undefined && idx[g + 1][l[1]] !== undefined; })
+            .map(function(l){ return [idx[g][l[0]], idx[g + 1][l[1]], l[2]]; });
+  });
+  return {cols: cols, ligs: ligs};
+}
+
+function tabela(titulo, L, rec, cab){
+  return '<h4>' + esc(titulo) + '</h4><table><thead><tr><th scope="col">' + cab[0] + '</th><th scope="col">' + cab[1] +
+    '</th><th scope="col">Valor</th></tr></thead><tbody>' +
+    L.slice().sort(function(a, b){ return b[2] - a[2]; }).map(function(l){
+      var a = rec.nos[l[0]] || {}, b = rec.nos[l[1]] || {};
+      return '<tr><td>' + esc(a.nome || l[0]) + '</td><td>' + esc(b.nome || l[1]) + '</td><td>' + esc(moedaCheia(l[2])) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function desenha(){
+  var rec = R[estado.rec];
+  var palco = document.getElementById('palco');
+  palco.className = 'palco' + (estado.largura === 'celular' ? ' celular' : '');
+  var porTipo = estado.doador === 'tipo';
+  var L0 = porTipo ? rec.lig_tipo : rec.lig[0];
+  var c0 = porTipo ? rec.ordem_tipo : rec.ordem[0];
+  var celular = estado.largura === 'celular' || palco.clientWidth < 1000;
+  var nota, html;
+  document.getElementById('sub').textContent = rec.nome + ': ' + rec.n_cand + ' candidaturas, ' +
+    moeda(rec.receita) + ' de receita declarada e ' + moeda(rec.contratado) + ' de gasto contratado';
+  if(!celular){
+    var m = monta(rec, [c0, rec.ordem[1], rec.ordem[2], rec.ordem[3]], [L0, rec.lig[1], rec.lig[2]]);
+    var r = fluxoN(palco, m.cols, m.ligs, 2,
+                   ['Doadores', 'Partidos', 'Candidaturas', 'Fornecedores'],
+                   ['← receita declarada: ' + moeda(rec.receita), 'gasto contratado: ' + moeda(rec.contratado) + ' →']);
+    html = r.svg;
+    nota = '<p class="notafx"><b>As duas metades não medem o mesmo dinheiro.</b> Da esquerda até as candidaturas, a largura é a receita declarada (' +
+      esc(moeda(rec.receita)) + '); das candidaturas para a direita, é o gasto contratado (' + esc(moeda(rec.contratado)) +
+      '). Cada candidatura tem duas barras, uma para cada medida, e o corte tracejado marca onde uma troca pela outra.</p>' +
+      '<p class="notafx"><b>O desenho não segue o dinheiro de ponta a ponta.</b> Dentro da conta de uma campanha o dinheiro se mistura, e o TSE não diz qual doação pagou qual despesa. Uma faixa que entra numa candidatura e outra que sai dela não são o mesmo real.</p>' +
+      '<p class="notafx">' + (r.unica ? 'As quatro colunas estão na mesma escala.' :
+        'Cada coluna tem a sua escala: na escala da coluna mais cheia, os nós das outras não caberiam com o nome ao lado.') +
+      (r.compr ? ' O nó "outros" entra fora de escala, com altura limitada, e o valor por extenso fica no rótulo e na tabela.' : '') +
+      (porTipo ? '' : ' A cor do nó de doador diz o tipo dele: <span class="sw" style="background:var(--t-partido)"></span>direção de partido, <span class="sw" style="background:var(--t-pf)"></span>pessoa física, <span class="sw" style="background:var(--t-campanha)"></span>outra campanha.') + '</p>';
+  } else {
+    var m2 = monta(rec, [rec.ordem[1], rec.ordem[3]], [rec.lig_pf]);
+    var r2 = fluxoN(palco, m2.cols, m2.ligs, -1, ['Partidos', 'Fornecedores'], null);
+    html = r2.svg;
+    nota = '<p class="notafx"><b>Abaixo de 1000 px de largura</b>, quatro colunas não cabem com nome legível, e o desenho volta a ser o de duas: do partido para os fornecedores, em gasto contratado. Doadores e candidaturas continuam na tabela logo abaixo.</p>' +
+      '<p class="notafx">' + (r2.unica ? 'As duas colunas estão na mesma escala.' : 'Cada coluna tem a sua escala.') +
+      (r2.compr ? ' O nó "outros" entra fora de escala.' : '') + '</p>';
+  }
+  var tab = '<details class="tabfx"><summary><b>Ver como tabela</b></summary>' +
+    tabela(porTipo ? 'Receita: do tipo de doador para o partido' : 'Receita: do doador para o partido', L0, rec, ['Doador', 'Partido']) +
+    tabela('Receita: do partido para a candidatura', rec.lig[1], rec, ['Partido', 'Candidatura']) +
+    tabela('Gasto contratado: da candidatura para o fornecedor', rec.lig[2], rec, ['Candidatura', 'Fornecedor']) +
+    '</details>';
+  palco.innerHTML = html + nota + tab;
+  ligarFluxo(palco.querySelector('svg.fluxo'));
+}
+
+function controles(){
+  var ctl = document.getElementById('ctl');
+  var grupos = [
+    ['Recorte', 'rec', Object.keys(R).map(function(k){ return [k, k === 'geral' ? 'Todas as candidaturas' : R[k].nome.replace('Roraima, ', '')]; })],
+    ['Coluna de doadores', 'doador', [['nome', 'um nó por doador'], ['tipo', 'agrupados por tipo']]],
+    ['Largura', 'largura', [['larga', 'tela larga'], ['celular', 'celular (390 px)']]],
+  ];
+  ctl.innerHTML = grupos.map(function(g){
+    return '<span>' + g[0] + '</span>' + g[2].map(function(o){
+      return '<button class="chip" data-g="' + g[1] + '" data-v="' + o[0] + '" aria-pressed="' + (estado[g[1]] === o[0]) + '">' + esc(o[1]) + '</button>';
+    }).join('');
+  }).join('');
+  ctl.onclick = function(ev){
+    var b = ev.target.closest('button');
+    if(!b) return;
+    estado[b.getAttribute('data-g')] = b.getAttribute('data-v');
+    controles();
+    desenha();
+  };
+}
+controles();
+desenha();
+var tm;
+window.addEventListener('resize', function(){ clearTimeout(tm); tm = setTimeout(desenha, 150); });
+</script>
+</body>
+</html>

@@ -9,3 +9,4 @@ estado-repo/
 __pycache__/
 *.pyc
 .DS_Store
+.playwright-mcp/
