@@ -568,10 +568,24 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
   .grade>.p-estados{grid-column:1 / 4;grid-row:2}
   .grade>.p-partidos{grid-column:4 / 8;grid-row:1 / 3}
   .grade>.p-cand{grid-column:8 / 13;grid-row:1 / 3}
-  .grade>.p-anel{grid-column:1 / 6;grid-row:3}
-  .grade>.p-tipos{grid-column:1 / 6;grid-row:4}
-  .grade>.p-forn{grid-column:6 / 13;grid-row:3 / 5}
+  /* Desde 05/10 estes três descem para uma grade própria, depois dos fluxos: a tela
+     lê de quem dá para quem recebe, e o que é gasto fecha a página. */
+  .grade>.p-anel{grid-column:1 / 6;grid-row:1}
+  .grade>.p-tipos{grid-column:1 / 6;grid-row:2}
+  .grade>.p-forn{grid-column:6 / 13;grid-row:1 / 3}
 }
+#gradeb{margin-top:10px}
+/* O fluxo longo: quatro colunas, e a candidatura com duas barras, uma para a receita e
+   outra para o gasto. O fio tracejado é a declaração de que as duas metades não somam o
+   mesmo dinheiro. */
+.fluxo .halo{paint-order:stroke;stroke:var(--cs);stroke-width:4px;stroke-linejoin:round}
+.fluxo .cabfx{font:600 12px var(--sans);fill:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.fluxo .meia{font:12px var(--sans);fill:var(--ac2)}
+.fluxo .corte{stroke:var(--ac2);stroke-width:1.5;stroke-dasharray:4 4}
+.fluxo rect.no.gasto{fill:var(--ac2)}
+.fluxo rect.no.gasto.outros{fill:var(--b2)}
+.fluxo path.gasto{fill:var(--ac2)}
+.fluxo path.gasto.outros{fill:var(--mut)}
 .grade>.cartao{margin:0;display:flex;flex-direction:column}
 /* A sobra de arredondamento fica embaixo da lista, e nunca espalhada entre as linhas:
    quem alinha a linha é o corte da lista comprida, não o ar dentro do cartão curto. */
@@ -958,6 +972,7 @@ function limparCacheUF(manter){
     if(k.indexOf('uf/') === 0 && k !== 'uf/' + manter + '.json') delete cache[k];
     if(k.indexOf('forn-recorte/') === 0 && k !== 'forn-recorte/' + manter + '.json') delete cache[k];
     if(k.indexOf('doador-recorte/') === 0 && k !== 'doador-recorte/' + manter + '.json') delete cache[k];
+    if(k.indexOf('fluxo/') === 0 && k !== 'fluxo/' + manter + '.json') delete cache[k];
     if(k.indexOf('forn-cruzado/') === 0 && k !== 'forn-cruzado/' + manter + '.json') delete cache[k];
   });
 }
@@ -1000,7 +1015,7 @@ function fedCurta(f){
 }
 
 /* ---------- estado ---------- */
-var META = null, UFD = null, IDX = null, FRC = null, DRC = null;
+var META = null, UFD = null, IDX = null, FRC = null, DRC = null, FLX = null;
 /* O fornecedor cruzado com tipo de despesa e com partido, e o tipo por candidatura no
    país. Os dois são pedidos só por quem abre a visão geral ou liga o filtro de tipo:
    quem nunca vai lá não paga por eles. */
@@ -1157,9 +1172,9 @@ function nomeDe(cod){
 }
 
 /* um erro por fonte: sucesso numa dimensao nao pode apagar a falha de outra */
-var erros = {uf:null, indice:null, frc:null, drc:null, fcr:null, forn:null, cand:null};
+var erros = {uf:null, indice:null, frc:null, drc:null, fcr:null, flx:null, forn:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
-var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', drcEmVoo = '', fcrEmVoo = '';
+var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', drcEmVoo = '', fcrEmVoo = '', flxEmVoo = '';
 
 function lerHash(){
   var h = location.hash.replace(/^#/,''), o = {};
@@ -2922,6 +2937,330 @@ function fluxoFornecedores(lista){
   }
   return {esq:esq, dir:dir, ligs:ligs};
 }
+/* ============ O FLUXO LONGO: DOADORES, PARTIDOS, CANDIDATURAS, FORNECEDORES ============
+
+   Entrega 3 do plano de 20/09, sobre o wireframe aprovado em 05/10. É a única coisa da
+   visão geral que quebra a regra de uma medida só, e quebra declarando: da esquerda até
+   a candidatura a largura é a receita em dinheiro, dela para a direita é o gasto
+   contratado. A candidatura tem duas barras, uma para cada medida, e um fio tracejado
+   passa por ela.
+
+   As regras de escala são as do fluxo de duas colunas: o nó "outros" entra fora de
+   escala, com teto de 32 % da coluna; uma escala só para todas as colunas enquanto o
+   menor nó listado ganhar 13 px nela, e uma por coluna quando não ganha; o desenho cabe
+   em 520 px de altura.
+
+   Abaixo de 1000 px quatro colunas não cabem com nome legível, e no lugar dele entra o
+   fluxo de duas colunas, do partido para os fornecedores. */
+function carregarFluxo(){
+  var uf = ufDaTela();
+  FLX = null; erros.flx = null; flxEmVoo = uf;
+  get('fluxo/' + uf + '.json').then(function(d){
+    if(flxEmVoo === uf) flxEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    FLX = d;
+    if(META) render();
+  })['catch'](function(e){
+    if(flxEmVoo === uf) flxEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    erros.flx = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
+  });
+}
+/* O recorte do arquivo que vale para os filtros de agora, ou null. A célula partido
+   mais cargo não existe no arquivo, de propósito. */
+function recorteDoFluxo(){
+  if(!FLX || FLX.uf !== ufDaTela()) return null;
+  if(S.partido && S.cargo) return null;
+  var k = 'geral';
+  if(S.partido) k = 'p:' + META.dic.partido.indexOf(S.partido);
+  else if(S.cargo) k = 'c:' + S.cargo;
+  return (FLX.r || {})[k] || null;
+}
+/* Das posições do arquivo para colunas de nós e ligações por índice. -1 é o nó "outros"
+   de cada coluna, e -2 a receita sem doador ou o gasto sem fornecedor. O valor de cada
+   nó sai das próprias ligações, que é a conta que o validador conferiu. */
+function nomeDeOutros(c, qtd){
+  return ['outros ', 'outros ', 'outras ', 'outros '][c] + inteiro(qtd) + ' ' +
+    ['doadores', 'partidos', 'candidaturas', 'fornecedores'][c];
+}
+function montaFluxoLongo(r){
+  var nomeSem = ['receita sem doador identificado', '', '', 'gasto sem fornecedor identificado'];
+  var cols = [], mapas = [];
+  for(var c = 0; c < 4; c++){
+    var entra = {}, sai = {};
+    if(c > 0) r.lig[c - 1].forEach(function(l){ entra[l[1]] = (entra[l[1]] || 0) + l[2]; });
+    if(c < 3) r.lig[c].forEach(function(l){ sai[l[0]] = (sai[l[0]] || 0) + l[2]; });
+    var chaves = r.col[c].map(function(x, i){ return i; }).concat([-1, -2]);
+    var nos = [], mapa = {};
+    chaves.forEach(function(k){
+      var e = entra[k] || 0, s = sai[k] || 0, v = Math.max(e, s);
+      if(!v) return;
+      var n = {valor:v};
+      if(k === -1){
+        n.outros = 1;
+        n.qtd = r.n[c] - r.col[c].length;
+        n.nome = nomeDeOutros(c, n.qtd);
+      } else if(k === -2){
+        n.resto = 1; n.nome = nomeSem[c];
+      } else {
+        var id = r.col[c][k];
+        if(c === 0){
+          var d = FLX.d[id];
+          n.nome = d[1]; n.tipo = d[2];
+          if(d[3]) n.href = hashCom({forn:d[0], cand:'', q:''});
+        } else if(c === 1){
+          n.nome = META.dic.partido[id] || 'sem partido';
+          n.href = hashCom({partido:n.nome, fed:'', cand:'', q:'', forn:''});
+        } else if(c === 2){
+          var cd = FLX.c[id];
+          n.nome = cd[1];
+          n.href = hashCom({cand:cd[0], q:'', forn:''});
+        } else {
+          var f = FLX.f[id];
+          n.nome = f[1];
+          if(f[3]) n.href = hashCom({forn:f[0], cand:'', q:''});
+        }
+      }
+      if(c === 2){ n.ve = e; n.vd = s; }
+      mapa[k] = nos.length;
+      nos.push(n);
+    });
+    cols.push(nos); mapas.push(mapa);
+  }
+  var ligs = r.lig.map(function(L, g){
+    return L.filter(function(l){ return mapas[g][l[0]] !== undefined && mapas[g + 1][l[1]] !== undefined; })
+            .map(function(l){ return [mapas[g][l[0]], mapas[g + 1][l[1]], l[2]]; });
+  });
+  return {cols:cols, ligs:ligs, tot:r.tot};
+}
+function fluxoLongoDesenho(m, id){
+  var host = document.getElementById(id);
+  if(!host) return;
+  var cols = m.cols, ligs = m.ligs, N = cols.length, quebra = 2;
+  var W = Math.max(600, host.clientWidth || 1000);
+  var lab = Math.min(210, Math.round(W * 0.17));
+  var nw = 10, gap = 6, topo = 52;
+  var alt = Math.max.apply(null, cols.map(function(c){ return c.length; }));
+  var H = Math.max(300, Math.min(ALTURA_MAX_FX, 34 * alt + 70));
+  function medida(n){ return n.outros ? Math.min(n.valor, n.teto) : n.valor; }
+  function prepara(nos){
+    var listados = nos.reduce(function(s, n){ return s + (n.outros ? 0 : n.valor); }, 0);
+    nos.forEach(function(n){
+      if(!n.outros) return;
+      n.teto = listados * TETO_OUTROS / (1 - TETO_OUTROS);
+      n.compr = n.valor > n.teto ? n.teto / n.valor : 1;
+    });
+    return nos.reduce(function(s, n){ return s + medida(n); }, 0);
+  }
+  var unica, K;
+  function escala(){
+    var tots = cols.map(prepara);
+    var disp = cols.map(function(c){ return H - gap * (c.length - 1); });
+    var Kuni = Infinity, menor = 0;
+    cols.forEach(function(c, i){ Kuni = Math.min(Kuni, disp[i] / (tots[i] || 1)); });
+    cols.forEach(function(c){ c.forEach(function(n){
+      if(n.outros || n.resto || n.valor <= 0) return;
+      if(!menor || n.valor < menor) menor = n.valor;
+    }); });
+    unica = !!menor && menor * Kuni >= MIN_NO_FX;
+    K = cols.map(function(c, i){ return unica ? Kuni : disp[i] / (tots[i] || 1); });
+  }
+  /* Nó que não ganha 9 px não cabe com o nome ao lado, e nó sem nome não diz nada: ele
+     desce para o "outros" da coluna dele, que conta quantos são e soma quanto. É a mesma
+     poda do fluxo de duas colunas. Com um partido escolhido, a coluna de doadores era um
+     diretório grande e nove traços mudos. */
+  function podar(c){
+    var nos = cols[c], k = K[c];
+    var some = nos.filter(function(n){ return !n.outros && !n.resto && medida(n) * k < 9; });
+    if(!some.length || nos.length - some.length < 2) return false;
+    var outro = nos.filter(function(n){ return n.outros; })[0];
+    if(!outro){ outro = {outros:1, qtd:0, valor:0, ve:0, vd:0}; }
+    some.forEach(function(n){
+      outro.qtd++; outro.valor += n.valor;
+      if(n.ve !== undefined){ outro.ve += n.ve; outro.vd += n.vd; }
+    });
+    if(outro.ve !== undefined && c === quebra) outro.valor = Math.max(outro.ve, outro.vd);
+    outro.nome = nomeDeOutros(c, outro.qtd);
+    var novos = nos.filter(function(n){ return !n.outros && !n.resto && some.indexOf(n) < 0; })
+      .concat([outro], nos.filter(function(n){ return n.resto; }));
+    var mapa = nos.map(function(n){ return novos.indexOf(some.indexOf(n) >= 0 ? outro : n); });
+    function remapeia(L, lado){
+      var somados = {}, saida = [];
+      L.forEach(function(l){
+        var a = lado === 0 ? mapa[l[0]] : l[0], b = lado === 1 ? mapa[l[1]] : l[1];
+        var ch = a + ':' + b;
+        if(somados[ch] === undefined){ somados[ch] = saida.length; saida.push([a, b, l[2]]); }
+        else saida[somados[ch]][2] += l[2];
+      });
+      return saida;
+    }
+    if(c > 0) ligs[c - 1] = remapeia(ligs[c - 1], 1);
+    if(c < N - 1) ligs[c] = remapeia(ligs[c], 0);
+    cols[c] = novos;
+    return true;
+  }
+  for(var volta = 0; volta < 3; volta++){
+    escala();
+    var podou = false;
+    for(var cc = 0; cc < N; cc++) if(podar(cc)) podou = true;
+    if(!podou) break;
+  }
+  escala();
+  cols.forEach(function(nos, i){
+    var y = 0;
+    nos.forEach(function(n){ n.h = Math.max(1.5, medida(n) * K[i]); n.y = y; y += n.h + gap; });
+    var sobra = H - (y - gap);
+    nos.forEach(function(n){ n.y += topo + (sobra > 0 ? sobra / 2 : 0); });
+  });
+  var x0 = lab + 8, x1 = W - lab - 8 - nw;
+  var xs = cols.map(function(c, i){ return x0 + i * (x1 - x0) / (N - 1); });
+  var passo = (x1 - x0) / (N - 1);
+  var chLado = Math.max(8, Math.floor(lab / 7.6));
+  var chMeio = Math.max(8, Math.floor((passo - nw - 24) / 7.4));
+  function corta(s, k){ return s.length > k ? s.slice(0, k - 1) + '…' : s; }
+  function fator(n){ return n.outros ? n.compr : 1; }
+  var svg = '<svg class="fluxo" viewBox="0 0 ' + W + ' ' + (H + topo + 4) + '" width="' + W +
+    '" height="' + (H + topo + 4) + '" role="img" aria-label="Diagrama de fluxo de quatro ' +
+    'colunas; os mesmos números estão na tabela logo abaixo">';
+  ['Doadores', 'Partidos', 'Candidaturas', 'Fornecedores'].forEach(function(t, i){
+    var anc = i === 0 ? 'end' : (i === N - 1 ? 'start' : 'middle');
+    var x = i === 0 ? xs[i] + nw : (i === N - 1 ? xs[i] : xs[i] + nw / 2);
+    svg += '<text class="cabfx" x="' + x + '" y="14" text-anchor="' + anc + '">' + t + '</text>';
+  });
+  var xq = xs[quebra] + nw / 2;
+  svg += '<text class="meia" x="' + (xq - 10) + '" y="36" text-anchor="end">← receita: ' + esc(moeda(m.tot[0])) + '</text>' +
+    '<text class="meia" x="' + (xq + 10) + '" y="36">gasto contratado: ' + esc(moeda(m.tot[1])) + ' →</text>' +
+    '<line class="corte" x1="' + xq + '" y1="42" x2="' + xq + '" y2="' + (H + topo + 4) + '"/>';
+  /* A ordem de saída de cada nó segue a dos destinos, e a de chegada segue a das
+     origens: é o que tira o cruzamento de dentro do próprio nó. */
+  ligs.forEach(function(L, g){
+    var A = cols[g], B = cols[g + 1], y0s = {}, y1s = {};
+    A.forEach(function(n){ n.offo = 0; });
+    B.forEach(function(n){ n.offi = 0; });
+    var idx = L.map(function(l, i){ return i; });
+    idx.slice().sort(function(p, q){ return L[p][0] - L[q][0] || L[p][1] - L[q][1]; })
+      .forEach(function(i){ var a = A[L[i][0]]; y0s[i] = a.y + a.offo; a.offo += L[i][2] * K[g] * fator(a); });
+    idx.slice().sort(function(p, q){ return L[p][1] - L[q][1] || L[p][0] - L[q][0]; })
+      .forEach(function(i){ var b = B[L[i][1]]; y1s[i] = b.y + b.offi; b.offi += L[i][2] * K[g + 1] * fator(b); });
+    var xa = xs[g] + nw, xb = xs[g + 1], xm = (xa + xb) / 2, gasto = g >= quebra;
+    L.forEach(function(l, i){
+      var a = A[l[0]], b = B[l[1]];
+      var t0 = l[2] * K[g] * fator(a), t1 = l[2] * K[g + 1] * fator(b), y0 = y0s[i], y1 = y1s[i];
+      var d = 'M' + xa + ',' + y0.toFixed(1) + ' C' + xm + ',' + y0.toFixed(1) + ' ' + xm + ',' + y1.toFixed(1) + ' ' + xb + ',' + y1.toFixed(1) +
+        ' L' + xb + ',' + (y1 + t1).toFixed(1) + ' C' + xm + ',' + (y1 + t1).toFixed(1) + ' ' + xm + ',' + (y0 + t0).toFixed(1) + ' ' + xa + ',' + (y0 + t0).toFixed(1) + ' Z';
+      var cls = (a.outros || b.outros ? 'outros' : '') + (gasto ? ' gasto' : '');
+      svg += '<path d="' + d + '" data-a="' + g + ':' + l[0] + '" data-b="' + (g + 1) + ':' + l[1] + '"' +
+        (cls.trim() ? ' class="' + cls.trim() + '"' : '') + '><title>' + esc(a.nome) + ' para ' + esc(b.nome) +
+        ': ' + esc(moedaCheia(l[2])) + (gasto ? ' de gasto contratado' : ' de receita') + '</title></path>';
+    });
+  });
+  cols.forEach(function(nos, i){
+    var primeira = i === 0, ultima = i === N - 1;
+    nos.forEach(function(n, j){
+      var x = xs[i], cy = n.y + n.h / 2;
+      var tx = primeira ? x - 8 : x + nw + 8;
+      var anc = primeira ? ' text-anchor="end"' : '';
+      var halo = (!primeira && !ultima) ? ' halo' : '';
+      var k = (primeira || ultima) ? chLado : chMeio;
+      var fraco = (n.outros || n.resto) ? ' outros' : '';
+      var corpo;
+      if(i === quebra){
+        var he = Math.max(1.5, n.ve * K[i] * fator(n)), hd = Math.max(1.5, n.vd * K[i] * fator(n));
+        corpo = '<rect class="no' + fraco + '" x="' + x + '" y="' + n.y.toFixed(1) + '" width="' + (nw / 2 - 0.5) + '" height="' + he.toFixed(1) + '"/>' +
+          '<rect class="no gasto' + fraco + '" x="' + (x + nw / 2 + 0.5) + '" y="' + n.y.toFixed(1) + '" width="' + (nw / 2 - 0.5) + '" height="' + hd.toFixed(1) + '"/>';
+      } else {
+        corpo = '<rect class="no' + fraco + (i > quebra ? ' gasto' : '') + '" x="' + x + '" y="' + n.y.toFixed(1) +
+          '" width="' + nw + '" height="' + n.h.toFixed(1) + '"/>';
+      }
+      /* a candidatura traz as duas medidas, na ordem das barras: receita | gasto */
+      var valor = i === quebra ? moeda(n.ve) + ' | ' + moeda(n.vd) : moeda(n.valor);
+      if(n.h >= 9) corpo += '<text class="rot' + halo + (fraco ? ' fraco' : '') + '" x="' + tx + '" y="' + (cy + 4).toFixed(1) + '"' + anc + '>' + esc(corta(n.nome, k)) + '</text>';
+      if(n.h >= 22) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc + '>' + esc(corta(valor, k + 4)) + '</text>';
+      if(n.outros && n.compr < 1 && n.h >= 36) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc + '>fora de escala</text>';
+      var titulo = '<title>' + esc(n.nome + ': ' + (i === quebra
+        ? 'receita de ' + moedaCheia(n.ve) + ' e gasto contratado de ' + moedaCheia(n.vd)
+        : moedaCheia(n.valor)) + (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '') +
+        (n.href ? '' : (n.outros || n.resto ? '. Este nó não abre nada' : '. Sem ficha própria'))) + '</title>';
+      var dados = ' data-no="' + i + ':' + j + '"';
+      svg += n.href
+        ? '<a class="fno" href="#' + esc(n.href) + '"' + dados + '>' + titulo + corpo + '</a>'
+        : '<g class="fno"' + dados + ' tabindex="0">' + titulo + corpo + '</g>';
+    });
+  });
+  svg += '</svg>';
+  var rot = ['Doador', 'Partido', 'Candidatura', 'Fornecedor'];
+  var tab = '<details class="tabfx"><summary><b>Ver como tabela</b></summary>' +
+    ['Receita: do doador para o partido', 'Receita: do partido para a candidatura',
+     'Gasto contratado: da candidatura para o fornecedor'].map(function(t, g){
+      return '<table><caption class="ocultavisual">' + esc(t) + '</caption><thead><tr><th scope="col">' + rot[g] +
+        '</th><th scope="col">' + rot[g + 1] + '</th><th scope="col">' + (g < 2 ? 'Receita' : 'Gasto') +
+        '</th></tr></thead><tbody>' + ligs[g].slice().sort(function(a, b){ return b[2] - a[2]; }).map(function(l){
+          return '<tr><td>' + esc(cols[g][l[0]].nome) + '</td><td>' + esc(cols[g + 1][l[1]].nome) +
+            '</td><td class="num">' + esc(moedaCheia(l[2])) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }).join('') + '</details>';
+  var temCompr = cols.some(function(c){ return c.some(function(n){ return n.compr < 1; }); });
+  var nota = '<p class="notafx"><b>As duas metades não medem o mesmo dinheiro.</b> Até as ' +
+    'candidaturas, a largura é a receita em dinheiro (' + esc(moeda(m.tot[0])) + '); delas para a ' +
+    'direita, é o gasto contratado (' + esc(moeda(m.tot[1])) + '). Cada candidatura tem duas barras, ' +
+    'uma para cada medida, e o fio tracejado marca onde uma troca pela outra.</p>' +
+    '<p class="notafx"><b>O desenho não segue o dinheiro de ponta a ponta.</b> Dentro da conta de uma ' +
+    'campanha o dinheiro se mistura, e o TSE não diz qual doação pagou qual despesa: uma faixa que ' +
+    'entra numa candidatura e outra que sai dela não são o mesmo real.</p>' +
+    '<p class="notafx">' + (unica ? 'As quatro colunas estão na mesma escala.'
+      : 'Cada coluna tem a sua escala: na escala da coluna mais cheia, os nós das outras não ' +
+        'caberiam com o nome ao lado.') +
+    (temCompr ? ' O nó "outros" entra fora de escala, com altura limitada, e o valor por extenso ' +
+                'fica no rótulo e na tabela.' : '') + '</p>';
+  host.innerHTML = svg + nota + tab;
+  ligarFluxoN(host.querySelector('svg.fluxo'));
+}
+/* Chegar a um nó acende as faixas que tocam nele, dos dois lados. */
+function ligarFluxoN(el){
+  if(!el) return;
+  function marca(id){
+    el.classList.add('hl');
+    var ps = el.querySelectorAll('path');
+    for(var i = 0; i < ps.length; i++){
+      ps[i].classList.toggle('on', ps[i].getAttribute('data-a') === id || ps[i].getAttribute('data-b') === id);
+    }
+  }
+  function limpa(){ el.classList.remove('hl'); }
+  var nos = el.querySelectorAll('.fno');
+  for(var i = 0; i < nos.length; i++){
+    (function(n){
+      var id = n.getAttribute('data-no');
+      n.addEventListener('mouseenter', function(){ marca(id); });
+      n.addEventListener('mouseleave', limpa);
+      n.addEventListener('focus', function(){ marca(id); });
+      n.addEventListener('blur', limpa);
+    })(nos[i]);
+  }
+}
+/* O cartão do fluxo longo, ou null quando ele não vale para os filtros de agora e quem
+   fica no lugar é o fluxo de duas colunas. */
+function cartaoFluxoLongo(){
+  var tit = 'De quem doou a quem recebeu';
+  var sub = 'doadores, partidos, as maiores candidaturas e os maiores fornecedores; a receita ' +
+    'até a candidatura e o gasto depois dela';
+  var ef = erros.flx;
+  if(ef && ef.u === ufDaTela()){
+    return cartaoGeral(tit, sub, ef.s === 404
+      ? '<p class="notafx">' + esc('O fluxo longo ' + ondeUF(ufDaTela()) + ' ainda não foi publicado nesta versão dos dados.') + '</p>'
+      : '<div class="erro"><p>Não foi possível carregar o fluxo longo.</p><button class="bt" data-act="retryflx">Tentar de novo</button></div>');
+  }
+  if(!FLX || FLX.uf !== ufDaTela()){
+    if(flxEmVoo !== ufDaTela()) carregarFluxo();
+    return cartaoGeral(tit, sub, skCartao());
+  }
+  var r = recorteDoFluxo();
+  if(!r || !r.lig[0].length && !r.lig[2].length) return null;
+  fluxosPendentes.push({longo:montaFluxoLongo(r), id:'fx3'});
+  return cartaoGeral(tit, sub,
+    (noTipo() ? '<p class="notafx">O fluxo longo não se divide por tipo de despesa: este é o do ' +
+                'recorte inteiro, sem o filtro de tipo.</p>' : '') +
+    '<div id="fx3" class="hostfx"></div>');
+}
 var fluxosPendentes = [], ultimaLargura = 0;
 function desenharFluxos(){
   /* a largura em que esta tela foi desenhada. Ela mora aqui, e não no ouvinte de
@@ -2929,7 +3268,10 @@ function desenharFluxos(){
      ele envelhecia enquanto a pessoa estava noutra aba, deixando um desenho largo dentro
      de uma janela estreita. */
   ultimaLargura = window.innerWidth;
-  fluxosPendentes.forEach(function(f){ fluxoDuasColunas(f.esq, f.dir, f.ligs, f.id); });
+  fluxosPendentes.forEach(function(f){
+    if(f.longo) fluxoLongoDesenho(f.longo, f.id);
+    else fluxoDuasColunas(f.esq, f.dir, f.ligs, f.id);
+  });
 }
 /* ---- o alinhamento, que é por corte e não por ar ----
 
@@ -2947,20 +3289,25 @@ function temLargura(px){
   try{ return window.matchMedia('(min-width:' + px + 'px)').matches; }
   catch(e){ return window.innerWidth >= px; }
 }
+/* Duas grades, com os fluxos entre elas: em cima quem disputa, embaixo o que foi gasto. */
 function cartoesDaGeral(lista, total){
   return cartaoCargosGeral(lista, total) +
          cartaoEstadosGeral(lista, total) +
          cartaoPartidosGeral(lista, total) +
-         cartaoCandidaturasGeral(lista, total) +
-         cartaoAnel(lista) +
+         cartaoCandidaturasGeral(lista, total);
+}
+function cartoesDeBaixo(lista){
+  return cartaoAnel(lista) +
          cartaoTiposGeral(lista) +
          cartaoFornecedoresGeral();
 }
 /* A altura que o cartão teria sem esticar, a altura de uma linha da lista dele, e se ele
    tem lista. Sem a subtração da sobra, a medida seria a do cartão já esticado pela grade,
-   e o alinhamento perseguiria o próprio rabo. */
-function corpoDoCartao(sel){
-  var sec = document.querySelector('#gradeg > ' + sel);
+   e o alinhamento perseguiria o próprio rabo. O alinhamento precisa saber em que grade o
+   cartão está: medir na grade errada devolvia nada, e o bloco de baixo deixava de alinhar
+   em silêncio. */
+function corpoDoCartao(sel, grade){
+  var sec = document.querySelector('#' + (grade || 'gradeg') + ' > ' + sel);
   if(!sec) return null;
   var caixa = sec.getBoundingClientRect().height;
   var ul = sec.querySelector('.blist');
@@ -3014,8 +3361,8 @@ function alinhar(passe){
        tipos, ou a de fornecedores, conforme qual dos dois lados passou do alvo. Um cartão
        de fornecedor em erro ou em esqueleto não tem lista e não define alvo nenhum: uma
        falha de rede passageira não pode encolher o cartão do vizinho. */
-    var an = corpoDoCartao('.p-anel'), t = corpoDoCartao('.p-tipos'),
-        f = corpoDoCartao('.p-forn');
+    var an = corpoDoCartao('.p-anel', 'gradeb'), t = corpoDoCartao('.p-tipos', 'gradeb'),
+        f = corpoDoCartao('.p-forn', 'gradeb');
     if(an && t && f && f.lista){
       var alvoB = Math.min(f.alt, an.alt + t.alt + GAP_GRADE);
       if(ajustaLinhas(f, 'forn', f.alt - alvoB, so)) mudou = true;
@@ -3082,25 +3429,34 @@ function viewGeral(){
     'e tocar num partido filtra a tela inteira',
     '<div id="fx1" class="hostfx"></div>');
   fluxosPendentes.push({esq:f1.esq, dir:f1.dir, ligs:f1.ligs, id:'fx1'});
-  var falha2 = erroDeFornecedor();
-  var f2 = falha2 ? null : fluxoFornecedores(lista);
-  h += cartaoGeral('Do partido para os maiores fornecedores',
-    'fornecedores com o maior valor contratado; a divisão por partido é exata para os listados',
-    falha2 || (f2 ? '<div id="fx2" class="hostfx"></div>' : skCartao()));
-  if(f2) fluxosPendentes.push({esq:f2.esq, dir:f2.dir, ligs:f2.ligs, id:'fx2'});
-  h += '</div><p class="rodape-geral">Cada barra é o gasto contratado no recorte. ' +
-    'Toque numa barra para filtrar; a lista das cinco dimensões obedece ao mesmo filtro. ' +
+  /* O fluxo longo na tela larga; abaixo de 1000 px, ou com partido e cargo ligados ao
+     mesmo tempo (a célula não existe no arquivo), o de duas colunas fica no lugar. */
+  var longo = temLargura(1000) ? cartaoFluxoLongo() : null;
+  if(longo){
+    h += longo;
+  } else {
+    var falha2 = erroDeFornecedor();
+    var f2 = falha2 ? null : fluxoFornecedores(lista);
+    h += cartaoGeral('Do partido para os maiores fornecedores',
+      'fornecedores com o maior valor contratado; a divisão por partido é exata para os listados',
+      falha2 || (f2 ? '<div id="fx2" class="hostfx"></div>' : skCartao()));
+    if(f2) fluxosPendentes.push({esq:f2.esq, dir:f2.dir, ligs:f2.ligs, id:'fx2'});
+  }
+  h += '</div><div class="grade" id="gradeb">' + cartoesDeBaixo(lista) + '</div>' +
+    '<p class="rodape-geral">Cada barra é o gasto contratado no recorte. ' +
+    'Toque numa barra para filtrar; a lista das seis dimensões obedece ao mesmo filtro. ' +
     'O título de cada cartão abre a aba daquela dimensão, levando o filtro junto. ' +
     'Sem sinal nem índice aqui: quem presta contas é a candidatura.</p>';
   porResumo(blocoResumo(lista));
   h += '</section></div></div>';
   m.innerHTML = h;
-  /* Medir, cortar, e só então desenhar. Os dois fluxos são a parte cara desta tela, e o
-     alinhamento reescreve só a grade dos cartões, com os dois hosts de fluxo ainda
+  /* Medir, cortar, e só então desenhar. Os fluxos são a parte cara desta tela, e o
+     alinhamento reescreve só as duas grades de cartões, com os hosts de fluxo ainda
      vazios: assim cada sankey é desenhado uma vez, não uma por passada. */
-  var g = document.getElementById('gradeg'), passe = 0;
+  var g = document.getElementById('gradeg'), gb = document.getElementById('gradeb'), passe = 0;
   while(passe < 4 && alinhar(passe)){
     g.innerHTML = cartoesDaGeral(lista, total);
+    gb.innerHTML = cartoesDeBaixo(lista);
     passe++;
   }
   desenharFluxos();
@@ -4167,6 +4523,7 @@ document.addEventListener('click', function(e){
   if(a === 'retryforn'){ erros.forn = null; carregarFornBloco(); render(); return; }
   if(a === 'retryfrc'){ erros.frc = null; carregarFornRecorte(); render(); return; }
   if(a === 'retrydrc'){ erros.drc = null; carregarDoadorRecorte(); render(); return; }
+  if(a === 'retryflx'){ erros.flx = null; carregarFluxo(); render(); return; }
   /* o tipo de quem doou: tocar no que está em vigor volta para todos */
   if(a === 'dt'){
     var ndt = t.getAttribute('data-v');
