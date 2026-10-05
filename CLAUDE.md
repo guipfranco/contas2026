@@ -70,16 +70,18 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 - **Fornecedor cruzado com tipo de despesa é a única conta da visão geral que o front não refaz, e por isso existe `forn-cruzado/`.** Um arquivo por unidade, com o topo de fornecedores de cada tipo em cada recorte (geral, partido, cargo, célula) e, para os 12 maiores de cada recorte, a divisão exata do valor por partido, que é o que desenha o fluxo. Os fornecedores moram num dicionário local do arquivo e as listas carregam o índice dele: o mesmo fornecedor aparece em dezenas de listas, e repetir nome e endereço em cada uma multiplicaria o arquivo. A entrada não tem documento, nem mascarado. **Ele cresce pelo produto dos dois eixos, não pela soma**: se `LIMITE_FORN_CRUZADO_MB` estourar, o primeiro corte é o da célula, em `TOPO_CRUZADO_CELULA`.
 - **`CONTAS_SAL` é a chave que protege o CPF.** O identificador de pessoa física é um HMAC com essa chave, que vem do ambiente e nunca do repositório. No GitHub Actions ela é um secret; sem ela, `ident.py` usa um sal declarado no código e o identificador vira reversível por força bruta. **Rodada de produção sem `CONTAS_SAL` não deve publicar ficha de pessoa física.**
 
-## O estado da publicacao, em 18/09/2026
+## O estado da publicação, em 05/10/2026
 
-**O agendamento está pausado, e a publicação é à mão** `[decidido, Guilherme
-18/09/2026]`. Os dois `cron` de `diario.yml` estão comentados enquanto a tela das cinco
-dimensões está sendo fechada: o site não se atualiza sozinho no meio de uma mudança. O
-workflow continua **habilitado**, porque quem publica agora é `gh workflow run
-diario.yml`, e voltar ao automático é descomentar os dois `cron`, sem reabilitar nada.
+**O agendamento voltou** `[decidido, Guilherme 05/10/2026]`. Os dois `cron` de
+`diario.yml` ficaram comentados de 18/09 a 05/10, enquanto a tela das cinco dimensões
+era fechada, e o site passou o fim do primeiro turno parado no que foi publicado à mão
+em 21/09. Agora a rodada roda às 06h30 e às 12h de Brasília. Para pausar de novo,
+comente os dois `cron`; `gh workflow run diario.yml` publica à mão nos dois casos.
 
-Com `sem_receita=true` a rodada leva dois minutos e usa o cache de CNPJ já coletado; sem
-a opção, ela gasta 80 minutos consultando a Receita e só então publica. **O cache só é
+A fila de CNPJ da Receita zerou em 21/09, com 46.489 no cache: a rodada agendada só
+consulta quem entrou no TSE desde a anterior. Com `sem_receita=true` a rodada leva dois
+minutos e usa o cache de CNPJ já coletado; com a fila cheia, ela chegava a 80 minutos
+consultando a Receita antes de publicar. **O cache só é
 gravado na branch `dados` no fim da rodada**: cancelar uma rodada no meio perde o que ela
 consultou até ali. O secret `CONTAS_SAL` existe no repositório desde 18/09.
 
