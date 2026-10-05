@@ -257,7 +257,9 @@ def main(argv=None):
                 for unidade, recorte in sorted(recortes.items()))
     passo(t0, f'recorte de fornecedor em {len(recortes)} arquivos, '
               f'{b_rec / 1e6:.2f} MB')
-    rec_doador = A.recorte_doadores(aggs)
+    rec_doador = A.recorte_doadores(
+        aggs, lambda d: (nac.doadores.get(d) or ('',) * 6)[5]
+        or A.tipo_doador('', d))
     b_doa = sum(E.escrever_doador_recorte(unidade, recorte, nac, dics, a.site)
                 for unidade, recorte in sorted(rec_doador.items()))
     passo(t0, f'recorte de doador em {len(rec_doador)} arquivos, '

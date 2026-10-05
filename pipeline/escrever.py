@@ -396,6 +396,27 @@ def _n_blocos(quantos, por_bloco=FORN_POR_BLOCO, minimo=16):
     return n
 
 
+SOCIO_CANDS = 3     # quantas campanhas que pagaram a empresa a ficha da pessoa cita
+
+
+def _empresa_do_socio(cnpj, qualif, receita, nac, aggs, vazio):
+    """[cnpj, nome, qualificacao, recebido, campanhas, situacao, maiores pagantes].
+
+    O que a ficha da pessoa mostra de cada empresa em que ela consta como socia,
+    para nao obrigar a abrir outra ficha so para saber o tamanho do vinculo.
+    """
+    cad = receita.get(cnpj) or {}
+    e = nac.fornecedores.get(cnpj) or vazio
+    pagantes = sorted(nac.forn_cands.get(cnpj, {}).items(), key=lambda kv: (-kv[1], kv[0]))
+    cands = []
+    for sq, valor in pagantes[:SOCIO_CANDS]:
+        a = aggs.get(sq)
+        if a:
+            cands.append([sq, a.nome, a.uf, a.cargo, a.partido, valor])
+    return [cnpj, curto(cad.get('razao_social') or e[2] or 'Não informado', 60),
+            qualif, e[0], e[5], cad.get('situacao_cadastral') or '', cands]
+
+
 def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
                                  destino, por_bloco=FORN_POR_BLOCO):
     """A ficha de quem recebeu dinheiro de campanha, em blocos.
@@ -492,10 +513,7 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
             if achadas:
                 n_socio += 1
                 ficha['socio_de'] = sorted(
-                    ([cnpj, curto((receita.get(cnpj) or {}).get('razao_social')
-                                  or (nac.fornecedores.get(cnpj) or vazio)[2]
-                                  or 'Não informado', 60),
-                      qualif, (nac.fornecedores.get(cnpj) or vazio)[0]]
+                    (_empresa_do_socio(cnpj, qualif, receita, nac, aggs, vazio)
                      for cnpj, qualif in achadas),
                     key=lambda s: (-s[3], s[0]))
         nome_cnae = (cnae_nome.get(e[4]) or '')[:60] if e[4] else ''
@@ -598,9 +616,12 @@ def escrever_doador_recorte(unidade, recorte, nac, dics, destino, com_chave=None
     tipo]. O valor, as campanhas e as doacoes sao os DO RECORTE; o nome, o
     documento, o tipo e a ficha vem do cadastro nacional.
 
-    O tipo e o selo da lista: 'partido', 'campanha', 'empresa' ou 'pf'. Medido
+    O tipo e o selo da lista: 'partido', 'campanha', 'coletivo', 'empresa' ou
+    'pf', o vocabulario de `agregar.TIPOS_DOADOR`. Medido
     em Roraima: 98 % do valor dos maiores doadores e repasse partidario, e sem
-    o selo a lista seria so partido, sem a pessoa fisica aparecer nunca.
+    o selo a lista seria so partido, sem a pessoa fisica aparecer nunca. Por
+    isso a chave 'tipos' traz, para cada tipo, as listas geral, por partido e
+    por cargo so dele.
     """
     dpart = dics['partido']
 
@@ -619,6 +640,16 @@ def escrever_doador_recorte(unidade, recorte, nac, dics, destino, com_chave=None
     def lista(itens):
         return [entrada(d, e) for d, e in itens]
 
+    # As listas de cada tipo, na mesma forma, sem a celula: a lista geral e quase
+    # so partido, e a pessoa fisica so aparece numa lista que seja so dela
+    tipos = {}
+    for tipo, r in (recorte.get('tipos') or {}).items():
+        tipos[tipo] = {
+            'geral': lista(r['geral']),
+            'partido': {str(dpart.id(p)): lista(v) for p, v in r['partido'].items()},
+            'cargo': {c: lista(v) for c, v in r['cargo'].items()},
+            'fora': {_chave_fora(k, dpart): v for k, v in r['fora'].items()},
+        }
     return grava(os.path.join(destino, 'doador-recorte', f'{unidade}.json'), {
         'uf': unidade,
         'geral': lista(recorte['geral']),
@@ -629,6 +660,7 @@ def escrever_doador_recorte(unidade, recorte, nac, dics, destino, com_chave=None
         'celula': {f'{dpart.id(p)}:{c}': lista(v)
                    for (p, c), v in recorte['celula'].items()},
         'fora': {_chave_fora(k, dpart): v for k, v in recorte['fora'].items()},
+        'tipos': tipos,
     })
 
 

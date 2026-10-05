@@ -558,6 +558,22 @@ class TestRedacaoDoSite(unittest.TestCase):
                     achados.append((p, t[:70]))
         self.assertEqual(achados, [], f'{len(achados)} textos com palavra proibida')
 
+    def test_o_front_aceita_o_identificador_que_o_pipeline_escreve(self):
+        """De 18/09 a 05/10 nenhuma ficha de pessoa fisica abriu.
+
+        O pipeline passou o identificador de 12 para 16 hex e a expressao do
+        front ficou em 12: todo link de pessoa fisica voltava para a lista.
+        """
+        import re
+        from pipeline.ident import TAMANHO, ident
+        m = re.search(r"S\.forn = /(.+?)/\.test", self.fonte)
+        self.assertIsNotNone(m, 'a expressao do identificador sumiu do front')
+        js = re.compile(m.group(1))
+        pf = ident('11144477735')
+        self.assertEqual(len(pf), 1 + TAMANHO)
+        self.assertTrue(js.match(pf), f'o front recusa {pf}')
+        self.assertTrue(js.match('11222333000181'))
+
     def test_a_tela_nunca_usa_travessao(self):
         for marca in ('—', '–'):
             self.assertNotIn(marca, self.fonte, f'travessao {marca!r} no site')
@@ -1723,7 +1739,8 @@ class TestQuemDoou(unittest.TestCase):
                                                        '***444777**'))
         f = abre(self.CPF)
         self.assertEqual(f['socio_de'],
-                         [[self.CNPJ, 'GRAFICA BOA LTDA', 'Sócia', 500000]])
+                         [[self.CNPJ, 'GRAFICA BOA LTDA', 'Sócia', 500000, 1, '',
+                           [['111', 'CANDIDATO UM', 'RR', '6', 'ZZ', 500000]]]])
 
     def test_nome_igual_com_digitos_diferentes_nao_liga_ninguem(self):
         self._doa(self.CPF, 5000000)
@@ -1749,7 +1766,13 @@ class TestQuemDoou(unittest.TestCase):
         self.assertEqual(A.tipo_doador('Recursos de outros candidatos', self.CNPJ), 'campanha')
         self.assertEqual(A.tipo_doador('Recursos de pessoas físicas', self.CPF), 'pf')
         self.assertEqual(A.tipo_doador('Recursos próprios', self.CPF), 'pf')
-        self.assertEqual(A.tipo_doador('Doações pela Internet', self.CNPJ), 'empresa')
+        # empresa nao doa desde 2015: o CNPJ que doa e a plataforma que repassa
+        self.assertEqual(A.tipo_doador('Recursos de Financiamento Coletivo', self.CNPJ),
+                         'coletivo')
+        self.assertEqual(A.tipo_doador('Doações pela Internet', self.CNPJ), 'coletivo')
+        self.assertEqual(A.tipo_doador('Doações pela Internet', self.CPF), 'pf')
+        self.assertEqual(A.tipo_doador('Recursos de origens não identificadas', self.CNPJ),
+                         'empresa')
 
     def test_a_ficha_do_candidato_liga_o_fornecedor_pelo_total_nacional(self):
         """R$ 3 mil desta candidatura, R$ 50 mil no pais: o link existe."""
@@ -1774,7 +1797,8 @@ class TestRecorteDeDoador(unittest.TestCase):
         dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
         E.escrever_uf('RR', list(cls.aggs.values()), {}, dics, cls.tmp)
         cls.rec = {}
-        for unidade, recorte in A.recorte_doadores(cls.aggs).items():
+        tipo_de = lambda d: cls.nac.doadores[d][5]       # noqa: E731
+        for unidade, recorte in A.recorte_doadores(cls.aggs, tipo_de).items():
             E.escrever_doador_recorte(unidade, recorte, cls.nac, dics, cls.tmp)
             cls.rec[unidade] = json.load(open(
                 os.path.join(cls.tmp, 'doador-recorte', f'{unidade}.json'),
@@ -1800,6 +1824,24 @@ class TestRecorteDeDoador(unittest.TestCase):
         self.assertEqual({len(e) for e in r['geral']}, {9})
         self.assertEqual(r['geral'][0][8], 'partido')
         self.assertIn('pf', {e[8] for e in r['geral']})
+
+    def test_a_pessoa_fisica_tem_lista_propria_e_os_tipos_somam_o_recorte(self):
+        """A lista de cada tipo concorda com a geral, e os tipos somam o recorte.
+
+        Roraima tem 464 doadores, e a lista geral de 200 ainda alcanca a pessoa
+        fisica. No pais nao alcanca: sao uns 800 diretorios de partido, cada um
+        repassando milhoes, e e para isso que a lista de cada tipo existe.
+        """
+        r = self.rec['RR']
+        _, total = V._checar_recorte('RR', r, self.n_part, set(A.CARGOS_PAINEL),
+                                     True, campos=9)
+        self.assertEqual(V._checar_tipos_doador('RR', r, self.n_part,
+                                                set(A.CARGOS_PAINEL), True, total), [])
+        pf = r['tipos']['pf']['geral']
+        self.assertEqual(len(pf), A.TOPO_DOADOR_TIPO_GERAL)
+        self.assertEqual({e[8] for e in pf}, {'pf'})
+        do_geral = [e for e in r['geral'] if e[8] == 'pf'][:len(pf)]
+        self.assertEqual([e[4] for e in do_geral], [e[4] for e in pf])
 
     def test_sem_a_chave_nenhuma_pessoa_fisica_ganha_endereco(self):
         for e in self.rec['BRASIL']['geral']:

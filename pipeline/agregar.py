@@ -178,10 +178,15 @@ class Nacional:
         self.docs_vistos.clear()
 
 
-# O tipo de quem doou, pela origem que o TSE declara na receita. Sao quatro, e a
-# ordem e de precedencia: um CNPJ que repassou como partido e partido, mesmo que
-# outra linha dele venha com outra origem.
-TIPOS_DOADOR = ('partido', 'campanha', 'empresa', 'pf')
+# O tipo de quem doou, pela origem que o TSE declara na receita. A ordem e de
+# precedencia: um CNPJ que repassou como partido e partido, mesmo que outra linha
+# dele venha com outra origem.
+#
+# 'coletivo' existe porque empresa nao pode doar a campanha desde 2015, e o CNPJ
+# que aparece doando e, em geral, a plataforma de financiamento coletivo que
+# repassa o que pessoas doaram: em Roraima, o unico e a QueroApoiar. Um selo de
+# "empresa" ali leria como doacao proibida.
+TIPOS_DOADOR = ('partido', 'campanha', 'coletivo', 'empresa', 'pf')
 
 
 def tipo_doador(origem, doc):
@@ -190,7 +195,11 @@ def tipo_doador(origem, doc):
         return 'partido'
     if 'outros candidatos' in o:
         return 'campanha'
-    return 'empresa' if len(doc) == 14 else 'pf'
+    if len(doc) != 14:
+        return 'pf'
+    if 'coletivo' in o or 'internet' in o:
+        return 'coletivo'
+    return 'empresa'
 
 
 def _bota_forn(mapa, doc, valor, nome, tipo_forn, cnae, sq_cand_forn='', tipo=''):
@@ -557,15 +566,71 @@ def recorte_fornecedores(aggs):
     return _recorte(aggs, 'por_forn')
 
 
-def recorte_doadores(aggs):
-    """Quem doou, por unidade e por recorte de partido e cargo.
+# Quantos doadores cada lista POR TIPO carrega. A lista geral de doador e quase
+# so partido (em Roraima, 98 % do valor dos maiores e repasse partidario), e a
+# pessoa fisica nunca chegaria ao topo dela: filtrar o topo no aparelho nao
+# acharia ninguem. Por isso cada tipo tem as proprias listas, mais curtas, e sem
+# a celula partido mais cargo, que e a chave mais numerosa: com ela o arquivo do
+# pais passaria do limite do validador.
+TOPO_DOADOR_TIPO_GERAL = 100
+TOPO_DOADOR_TIPO_PARTIDO = 30
+TOPO_DOADOR_TIPO_CARGO = 30
+
+
+def recorte_doadores(aggs, tipo_de):
+    """Quem doou, por unidade e por recorte de partido e cargo, e por tipo.
 
     O irmao de `recorte_fornecedores`, e pelo mesmo motivo: a linha do ranking
     nao diz quem doou, e 52 mil fichas de doador nao cabem no aparelho de
     ninguem. Os topos sao os mesmos, e a soma inclui a receita estimavel,
     porque doacao em bens e servicos tambem e doacao.
+
+    `tipo_de(doc)` diz o tipo de cada doador, e cada unidade ganha a chave
+    'tipos' com as listas de cada um.
     """
-    return _recorte(aggs, 'por_doador')
+    saida = {}
+    nacional = collections.defaultdict(dict)
+    for uf, lista in por_uf(aggs).items():
+        celulas = _celulas(lista, 'por_doador')
+        saida[uf] = _cortar_recorte(celulas)
+        saida[uf]['tipos'] = _cortar_por_tipo(celulas, tipo_de)
+        for chave, mapa in celulas.items():
+            _funde_no(nacional[chave], mapa)
+    saida['BRASIL'] = _cortar_recorte(nacional)
+    saida['BRASIL']['tipos'] = _cortar_por_tipo(nacional, tipo_de)
+    return saida
+
+
+def _cortar_por_tipo(celulas, tipo_de):
+    """{tipo: {'geral', 'partido', 'cargo', 'fora'}}, com a mesma conta de fora."""
+    saida = {}
+    for tipo in TIPOS_DOADOR:
+        geral, partido, cargo = {}, collections.defaultdict(dict), collections.defaultdict(dict)
+        for (p, c), mapa in celulas.items():
+            so = {d: e for d, e in mapa.items() if tipo_de(d) == tipo}
+            if not so:
+                continue
+            _funde_no(geral, so)
+            _funde_no(partido[p], so)
+            _funde_no(cargo[c], so)
+        if not geral:
+            continue
+        fora = {}
+
+        def corta(mapa, quantos, chave):
+            lista, sobra = _topo(mapa, quantos)
+            if sobra:
+                fora[chave] = sobra
+            return lista
+        saida[tipo] = {
+            'geral': corta(geral, TOPO_DOADOR_TIPO_GERAL, 'geral'),
+            'partido': {p: corta(m, TOPO_DOADOR_TIPO_PARTIDO, ('p', p))
+                        for p, m in sorted(partido.items())},
+            'cargo': {c: corta(m, TOPO_DOADOR_TIPO_CARGO, ('c', c))
+                      for c, m in sorted(cargo.items())},
+            'fora': fora,
+        }
+    return saida
 
 
 def _recorte(aggs, campo):

@@ -18,7 +18,7 @@ LIMITE_INDICE_MB = 3.0
 LIMITE_RECORTE_MB = 2.0
 # O irmao, para quem doou: mesmos topos, um campo a mais por entrada (o tipo).
 LIMITE_DOADOR_RECORTE_MB = 2.0
-TIPOS_DOADOR = ('partido', 'campanha', 'empresa', 'pf')
+TIPOS_DOADOR = ('partido', 'campanha', 'coletivo', 'empresa', 'pf')
 # O cruzado multiplica fornecedores por tipos de despesa, entao ele cresce pelo
 # produto dos dois eixos e nao pela soma. Se estourar, o primeiro corte e o da
 # celula, em TOPO_CRUZADO_CELULA.
@@ -153,6 +153,53 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas, campos=8):
         if not ruim and somado != total:
             erros.append(f'{rel}: por celula soma {somado}, o geral {total}')
     return erros, total
+
+
+def _checar_tipos_doador(rel, d, n_part, cargos, sem_pessoas, total):
+    """As listas de cada tipo de doador, que existem para a pessoa fisica aparecer.
+
+    Cada tipo soma o mesmo pelo geral, por partido e por cargo, cada entrada traz
+    o proprio tipo, e os tipos juntos somam o recorte inteiro.
+    """
+    erros = []
+    tipos = d.get('tipos')
+    if not isinstance(tipos, dict):
+        return [f'{rel}: sem a chave \'tipos\'']
+    soma_tipos = 0
+    for tipo, r in tipos.items():
+        if tipo not in TIPOS_DOADOR:
+            erros.append(f'{rel}: tipo {tipo!r} fora de {TIPOS_DOADOR}')
+            continue
+        fora = r.get('fora') or {}
+        somas = {}
+        for chave, grupos in (('geral', {'': r.get('geral') or []}),
+                              ('partido', r.get('partido') or {}),
+                              ('cargo', r.get('cargo') or {})):
+            s = 0
+            for k, itens in grupos.items():
+                if chave == 'partido' and not (k.isdigit() and int(k) < n_part):
+                    erros.append(f'{rel}: tipos.{tipo}: partido {k!r} fora do dicionario')
+                if chave == 'cargo' and k not in cargos:
+                    erros.append(f'{rel}: tipos.{tipo}: cargo {k!r} fora do meta')
+                for e in itens:
+                    queixa = _queixa_da_entrada(e, sem_pessoas, 9)
+                    if not queixa and e[8] != tipo:
+                        queixa = f'entrada de tipo {e[8]!r} na lista de {tipo!r}'
+                    if queixa:
+                        erros.append(f'{rel}: tipos.{tipo}: {queixa}')
+                        return erros
+                    s += e[4]
+                sobra = fora.get('geral' if chave == 'geral' else
+                                 (f'p:{k}' if chave == 'partido' else f'c:{k}'))
+                if sobra:
+                    s += sobra[1]
+            somas[chave] = s
+        if len(set(somas.values())) != 1:
+            erros.append(f'{rel}: tipos.{tipo} soma {somas}')
+        soma_tipos += somas.get('geral', 0)
+    if soma_tipos != total:
+        erros.append(f'{rel}: os tipos somam {soma_tipos}, o recorte {total}')
+    return erros
 
 
 def _checar_tipos_brasil(rel, d, linhas_br, n_tipo):
@@ -539,6 +586,8 @@ def validar(pasta):
         do_arquivo, total = _checar_recorte(rel, d, n_part, cargos_meta,
                                             sem_pessoas, campos=9)
         erros.extend(do_arquivo)
+        erros.extend(_checar_tipos_doador(rel, d, n_part, cargos_meta,
+                                          sem_pessoas, total))
         total_doador[unidade] = total
         # o mesmo endereco nao pode ter ficha numa lista e nao ter na outra
         alvo = fichas_por_unidade.setdefault(unidade, {})

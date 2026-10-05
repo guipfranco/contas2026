@@ -106,6 +106,26 @@
     --fc:#5CC4CC;
   }
 }
+/* O selo de tipo de quem doou (.tdoa, porque .selo é o do sinal). Cinco cores frias e
+   distintas entre si, e nenhuma
+   pertence à escala do sinal (amarelo, âmbar, laranja) nem identifica partido: elas
+   dizem que natureza tem aquele nome, e nada sobre o dinheiro. */
+:root{
+  --s-pf:#ECEAFB; --s-pfb:#B9B2EC; --s-pft:#3E36A0;
+  --s-pj:#E3F0F2; --s-pjb:#9CC6CB; --s-pjt:#0E6E78;
+  --s-pa:#EDEFF4; --s-pab:#C3CAD8; --s-pat:#4A5264;
+  --s-ca:#E4EDF7; --s-cab:#AEC6DF; --s-cat:#2C5980;
+  --s-co:#E9EEF0; --s-cob:#B4C3C8; --s-cot:#3D5A63;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --s-pf:#25224a; --s-pfb:#5a52b8; --s-pft:#c9c4f7;
+    --s-pj:#123036; --s-pjb:#2f7d85; --s-pjt:#a6dde2;
+    --s-pa:#232a38; --s-pab:#4a5468; --s-pat:#c3cad8;
+    --s-ca:#16273a; --s-cab:#3a6590; --s-cat:#b3cde8;
+    --s-co:#1c2629; --s-cob:#4b6168; --s-cot:#b9ccd1;
+  }
+}
 *{box-sizing:border-box}
 /* O corte horizontal fica só no html, que propaga para a viewport. No body ele criava um
    container de rolagem próprio, e ali todo position:sticky da página parava de grudar sem
@@ -782,6 +802,56 @@ footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
 .abas button[aria-current="page"]{background:var(--ac2);color:var(--ac2tx);font-weight:700}
 .abas button[disabled]{opacity:.4;cursor:default}
 @media(max-width:399px){.abas button{padding:0 2px;font-size:12px}}
+/* Com a sexta dimensão, de doador, são sete fatias, e abaixo de 560 px cada uma ficava
+   com 47 px: "Fornecedor" saía cortado. Ali o segmentado vira duas linhas de quatro, e a
+   última fatia ocupa as duas casas que sobram. */
+@media(max-width:559px){
+  .abas{display:grid;grid-template-columns:repeat(4,1fr)}
+  .abas button{border-bottom:1px solid var(--b)}
+  .abas button:nth-child(4){border-right:0}
+  .abas button:nth-child(n+5){border-bottom:0}
+  .abas button:last-child{grid-column:span 2}
+}
+.tdoa{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;
+  text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap;
+  vertical-align:1px}
+.tdoa.pf{background:var(--s-pf);border-color:var(--s-pfb);color:var(--s-pft)}
+.tdoa.empresa{background:var(--s-pj);border-color:var(--s-pjb);color:var(--s-pjt)}
+.tdoa.partido{background:var(--s-pa);border-color:var(--s-pab);color:var(--s-pat)}
+.tdoa.campanha{background:var(--s-ca);border-color:var(--s-cab);color:var(--s-cat)}
+.tdoa.coletivo{background:var(--s-co);border-color:var(--s-cob);color:var(--s-cot)}
+.r-selo{grid-area:chips;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;
+  font-size:12.5px;color:var(--mut);min-width:0}
+/* Os tipos de doador, logo acima da lista. São filtro desta dimensão, e não da barra:
+   em nenhuma outra tela o tipo de quem doou recorta alguma coisa. */
+.tiposd{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;padding:0 var(--gut)}
+.tiposd button{border:1px solid var(--b2);background:var(--sf);border-radius:999px;
+  padding:6px 12px;min-height:36px;font-size:13px;color:var(--ink)}
+.tiposd button b{font-weight:700;margin-left:4px}
+.tiposd button[aria-pressed="true"]{background:var(--acsf);border-color:var(--ac);color:var(--ac);font-weight:600}
+/* no celular a fileira rola de lado: quebrada, ela ocupava meia tela antes da lista */
+@media(max-width:559px){
+  .tiposd{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .tiposd button{flex:none;white-space:nowrap}
+}
+/* A ficha de quem aparece no dinheiro: os papéis lado a lado, cada um com o seu valor,
+   nunca somados num total. */
+.papeis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;
+  padding:12px var(--gut) 14px}
+.papel{border:1px solid var(--b);border-radius:8px;padding:12px;background:var(--pap);min-width:0}
+.papel h3{margin:0 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);font-weight:600}
+.papel .big{font-size:20px;font-weight:700}
+.papel .peq{font-size:13px;color:var(--mut);margin-top:2px}
+.papel.semp .big{color:var(--mut);font-weight:400;font-size:15px}
+.mini{margin:8px 0 0;padding:0;list-style:none;font-size:13px}
+.mini li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--b)}
+.mini li>:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mini li>:last-child{color:var(--mut);white-space:nowrap}
+.vinc{border:1px solid var(--b);border-left:3px solid var(--ac);border-radius:8px;
+  padding:12px;background:var(--pap);margin:0 var(--gut) 12px}
+.vinc h3{margin:0 0 2px;font-size:15px}
+.vinc .peq{font-size:13px;color:var(--mut)}
+.vinc .val{font-size:15px;margin-top:6px}
 @media(hover:hover){.abas button:not([disabled]):not([aria-current="page"]):hover{color:var(--ink);background:var(--sf2)}}
 .legal{margin:0;font-size:13px;line-height:1.45;color:var(--mut);text-align:center}
 .legal b{color:var(--ink);font-weight:600}
@@ -841,6 +911,7 @@ footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
     <button id="ab-estado" data-act="aba" data-v="estado">Estado</button>
     <button id="ab-cargo" data-act="aba" data-v="cargo">Cargo</button>
     <button id="ab-fornecedor" data-act="aba" data-v="fornecedor">Fornecedor</button>
+    <button id="ab-doador" data-act="aba" data-v="doador">Doador</button>
   </nav>
 </div>
 
@@ -886,6 +957,7 @@ function limparCacheUF(manter){
   Object.keys(cache).forEach(function(k){
     if(k.indexOf('uf/') === 0 && k !== 'uf/' + manter + '.json') delete cache[k];
     if(k.indexOf('forn-recorte/') === 0 && k !== 'forn-recorte/' + manter + '.json') delete cache[k];
+    if(k.indexOf('doador-recorte/') === 0 && k !== 'doador-recorte/' + manter + '.json') delete cache[k];
     if(k.indexOf('forn-cruzado/') === 0 && k !== 'forn-cruzado/' + manter + '.json') delete cache[k];
   });
 }
@@ -928,7 +1000,7 @@ function fedCurta(f){
 }
 
 /* ---------- estado ---------- */
-var META = null, UFD = null, IDX = null, FRC = null;
+var META = null, UFD = null, IDX = null, FRC = null, DRC = null;
 /* O fornecedor cruzado com tipo de despesa e com partido, e o tipo por candidatura no
    país. Os dois são pedidos só por quem abre a visão geral ou liga o filtro de tipo:
    quem nunca vai lá não paga por eles. */
@@ -938,13 +1010,22 @@ var FCR = null, TIPOS_BR = null;
    Os filtros são os mesmos nas cinco dimensões, e sobrevivem à troca. */
 var S = {
   v:'geral', view:'lista', uf:'', cargo:'', partido:'', fed:'', ord:'receita',
-  sinal:'', tipo:'', q:'', cand:'', forn:'', limite:60
+  sinal:'', tipo:'', dt:'', q:'', cand:'', forn:'', limite:60
 };
-/* A sexta entrada não é uma dimensão: é o cruzamento das cinco. Ela abre a pergunta,
-   e as outras cinco respondem em lista, com os mesmos filtros. */
-var DIMS = {geral:1, candidato:1, partido:1, estado:1, cargo:1, fornecedor:1};
+/* A visão geral não é uma dimensão: é o cruzamento das outras. Ela abre a pergunta,
+   e as dimensões respondem em lista, com os mesmos filtros. Doador entrou em 05/10, a
+   sexta: quem deu dinheiro às campanhas, do mesmo jeito que Fornecedor é quem recebeu. */
+var DIMS = {geral:1, candidato:1, partido:1, estado:1, cargo:1, fornecedor:1, doador:1};
 var ROT_DIM = {geral:'visão geral', candidato:'candidato', partido:'partido',
-               estado:'estado', cargo:'cargo', fornecedor:'fornecedor'};
+               estado:'estado', cargo:'cargo', fornecedor:'fornecedor', doador:'doador'};
+/* O tipo de quem doou, o mesmo vocabulário do pipeline. `dt` é filtro só da dimensão
+   Doador, e vai no endereço como os outros. */
+/* 'coletivo' é a plataforma de financiamento coletivo, que repassa o que pessoas doaram:
+   empresa não pode doar a campanha desde 2015, e um selo de "empresa" nela leria como
+   doação proibida. */
+var TIPOS_DOADOR = ['pf', 'partido', 'campanha', 'coletivo', 'empresa'];
+var ROT_TIPO_D = {pf:'pessoa física', empresa:'outro CNPJ', partido:'partido',
+                  campanha:'outra campanha', coletivo:'financiamento coletivo'};
 /* AS CINCO DIMENSÕES TÊM UMA ORDEM SÓ. Ordenar por gasto contratado, por índice de
    conferência, por número de sinais, por quantidade de candidaturas ou por campanhas
    que pagaram trocava a cifra da linha, e o mesmo nome aparecia com números diferentes
@@ -962,10 +1043,11 @@ var ORD_DIM = {
   partido:['receita'],
   estado:['receita'],
   cargo:['receita'],
-  fornecedor:['valor']
+  fornecedor:['valor'],
+  doador:['valor']
 };
 var PADRAO_ORD = {geral:'receita', candidato:'receita', partido:'receita',
-                  estado:'receita', cargo:'receita', fornecedor:'valor'};
+                  estado:'receita', cargo:'receita', fornecedor:'valor', doador:'valor'};
 var COLS = {receita:8};
 function ordPadrao(){ return PADRAO_ORD[S.v] || 'receita'; }
 function ordsDaDimensao(){ return (ORD_DIM[S.v] || ORD_DIM.candidato).slice(); }
@@ -1075,9 +1157,9 @@ function nomeDe(cod){
 }
 
 /* um erro por fonte: sucesso numa dimensao nao pode apagar a falha de outra */
-var erros = {uf:null, indice:null, frc:null, fcr:null, forn:null, cand:null};
+var erros = {uf:null, indice:null, frc:null, drc:null, fcr:null, forn:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
-var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', fcrEmVoo = '';
+var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', drcEmVoo = '', fcrEmVoo = '';
 
 function lerHash(){
   var h = location.hash.replace(/^#/,''), o = {};
@@ -1117,10 +1199,13 @@ function aplicarHash(){
      tipo. Ele fica guardado mesmo onde não vale, e o chip desligado diz isso, em vez
      de a pessoa perder o recorte ao passar pela dimensão Estado. */
   S.tipo = o.tipo || '';
+  S.dt = TIPOS_DOADOR.indexOf(o.dt) >= 0 ? o.dt : '';
   S.q = o.q || '';
   S.cand = /^[0-9]{6,20}$/.test(o.cand || '') ? o.cand : '';
-  /* o identificador do fornecedor e o CNPJ (14 digitos) ou 'p' mais 12 hex */
-  S.forn = /^([0-9]{14}|p[0-9a-f]{12})$/.test(o.forn || '') ? o.forn : '';
+  /* O identificador é o CNPJ (14 dígitos) ou 'p' mais 16 hex, o TAMANHO de ident.py.
+     Ela aceitava 12 desde que o pipeline passou para 16, e toda ficha de pessoa física
+     voltava para a lista em vez de abrir. Se mexer numa das duas, mexa na outra. */
+  S.forn = /^([0-9]{14}|p[0-9a-f]{16})$/.test(o.forn || '') ? o.forn : '';
   /* a régua da ordem é a da dimensão: #ord=toString ou uma ordem de outra dimensão
      cai no padrão dela, em vez de a lista sair ordenada por uma coluna que não existe */
   S.ord = ordValida(o.ord || '');
@@ -1142,7 +1227,7 @@ function montarHash(){
   function add(k,v,padrao){ if(v && v !== padrao) p.push(k + '=' + e(v)); }
   add('v',S.v,'geral');
   add('uf',S.uf); add('cargo',S.cargo); add('partido',S.partido); add('fed',S.fed);
-  add('sinal',S.sinal); add('tipo',S.tipo);
+  add('sinal',S.sinal); add('tipo',S.tipo); add('dt',S.dt);
   add('ord',ordValida(S.ord),ordPadrao());
   add('q',S.q); add('cand',S.cand); add('forn',S.forn);
   return p.join('&');
@@ -1476,7 +1561,8 @@ function codigosDaLinha(r){
    barra, desligado, com o valor guardado à vista. Sinal também ficaria fora por outro
    motivo, e ele vale mais: aqui não há sinal nem índice em lugar nenhum. */
 function foraDaDimensao(){
-  if(S.v === 'fornecedor') return 'sinal,tipo,fed';
+  /* o recorte de doador é somado como o de fornecedor, por partido e por cargo */
+  if(S.v === 'fornecedor' || S.v === 'doador') return 'sinal,tipo,fed';
   return S.v === 'geral' ? 'sinal,fed' : '';
 }
 function passa(r, ignorar){
@@ -1582,7 +1668,8 @@ function renderChips(){
        desligado escrevia o primeiro tipo do dicionário como se ele estivesse guardado */
     h += chip('f-tipo','Tipo de gasto', S.tipo === '' ? '' : (META.dic.tipo[+S.tipo] || ''),
               S.tipo !== '', !temTipoPorLinha() || naoRecorta.indexOf('tipo') >= 0);
-    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== ordPadrao())
+    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== ordPadrao() ||
+       (S.dt && S.v === 'doador'))
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
   c.innerHTML = h;
@@ -1772,7 +1859,7 @@ var tiposAplicados = false;
 function temTipoPorLinha(){ return ufDaTela() !== 'BRASIL' || tiposAplicados; }
 /* Um tipo escolhido só vale onde a linha carrega tipo. Guardado sem valer, ele não
    muda a lista nem os números, e quem conta isso é o chip desligado. */
-function noTipo(){ return S.tipo !== '' && S.v !== 'fornecedor' && temTipoPorLinha(); }
+function noTipo(){ return S.tipo !== '' && S.v !== 'fornecedor' && S.v !== 'doador' && temTipoPorLinha(); }
 /* O gasto por tipo do recorte, somado das linhas quando elas carregam tipo e lido do
    agregado do cabeçalho quando não. Duas telas fazem a mesma conta, e uma conta só. */
 function tiposDoRecorte(lista){
@@ -3079,24 +3166,167 @@ function viewBusca(){
    declara quantos ficaram de fora e quanto eles somam.
    Aqui não há sinal nem tipo de gasto: o agregado não carrega nenhum dos dois, e os
    chips dizem isso desligados, em vez de recortar a tela pela metade em silêncio. */
-function listaDoRecorte(){
+/* A lista do recorte de agora, num arquivo de recorte: o de quem recebeu, por padrão, ou
+   o de quem doou. Os dois têm a mesma forma. */
+function listaDoRecorte(R){
+  R = R || FRC;
   var pid = S.partido ? META.dic.partido.indexOf(S.partido) : -1;
   var c = S.cargo, lista, chave, escopo;
   if(S.partido){
     if(c){
       escopo = 'celula'; chave = 'p:' + pid + ':c:' + c;
-      lista = pid < 0 ? [] : (FRC.celula[pid + ':' + c] || []);
+      lista = pid < 0 ? [] : ((R.celula || {})[pid + ':' + c] || []);
     } else {
       escopo = 'partido'; chave = 'p:' + pid;
-      lista = pid < 0 ? [] : (FRC.partido[String(pid)] || []);
+      lista = pid < 0 ? [] : ((R.partido || {})[String(pid)] || []);
     }
   } else if(c){
-    escopo = 'cargo'; chave = 'c:' + c; lista = FRC.cargo[c] || [];
+    escopo = 'cargo'; chave = 'c:' + c; lista = (R.cargo || {})[c] || [];
   } else {
-    escopo = 'geral'; chave = 'geral'; lista = FRC.geral || [];
+    escopo = 'geral'; chave = 'geral'; lista = R.geral || [];
   }
-  var fora = (FRC.fora && FRC.fora[chave]) || [0, 0];
+  var fora = (R.fora && R.fora[chave]) || [0, 0];
   return {lista:lista, fora:fora, escopo:escopo};
+}
+/* Quem doou, no recorte e no tipo de agora. Cada tipo tem as próprias listas, porque a
+   geral é quase só partido e a pessoa física nunca chegaria ao topo dela. As listas de
+   tipo não têm a célula partido e cargo, que encheria o arquivo do país: com os dois
+   filtros ligados, a lista é a da célula, só com aquele tipo, e ela declara que é parcial. */
+function listaDoDoador(){
+  if(!S.dt) return listaDoRecorte(DRC);
+  var T = (DRC.tipos || {})[S.dt];
+  if(!T) return {lista:[], fora:[0, 0], escopo:'geral'};
+  if(S.partido && S.cargo){
+    var cel = listaDoRecorte(DRC);
+    return {lista:cel.lista.filter(function(e){ return e[8] === S.dt; }), fora:[0, 0],
+            escopo:'celula', parcial:cel.fora[0] > 0, de:cel.lista.length + cel.fora[0]};
+  }
+  return listaDoRecorte(T);
+}
+/* Quanto cada tipo soma no recorte de agora, para o rótulo dos botões de tipo. Na célula
+   não há conta por tipo, e os botões ficam sem valor. */
+function somaPorTipoDoador(){
+  if(S.partido && S.cargo) return null;
+  var guarda = S.dt, out = {}, total = 0;
+  TIPOS_DOADOR.forEach(function(t){
+    S.dt = t;
+    var d = listaDoDoador(), s = d.fora[1] || 0;
+    d.lista.forEach(function(e){ s += e[4]; });
+    out[t] = s; total += s;
+  });
+  S.dt = guarda;
+  out.total = total;
+  return out;
+}
+function seloDoador(t){
+  return '<span class="tdoa ' + esc(t) + '">' + esc(ROT_TIPO_D[t] || t) + '</span>';
+}
+function viewDoadorRecorte(){
+  var m = document.getElementById('conteudo');
+  var uf = ufDaTela();
+  var eu = erros.uf;
+  if(eu && eu.u === uf){
+    m.innerHTML = painelErro('Não foi possível carregar as candidaturas ' + ondeUF(uf) +
+                             '. Verifique a conexão.', 'retryuf');
+    return;
+  }
+  var ed = erros.drc;
+  if(ed && ed.u === uf){
+    if(ed.s === 404){
+      m.innerHTML = '<div class="cartao"><div class="erro"><p>' +
+        esc('A lista de quem doou ' + ondeUF(uf) + ' ainda não foi publicada nesta ' +
+            'versão dos dados.') + '</p><button class="bt pri" data-act="aba" ' +
+        'data-v="candidato">Ver as candidaturas</button></div></div>';
+    } else {
+      m.innerHTML = painelErro('Não foi possível carregar a lista de quem doou ' +
+                               ondeUF(uf) + '. Verifique a conexão.', 'retrydrc');
+    }
+    return;
+  }
+  if(!UFD || UFD.uf !== uf || !DRC || DRC.uf !== uf){
+    if((!UFD || UFD.uf !== uf) && ufEmVoo !== uf) carregarUF();
+    if((!DRC || DRC.uf !== uf) && drcEmVoo !== uf) carregarDoadorRecorte();
+    porResumo(blocoResumo([]));
+    m.innerHTML = '<div class="wrap solo"><div class="lista">' + esqueleto(7) + '</div></div>';
+    return;
+  }
+  var d = listaDoDoador();
+  var total = d.lista.length + d.fora[0];
+  var vis = d.lista.slice(0, S.limite);
+  var max = vis.length ? vis[0][4] : 1;
+  var somas = somaPorTipoDoador();
+  var rot = S.dt ? ROT_TIPO_D[S.dt] : '';
+  recorteTela = descreverRecorte() + ' · ' + inteiro(total) + (total === 1 ? ' doador' : ' doadores');
+  var conta = d.fora[0] > 0
+    ? 'os ' + inteiro(d.lista.length) + ' maiores · de ' + inteiro(total)
+    : inteiro(total) + (total === 1 ? ' doador' : ' doadores');
+  var h = '<div class="wrap solo"><div class="lista"><section class="secao">' +
+    '<h2 class="ocultavisual">Quem doou · ' + esc(nomeUnidade(uf)) + '</h2>';
+  /* Os tipos, com o quanto cada um soma: é o número que conta por que eles existem. */
+  h += '<div class="tiposd" role="group" aria-label="Tipo de doador">' +
+    '<button data-act="dt" data-v="" aria-pressed="' + (!S.dt) + '">todos' +
+      (somas ? '<b>' + esc(moeda(somas.total)) + '</b>' : '') + '</button>' +
+    TIPOS_DOADOR.map(function(t){
+      if(somas && !somas[t] && S.dt !== t) return '';
+      return '<button data-act="dt" data-v="' + t + '" aria-pressed="' + (S.dt === t) + '">' +
+        esc(ROT_TIPO_D[t]) + (somas ? '<b>' + esc(moeda(somas[t])) + '</b>' : '') + '</button>';
+    }).join('') + '</div>';
+  if(somas && !S.dt && somas.total && somas.partido / somas.total > 0.5){
+    h += '<p class="notafx" style="margin:0 var(--gut) 10px">Partido também é doador, e aqui é a ' +
+      'maior parte: <b>' + pct(somas.partido, somas.total) + ' %</b> do valor doado neste recorte ' +
+      'veio de direção partidária. Escolha um tipo acima para ver só as pessoas físicas ou as ' +
+      'outras campanhas.</p>';
+  }
+  h += '<div class="status"><span>' + esc(conta) + (rot ? ' · ' + esc(rot) : '') + ' · ' +
+       esc(nomeUnidade(uf)) + '</span></div>';
+  if(!d.lista.length){
+    h += '<div class="vazio">Nenhum doador ' + (rot ? 'do tipo ' + esc(rot) + ' ' : '') +
+         'neste recorte.<br><button class="bt" data-act="limpar">Limpar filtros</button></div>';
+  } else {
+    h += '<ul class="l">' + vis.map(function(e, i){
+      return linhaCartao({
+        pos:i + 1, nome:e[1] || 'sem nome',
+        /* o nome só abre ficha quando existe ficha, como no recorte de quem recebeu */
+        href:e[7] ? hashCom({forn:e[0]}) : '',
+        valor:moeda(e[4]),
+        valorCheio:moedaCheia(e[4]),
+        /* o nome vem primeiro, e o selo desce para a linha de baixo, ao lado do
+           documento mascarado, que é o que separa dois doadores de mesmo nome */
+        chips:'<span class="r-selo">' + seloDoador(e[8]) + '<span>' + esc(e[2]) + '</span></span>',
+        medida:barraMagnitude(e[4], max),
+        celulas:celulas([[inteiro(e[6]), e[6] === 1 ? 'Doação' : 'Doações'],
+                         [inteiro(e[5]), e[5] === 1 ? 'Candidatura' : 'Candidaturas']])
+      });
+    }).join('');
+    if(d.fora[0] > 0 && d.lista.length <= S.limite){
+      h += linhaCartao({classe:'resto',
+        nome:'outros ' + inteiro(d.fora[0]) + ' doadores',
+        valor:moeda(d.fora[1]),
+        valorCheio:moedaCheia(d.fora[1]),
+        pub:esc('somam ' + moeda(d.fora[1]) + ' e ficam fora dos ' +
+                inteiro(d.lista.length) + ' maiores por valor')});
+    }
+    h += '</ul>';
+    if(d.lista.length > S.limite){
+      h += '<button class="mais" data-act="mais">Ver mais ' +
+           Math.min(60, d.lista.length - S.limite) + ' · faltam ' +
+           inteiro(d.lista.length - S.limite) + '</button>';
+    }
+  }
+  if(d.parcial){
+    h += '<p class="notafx">Com partido e cargo escolhidos ao mesmo tempo, esta lista é a dos ' +
+      inteiro(d.de) + ' doadores do recorte que cabem no arquivo, só com o tipo escolhido: ' +
+      'pode faltar quem doou pouco.</p>';
+  }
+  h += '<p class="notafx">Os valores são o que as campanhas <b>declararam</b> ter recebido, ' +
+    'incluindo doação em bens e serviços, que também é doação. Por isso a soma desta lista ' +
+    'pode passar da receita das outras abas, que conta só dinheiro. Pessoa física pode ' +
+    'doar dentro do limite que a lei fixa, partido repassa recurso aos próprios candidatos, ' +
+    'e plataforma de financiamento coletivo repassa o que pessoas doaram: aparecer aqui ' +
+    'não é indício de nada.</p>';
+  porResumo(blocoResumo(filtradas()));
+  h += '</section></div></div>';
+  m.innerHTML = h;
 }
 function viewFornRecorte(){
   var m = document.getElementById('conteudo');
@@ -3232,23 +3462,53 @@ function viewForn(){
     }
     m.innerHTML = esqueleto(5); carregarFornBloco(); return;
   }
-  recorteTela = 'Ficha de fornecedor · ' + f.nome;
+  /* Desde 05/10 a ficha é de quem aparece no dinheiro, em qualquer papel: o endereço é
+     função do documento, e quem doou e forneceu cai na mesma página. Os papéis ficam
+     lado a lado, cada um com o seu valor, e NUNCA somados num total: são dois registros
+     públicos diferentes, e a soma deles não mede coisa nenhuma. */
+  var dd = f.doou || null, recebeu = f.valor > 0;
+  recorteTela = 'Ficha · ' + f.nome;
   var h = '<div class="cartao"><div class="fhead">' +
     '<h1>' + esc(f.nome) + '</h1>' +
     '<div class="sub">' + (f.pj ? 'empresa · CNPJ ' + esc(f.doc) : 'pessoa física · CPF ' + esc(f.doc)) +
       (f.cnae ? ' · ' + esc(f.cnae) : '') + '</div></div>';
-  /* A ressalva abre a ficha, incondicional. Ela dependia de haver cadastro ou
-     sócio, e uma ficha de fornecedor sem nada disso ia ao ar nomeando empresa e
-     pessoa, com valores, sem uma linha dizendo o que aquilo é e o que não é. */
-  h += '<p class="notaix">Receber de campanha é <b>atividade econômica normal</b> e ' +
-    'aparecer aqui não é indício de nada. Os valores são o que as campanhas ' +
-    '<b>declararam</b> ter contratado deste fornecedor até a data da base.</p>';
-  h += '<div class="tiles duas">' +
-    '<div class="tile"><div class="r">Recebeu</div><div class="v num" title="' + esc(moedaCheia(f.valor)) + '">' +
-      moeda(f.valor) + '</div><div class="n">de campanhas em 2026</div></div>' +
-    '<div class="tile"><div class="r">Campanhas</div><div class="v num">' + inteiro(f.n_camp) + '</div>' +
-      '<div class="n">' + inteiro(f.n_lanc) + (f.n_lanc === 1 ? ' lançamento' : ' lançamentos') + '</div></div>' +
-    '</div></div>';
+  /* A ressalva abre a ficha, incondicional, e diz o que cada papel é. */
+  var ress;
+  if(recebeu && dd){
+    ress = 'Este nome aparece <b>dos dois lados</b> da conta: recebeu de campanhas e deu a ' +
+      'campanhas. São dois registros públicos, um embaixo do outro, e a página não soma os ' +
+      'dois valores nem tira conclusão deles.' +
+      (dd.tipo === 'coletivo' ? ' Plataforma de financiamento coletivo repassa o que pessoas ' +
+              'doaram e cobra taxa pelo serviço, e por isso aparece nas duas colunas.'
+       : dd.tipo === 'partido' ? ' Partido aparece dos dois lados com frequência: repassa ' +
+              'recurso aos próprios candidatos e também recebe de campanhas.' : '');
+  } else if(dd){
+    ress = 'Os valores são o que as campanhas <b>declararam</b> ter recebido deste nome até a ' +
+      'data da base. ' + (dd.tipo === 'partido'
+        ? 'Partido repassa recurso aos próprios candidatos, e é de onde vem a maior parte do dinheiro de campanha.'
+        : 'Aparecer aqui não é indício de nada.');
+  } else {
+    ress = 'Receber de campanha é <b>atividade econômica normal</b> e aparecer aqui não é ' +
+      'indício de nada. Os valores são o que as campanhas <b>declararam</b> ter contratado ' +
+      'deste fornecedor até a data da base.';
+  }
+  h += '<p class="notaix">' + ress + '</p>';
+  h += '<div class="papeis">' +
+    '<div class="papel' + (recebeu ? '' : ' semp') + '"><h3>Recebeu de campanhas</h3>' +
+      (recebeu
+        ? '<div class="big num" title="' + esc(moedaCheia(f.valor)) + '">' + moeda(f.valor) + '</div>' +
+          '<div class="peq">' + inteiro(f.n_camp) + (f.n_camp === 1 ? ' campanha, ' : ' campanhas, ') +
+          inteiro(f.n_lanc) + (f.n_lanc === 1 ? ' lançamento' : ' lançamentos') + '</div>'
+        : '<div class="big">Nada recebido</div><div class="peq">Não aparece como fornecedor</div>') +
+    '</div>' +
+    '<div class="papel' + (dd ? '' : ' semp') + '"><h3>Deu a campanhas</h3>' +
+      (dd
+        ? '<div class="big num" title="' + esc(moedaCheia(dd.valor)) + '">' + moeda(dd.valor) + '</div>' +
+          '<div class="peq">' + inteiro(dd.n_camp) + (dd.n_camp === 1 ? ' candidatura, ' : ' candidaturas, ') +
+          inteiro(dd.n) + (dd.n === 1 ? ' doação' : ' doações') + '</div>' +
+          '<div class="peq" style="margin-top:6px">' + seloDoador(dd.tipo) + '</div>'
+        : '<div class="big">Nada doado</div><div class="peq">Não aparece como doador</div>') +
+    '</div></div></div>';
   if(f.cadastro){
     var c = f.cadastro;
     h += '<div class="cartao"><div class="cab"><h2>O que a Receita registra</h2></div>' +
@@ -3275,15 +3535,17 @@ function viewForn(){
         'conferir uma ligação, não para afirmar que ela existe.</div>';
     }
     h += '</div>';
-  } else if(f.pj){
+  } else if(f.pj && recebeu){
     h += '<div class="cartao"><div class="nota">O cadastro deste CNPJ ainda <b>não foi ' +
       'consultado</b> na Receita Federal. A consulta é feita aos poucos, começando pelos ' +
       'fornecedores que receberam mais, e esta ficha ganha situação, data de abertura e sócios ' +
       'quando chegar a vez dele.</div></div>';
-  } else {
-    h += '<div class="cartao"><div class="nota">Pessoa física não tem cadastro de empresa nem ' +
-      'sócios, e o documento sai <b>mascarado</b> daqui: o TSE publica o CPF inteiro, e repetir ' +
-      'isso numa página fácil de varrer é outra coisa.</div></div>';
+  } else if(!f.pj){
+    h += '<div class="cartao"><div class="nota">Pessoa física não tem cadastro de empresa, e o ' +
+      'documento sai <b>mascarado</b> daqui: o TSE publica o CPF inteiro, e repetir isso numa ' +
+      'página fácil de varrer é outra coisa. Pessoa física ganha página a partir de ' +
+      esc(moeda((META.forn && META.forn.piso_pf) || 1000000)) + ', somando o que deu e o que ' +
+      'recebeu; abaixo disso, continua nas listas sem página.</div></div>';
   }
   if(f.sinais && f.sinais.length){
     h += '<div class="cartao"><div class="cab"><h2>Sinais que citam este fornecedor</h2></div>' +
@@ -3295,24 +3557,91 @@ function viewForn(){
       }).join('') + '</div>';
   }
   var cands = f.cands || [];
-  h += '<section class="secao"><div class="cab"><h2>Quem pagou</h2>' +
+  if(recebeu) h += '<section class="secao"><div class="cab"><h2>Quem pagou</h2>' +
     '<span class="cont">' + inteiro(f.n_camp) + (f.n_camp === 1 ? ' campanha' : ' campanhas') + '</span></div>' +
-    '<ul class="l">' + cands.map(function(c, i){
-      var co = cargoOnde(META.cargos[c[3]] || '', c[2]);
-      return linhaCartao({
-        pos:i + 1, nome:c[1], href:hashCom({uf:c[2], cand:c[0], forn:''}),
-        valor:moeda(c[5]), valorCheio:moedaCheia(c[5]),
-        meta:'<b class="r-part">' + esc([c[4], co.cargo].filter(Boolean).join(' · ')) + '</b>' +
-             (co.onde ? ' <span class="r-uf">' + esc(co.onde) + '</span>' : '')
-      });
-    }).join('') + '</ul>';
-  if(f.cands_fora > 0){
+    '<ul class="l">' + cands.map(linhaDeCandidatura).join('') + '</ul>';
+  if(recebeu && f.cands_fora > 0){
     h += '<div class="cartao"><div class="nota">Esta lista mostra as <b>' + inteiro(cands.length) +
       '</b> campanhas que mais pagaram a este fornecedor. Outras <b>' + inteiro(f.cands_fora) +
       '</b> pagaram valores menores e não cabem aqui.</div></div>';
   }
-  h += '</section>';
+  if(recebeu) h += '</section>';
+  if(dd) h += secaoDoou(f, dd);
+  if(f.socio_de && f.socio_de.length) h += secaoSocio(f.socio_de);
   m.innerHTML = h;
+}
+function linhaDeCandidatura(c, i){
+  var co = cargoOnde(META.cargos[c[3]] || '', c[2]);
+  return linhaCartao({
+    pos:i + 1, nome:c[1], href:hashCom({uf:c[2], cand:c[0], forn:''}),
+    valor:moeda(c[5]), valorCheio:moedaCheia(c[5]),
+    meta:'<b class="r-part">' + esc([c[4], co.cargo].filter(Boolean).join(' · ')) + '</b>' +
+         (co.onde ? ' <span class="r-uf">' + esc(co.onde) + '</span>' : '')
+  });
+}
+/* Para quem o nome doou, e, para pessoa física, onde ele aparece: quantos partidos e
+   quantos cargos as doações alcançam. É contagem do que o TSE publica, e nada mais. */
+function secaoDoou(f, dd){
+  var cs = dd.cands || [];
+  var h = '<section class="secao"><div class="cab"><h2>Para quem doou</h2>' +
+    '<span class="cont">' + inteiro(dd.n_camp) + (dd.n_camp === 1 ? ' candidatura' : ' candidaturas') +
+    '</span></div><ul class="l">' + cs.map(linhaDeCandidatura).join('') + '</ul>';
+  if(dd.cands_fora > 0){
+    h += '<div class="cartao"><div class="nota">Esta lista mostra as <b>' + inteiro(cs.length) +
+      '</b> candidaturas que mais receberam deste nome. Outras <b>' + inteiro(dd.cands_fora) +
+      '</b> receberam valores menores e não cabem aqui.</div></div>';
+  }
+  h += '</section>';
+  if(f.pj || cs.length < 2) return h;
+  var partidos = {}, cargos = {};
+  cs.forEach(function(c){
+    partidos[c[4]] = (partidos[c[4]] || 0) + c[5];
+    var nc = cargoCurto(META.cargos[c[3]] || c[3]);
+    cargos[nc] = (cargos[nc] || 0) + c[5];
+  });
+  function mini(titulo, mapa){
+    var ks = Object.keys(mapa).sort(function(a, b){ return mapa[b] - mapa[a]; });
+    return '<div class="papel"><h3>' + esc(titulo) + '</h3><div class="big num">' + inteiro(ks.length) +
+      '</div><ul class="mini">' + ks.map(function(k){
+        return '<li><span>' + esc(k) + '</span><span class="num">' + esc(moeda(mapa[k])) + '</span></li>';
+      }).join('') + '</ul></div>';
+  }
+  return h + '<div class="cartao"><div class="cab"><h2>Onde este nome aparece</h2></div>' +
+    '<div class="papeis">' + mini('Partidos alcançados', partidos) + mini('Cargos em disputa', cargos) +
+    '</div></div>';
+}
+function cnpjFormatado(d){
+  return d.length === 14 ? d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' +
+    d.slice(8,12) + '-' + d.slice(12) : d;
+}
+/* As empresas em que a pessoa consta como sócia. O vínculo só existe quando o nome e os
+   seis dígitos do meio do CPF batem com o quadro societário da Receita: nome igual
+   sozinho não é a mesma pessoa. A página põe os dois registros um embaixo do outro, e
+   não cruza sócio com candidato nem gera sinal. */
+function secaoSocio(lista){
+  var h = '<div class="cartao"><div class="cab"><h2>Empresas em que consta como sócio</h2>' +
+    '<span class="cont">' + inteiro(lista.length) + (lista.length === 1 ? ' empresa' : ' empresas') +
+    '</span></div>';
+  lista.forEach(function(s){
+    var sub = [cnpjFormatado(s[0]), s[2] && s[2].toLowerCase(), s[5] && ('situação ' + s[5].toLowerCase())]
+      .filter(Boolean).map(esc).join(' · ');
+    h += '<div class="vinc"><h3><a href="#' + esc(hashCom({forn:s[0]})) + '">' + esc(s[1]) + '</a></h3>' +
+      '<div class="peq">' + sub + '</div>' +
+      (s[3] > 0
+        ? '<div class="val">Esta empresa recebeu <b class="num">' + esc(moeda(s[3])) + '</b> de ' +
+          inteiro(s[4]) + (s[4] === 1 ? ' campanha' : ' campanhas') + '</div>' +
+          '<ul class="mini">' + (s[6] || []).map(function(c){
+            return '<li><span>' + esc(c[1]) + ' (' + esc(c[4]) + ')</span><span class="num">' +
+              esc(moeda(c[5])) + '</span></li>';
+          }).join('') + '</ul>'
+        : '<div class="val">Esta empresa não aparece recebendo de campanha nesta base</div>') +
+      '</div>';
+  });
+  h += '<div class="nota">O vínculo vem do quadro de sócios que a Receita Federal publica, e é ' +
+    'casado pelo nome e pelos seis dígitos do CPF que a Receita e o TSE mostram nas mesmas ' +
+    'posições. <b>Ser sócio de empresa que fornece a campanha é legal</b>, e a lista existe para ' +
+    'quem quiser conferir uma ligação, não para afirmar nada sobre ela.</div></div>';
+  return h;
 }
 
 /* ---------- visão: ficha ---------- */
@@ -3542,7 +3871,10 @@ function viewCand(){
   if(f.doadores.length){
     h += '<div class="cartao full"><div class="cab"><h2>Quem doou</h2></div>' +
       f.doadores.map(function(x){
-        return '<div class="forn"><div class="n1"><span class="nm">' + esc(x[1] || 'sem nome') + '</span>' +
+        /* o sexto campo é o endereço da ficha de quem doou, quando ela existe */
+        var nome = x[5] ? '<a href="#' + esc(hashCom({forn:x[5], cand:''})) + '">' + esc(x[1] || 'sem nome') + '</a>'
+                        : esc(x[1] || 'sem nome');
+        return '<div class="forn"><div class="n1"><span class="nm">' + nome + '</span>' +
           '<b class="num" title="' + esc(moedaCheia(x[2])) + '">' + moeda(x[2]) + '</b></div>' +
           '<div class="n2"><span>' + esc(x[0]) + '</span><span>' + inteiro(x[3]) + (x[3] === 1 ? ' doação' : ' doações') + '</span>' +
           (x[4] ? '<span>' + esc(x[4]) + '</span>' : '') + '</div></div>';
@@ -3626,6 +3958,21 @@ function carregarFornRecorte(){
     if(frcEmVoo === uf) frcEmVoo = '';
     if(ufDaTela() !== uf) return;
     erros.frc = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
+  });
+}
+/* O agregado de quem doou, o irmão do de fornecedor, pedido só na dimensão Doador. */
+function carregarDoadorRecorte(){
+  var uf = ufDaTela();
+  DRC = null; erros.drc = null; drcEmVoo = uf;
+  get('doador-recorte/' + uf + '.json').then(function(d){
+    if(drcEmVoo === uf) drcEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    DRC = d;
+    if(META) render();
+  })['catch'](function(e){
+    if(drcEmVoo === uf) drcEmVoo = '';
+    if(ufDaTela() !== uf) return;
+    erros.drc = {u:uf, s:(e && e.status === 404) ? 404 : 0}; render();
   });
 }
 /* O fornecedor cruzado com tipo de despesa e com partido. Mesmo desenho do recorte: um
@@ -3784,6 +4131,7 @@ function render(){
   else if(S.view === 'busca') viewBusca();
   else if(S.v === 'geral') viewGeral();
   else if(S.v === 'fornecedor') viewFornRecorte();
+  else if(S.v === 'doador') viewDoadorRecorte();
   else if(S.v === 'candidato') viewRanking();
   else viewGrupos();
   var det = document.getElementById('dettipos');
@@ -3818,6 +4166,13 @@ document.addEventListener('click', function(e){
   if(a === 'ajuda'){ abrirAjuda(); return; }
   if(a === 'retryforn'){ erros.forn = null; carregarFornBloco(); render(); return; }
   if(a === 'retryfrc'){ erros.frc = null; carregarFornRecorte(); render(); return; }
+  if(a === 'retrydrc'){ erros.drc = null; carregarDoadorRecorte(); render(); return; }
+  /* o tipo de quem doou: tocar no que está em vigor volta para todos */
+  if(a === 'dt'){
+    var ndt = t.getAttribute('data-v');
+    ir({dt: ndt === S.dt ? '' : ndt});
+    return;
+  }
   if(a === 'retryfcr'){ erros.fcr = null; carregarFornCruzado(); render(); return; }
   /* As barras da visão geral ligam os mesmos filtros da barra de cima, e tocar de novo
      na que está em vigor limpa. O estado é o mesmo: quem trocar de aba leva o recorte. */
@@ -3857,7 +4212,7 @@ document.addEventListener('click', function(e){
   if(a === 'mais'){ S.limite += 60; render(); focarNovaLinha(); return; }
   if(a === 'limpar'){
     /* a unidade e a dimensão não são filtros: limpar não muda de tela */
-    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', ord:ordPadrao()});
+    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', dt:'', ord:ordPadrao()});
     return;
   }
   if(a === 'limpatipo'){ ir({tipo:''}); return; }
@@ -3888,7 +4243,7 @@ function descreverRecorte(){
   var p = [];
   if(S.view === 'forn'){
     var ff = fichaForn(S.forn);
-    p.push(ff ? 'ficha de ' + ff.nome : 'ficha de fornecedor');
+    p.push(ff ? 'ficha de ' + ff.nome : 'ficha');
   } else if(S.view === 'cand'){
     var fi = cacheFicha[S.cand];
     p.push(fi ? 'ficha de ' + fi.nome : 'ficha de uma candidatura');
@@ -3907,6 +4262,7 @@ function descreverRecorte(){
     if(S.fed && foraDaqui.indexOf('fed') < 0) p.push(fedCurta(S.fed));
     if(S.sinal && foraDaqui.indexOf('sinal') < 0) p.push('sinal ' + rotuloSinal(S.sinal));
     if(noTipo()) p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
+    if(S.v === 'doador' && S.dt) p.push(ROT_TIPO_D[S.dt]);
     if(S.view === 'busca') p.push('busca por "' + S.q + '"');
   }
   return p.filter(Boolean).join(' · ');
@@ -4055,15 +4411,22 @@ function abrirAjuda(){
     '<b>pessoa física</b>, e o documento sai mascarado daqui. Empresa sempre tem página ' +
     'própria, porque CNPJ é público por natureza; pessoa física tem página a partir de ' +
     esc(META.forn && META.forn.piso_pf ? moeda(META.forn.piso_pf) : 'um piso') +
-    ' recebidos na eleição inteira. Quem recebeu menos continua nas listas, com o ' +
-    'documento mascarado e sem página, porque nome com link para página que não existe é ' +
-    'pior que nome sem link.</p>';
+    ' na eleição inteira, somando o que recebeu e o que doou. Quem fica abaixo disso continua ' +
+    'nas listas, com o documento mascarado e sem página, porque nome com link para página ' +
+    'que não existe é pior que nome sem link.</p>';
+  c += '<p class="rot">Doadores</p>' +
+    '<p>A maior parte do dinheiro de campanha vem de <b>direção de partido</b>, que repassa ' +
+    'recurso aos próprios candidatos. Por isso a lista de doadores separa os tipos: pessoa ' +
+    'física, partido, outra campanha e financiamento coletivo, que é a plataforma que repassa o ' +
+    'que pessoas doaram. Quem doou e também forneceu tem uma página só, com os dois papéis lado ' +
+    'a lado e sem somar um no outro. Uma pessoa física aparece como sócia de uma empresa só ' +
+    'quando o nome e os seis dígitos do CPF batem com o quadro de sócios da Receita.</p>';
   c += '<p class="rot">Atalhos de teclado</p>' +
     '<div class="tecla"><span>Ir para a busca</span><span><kbd>/</kbd></span></div>' +
     '<div class="tecla"><span>Navegar na lista</span><span><kbd>j</kbd> <kbd>k</kbd></span></div>' +
     '<div class="tecla"><span>Abrir o que está em foco</span><span><kbd>Enter</kbd></span></div>' +
-    '<div class="tecla"><span>Candidato, partido, estado, cargo, fornecedor</span>' +
-      '<span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd></span></div>' +
+    '<div class="tecla"><span>Candidato, partido, estado, cargo, fornecedor, doador</span>' +
+      '<span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>6</kbd></span></div>' +
     '<div class="tecla"><span>Filtros: unidade, cargo, partido, sinal, tipo</span>' +
       '<span><kbd>u</kbd> <kbd>c</kbd> <kbd>p</kbd> <kbd>s</kbd> <kbd>t</kbd></span></div>' +
     '<div class="tecla"><span>Voltar, fechar</span><span><kbd>Esc</kbd></span></div>' +
@@ -4074,7 +4437,7 @@ function abrirAjuda(){
     'O TSE publica o CPF inteiro de quem recebe e de quem doa; aqui ele sai <b>mascarado</b>, ' +
     'e o endereço da ficha de uma pessoa física não permite voltar ao número.</p>';
   c += '<p class="rot">Contestar ou corrigir</p>' +
-    '<p>Quem aparece aqui, candidatura ou fornecedor, pode pedir correção. O caminho é abrir um registro ' +
+    '<p>Quem aparece aqui, candidatura, fornecedor ou doador, pode pedir correção. O caminho é abrir um registro ' +
     'público no repositório do projeto, em <a href="' + REPO + '/issues" rel="noopener" target="_blank">' +
     esc(REPO.replace('https://github.com/','github.com/')) + '/issues</a>. ' +
     'Correção aceita é publicada junto com o dado corrigido, e o registro do pedido fica aberto à vista.</p>' +
@@ -4140,7 +4503,8 @@ document.addEventListener('keydown', function(e){
     return;
   }
   /* a ordem é a mesma do rodapé: candidato, partido, estado, cargo, fornecedor */
-  var dim = {'1':'candidato', '2':'partido', '3':'estado', '4':'cargo', '5':'fornecedor'}[k];
+  var dim = {'1':'candidato', '2':'partido', '3':'estado', '4':'cargo', '5':'fornecedor',
+             '6':'doador'}[k];
   if(dim){ ir({v:dim, q:'', cand:'', forn:''}); return; }
   /* A tecla abre o mesmo menu que o chip, e obedece à mesma matriz: onde o chip está
      desligado, o atalho não abre nada. Sem isso, escolher um estado na dimensão Estado
@@ -4185,6 +4549,7 @@ function iniciar(){
      erro 404 já é tratado e o recuo continua sendo a unidade padrão. */
   if(S.view === 'lista' && ufDaTela()) carregarUF();
   if(S.view === 'lista' && S.v === 'fornecedor') carregarFornRecorte();
+  if(S.view === 'lista' && S.v === 'doador') carregarDoadorRecorte();
   get('meta.json').then(function(d){
     META = d;
     if(!unidadeValida(S.uf)) S.uf = ufPadrao();
