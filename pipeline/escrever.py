@@ -734,6 +734,74 @@ def escrever_forn_cruzado(unidade, recorte, nac, dics, destino, com_chave=None):
     })
 
 
+def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
+    """O fluxo longo de uma unidade: doadores, partidos, candidaturas, fornecedores.
+
+    Doadores, fornecedores e candidaturas moram em dicionarios locais (`d`, `f`,
+    `c`), como no cruzado, e cada recorte aponta para eles. Nas colunas de um
+    recorte vai o indice do dicionario (o do meta, para partido); nas ligacoes,
+    a POSICAO na coluna daquele recorte, com -1 para o no "outros" e -2 para a
+    receita sem doador ou o gasto sem fornecedor. Uma entrada de `d` e
+    [endereco, nome, tipo, tem_ficha]; de `f`, [endereco, nome, pj, tem_ficha];
+    de `c`, [sq, nome, partido, cargo]. Nenhuma traz documento.
+    """
+    from .agregar import OUTROS, SEM_DOC
+    dpart = dics['partido']
+    dd, df, dc = [], [], []
+    idx_d, idx_f, idx_c = {}, {}, {}
+
+    def i_d(doc):
+        if doc not in idx_d:
+            cad = nac.doadores.get(doc) or (0, 0, '', '', 0, 'pf')
+            endereco, _doc, _pj, tem = _forn_publico(doc, total_papeis(nac, doc), com_chave)
+            idx_d[doc] = len(dd)
+            dd.append([endereco, curto(cad[2] or 'Não informado'), cad[5], tem])
+        return idx_d[doc]
+
+    def i_f(doc):
+        if doc not in idx_f:
+            cad = nac.fornecedores.get(doc) or (0, 0, '')
+            endereco, _doc, pj, tem = _forn_publico(doc, total_papeis(nac, doc), com_chave)
+            idx_f[doc] = len(df)
+            df.append([endereco, curto(cad[2] or 'Não informado'), pj, tem])
+        return idx_f[doc]
+
+    def i_c(sq):
+        if sq not in idx_c:
+            a = aggs[sq]
+            idx_c[sq] = len(dc)
+            dc.append([sq, a.nome, dpart.id(a.partido), a.cargo])
+        return idx_c[sq]
+
+    saida = {}
+    for chave, r in recortes.items():
+        if chave == 'geral':
+            nome = 'geral'
+        elif chave[0] == 'p':
+            nome = f'p:{dpart.id(chave[1])}'
+        else:
+            nome = f'c:{chave[1]}'
+        cols = r['col']
+        pos = [{k: i for i, k in enumerate(col)} for col in cols]
+
+        def p(coluna, k):
+            if k == OUTROS:
+                return -1
+            if k == SEM_DOC:
+                return -2
+            return pos[coluna][k]
+        saida[nome] = {
+            'col': [[i_d(x) for x in cols[0]], [dpart.id(x) for x in cols[1]],
+                    [i_c(x) for x in cols[2]], [i_f(x) for x in cols[3]]],
+            'lig': [[[p(g, a), p(g + 1, b), v] for a, b, v in r['lig'][g]]
+                    for g in range(3)],
+            'n': r['n'],
+            'tot': r['tot'],
+        }
+    return grava(os.path.join(destino, 'fluxo', f'{unidade}.json'),
+                 {'uf': unidade, 'd': dd, 'f': df, 'c': dc, 'r': saida})
+
+
 def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
                   catalogo=None, gravidades=None, forn=None):
     """O meta carrega os dicionarios e o catalogo de sinais.

@@ -1850,6 +1850,65 @@ class TestRecorteDeDoador(unittest.TestCase):
                 self.assertIn('*', e[2])
 
 
+class TestFluxoLongo(unittest.TestCase):
+    """Doadores, partidos, candidaturas, fornecedores, contra Roraima de verdade.
+
+    A primeira metade e receita em dinheiro, a segunda e gasto contratado, e
+    cada uma tem de fechar com o proprio total: R$ 96,5 mi de um lado e
+    R$ 69,1 mi do outro, os numeros do wireframe aprovado em 05/10.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.antes = os.environ.pop('CONTAS_SAL', None)
+        cls.tmp = tempfile.mkdtemp()
+        cls.aggs, cls.nac = _agregar_roraima()
+        cls.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        E.escrever_uf('RR', list(cls.aggs.values()), {}, cls.dics, cls.tmp)
+        cls.longos = A.fluxo_longo(cls.aggs)
+        E.escrever_fluxo('RR', cls.longos['RR'], cls.nac, cls.aggs, cls.dics, cls.tmp)
+        cls.d = json.load(open(os.path.join(cls.tmp, 'fluxo', 'RR.json'), encoding='utf-8'))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+        if cls.antes is not None:
+            os.environ['CONTAS_SAL'] = cls.antes
+
+    def test_cada_metade_fecha_com_o_seu_total(self):
+        g = self.d['r']['geral']
+        self.assertEqual(g['tot'], [sum(a.receita for a in self.aggs.values()),
+                                    sum(a.contratado for a in self.aggs.values())])
+        self.assertEqual(g['tot'], [9652223431, 6909092605])
+        erros, _ = V._checar_fluxo('RR', self.d, len(self.dics['partido'].lista),
+                                   set(A.CARGOS_PAINEL), True)
+        self.assertEqual(erros, [])
+
+    def test_somar_cada_coluna_pelas_ligacoes_da_o_total_de_cada_no(self):
+        """O no "outros" incluso: a faixa que sai dele e a que entra nele fecham."""
+        for nome, r in self.d['r'].items():
+            entra, sai = {}, {}
+            for a, b, v in r['lig'][0]:
+                entra[b] = entra.get(b, 0) + v
+            for a, b, v in r['lig'][1]:
+                sai[a] = sai.get(a, 0) + v
+            self.assertEqual(entra, sai, nome)
+
+    def test_as_colunas_respeitam_o_topo(self):
+        for nome, r in self.d['r'].items():
+            self.assertLessEqual(len(r['col'][0]), A.FLUXO_DOADORES)
+            self.assertLessEqual(len(r['col'][1]), A.FLUXO_PARTIDOS)
+            self.assertLessEqual(len(r['col'][2]), A.FLUXO_CANDIDATURAS)
+            self.assertLessEqual(len(r['col'][3]), A.FLUXO_FORNECEDORES)
+            if nome.startswith('p:'):
+                self.assertLessEqual(len(r['col'][1]), 1)
+
+    def test_sem_a_chave_nenhuma_pessoa_fisica_ganha_endereco(self):
+        for e in self.d['d'] + self.d['f']:
+            if e[0]:
+                self.assertFalse(e[0].startswith('p'), e)
+
+
 class TestValidador(unittest.TestCase):
     def test_pega_json_truncado(self):
         tmp = tempfile.mkdtemp()

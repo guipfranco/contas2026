@@ -27,6 +27,9 @@ LIMITE_FORN_CRUZADO_MB = 2.0
 # de 4 MB: sozinho ele cabe com folga em 5.
 LIMITE_TIPOS_MB = 5.0
 
+# O fluxo longo tem quatro colunas de dez nomes por recorte, sem a celula: se ele
+# crescer ate aqui, o topo de alguma coluna parou de cortar.
+LIMITE_FLUXO_MB = 1.0
 CHAVES_RECORTE = ('uf', 'geral', 'geral_por_camp', 'partido', 'cargo',
                   'celula', 'fora')
 CHAVES_CRUZADO = ('uf', 'forn', 'tipo', 'fora', 'partido')
@@ -200,6 +203,66 @@ def _checar_tipos_doador(rel, d, n_part, cargos, sem_pessoas, total):
     if soma_tipos != total:
         erros.append(f'{rel}: os tipos somam {soma_tipos}, o recorte {total}')
     return erros
+
+
+def _checar_fluxo(rel, d, n_part, cargos, sem_pessoas):
+    """O fluxo longo de uma unidade. Devolve (erros, tot do recorte geral).
+
+    As duas metades nao somam o mesmo dinheiro, e cada uma tem de fechar com o
+    proprio total: a da receita pelas duas primeiras ligacoes, a do gasto pela
+    terceira. O partido entrega a candidatura o que recebeu dos doadores.
+    """
+    erros = []
+    for k in ('uf', 'd', 'f', 'c', 'r'):
+        if k not in d:
+            return [f'{rel}: sem a chave {k!r}'], None
+    for e in d['d']:
+        if len(e) != 4 or e[2] not in TIPOS_DOADOR or e[3] not in (0, 1) \
+                or bool(e[0]) != bool(e[3]) or _cpf_no_texto(e[1]):
+            return [f'{rel}: doador fora da forma: {e!r}'], None
+        if sem_pessoas and e[0].startswith('p'):
+            return [f'{rel}: pessoa fisica com endereco sem a chave: {e[0]!r}'], None
+    for e in d['f']:
+        if len(e) != 4 or e[2] not in (0, 1) or e[3] not in (0, 1) \
+                or bool(e[0]) != bool(e[3]) or _cpf_no_texto(e[1]):
+            return [f'{rel}: fornecedor fora da forma: {e!r}'], None
+    for e in d['c']:
+        if len(e) != 4 or not (0 <= e[2] < n_part) or e[3] not in cargos:
+            return [f'{rel}: candidatura fora da forma: {e!r}'], None
+    tamanhos = (len(d['d']), n_part, len(d['c']), len(d['f']))
+    for nome, r in d['r'].items():
+        cols, ligs, tot = r.get('col'), r.get('lig'), r.get('tot')
+        if not (isinstance(cols, list) and len(cols) == 4 and isinstance(ligs, list)
+                and len(ligs) == 3 and isinstance(tot, list) and len(tot) == 2):
+            erros.append(f'{rel}: recorte {nome} fora da forma')
+            continue
+        if any(not (0 <= i < tamanhos[c]) for c in range(4) for i in cols[c]):
+            erros.append(f'{rel}: recorte {nome} aponta fora do dicionario')
+            continue
+        somas, entra, sai = [], {}, {}
+        for g, L in enumerate(ligs):
+            s = 0
+            for a, b, v in L:
+                if not (-2 <= a < len(cols[g])) or not (-2 <= b < len(cols[g + 1])) or v <= 0:
+                    erros.append(f'{rel}: recorte {nome}, ligacao {g} invalida: {[a, b, v]}')
+                    break
+                s += v
+                if g == 0:
+                    entra[b] = entra.get(b, 0) + v
+                if g == 1:
+                    sai[a] = sai.get(a, 0) + v
+            somas.append(s)
+        if len(somas) == 3:
+            if somas[0] != tot[0] or somas[1] != tot[0]:
+                erros.append(f'{rel}: recorte {nome}, a receita soma {somas[:2]}, o total {tot[0]}')
+            if somas[2] != tot[1]:
+                erros.append(f'{rel}: recorte {nome}, o gasto soma {somas[2]}, o total {tot[1]}')
+            if entra != sai:
+                erros.append(f'{rel}: recorte {nome}, partido entrega diferente do que recebe')
+    geral = (d['r'].get('geral') or {}).get('tot')
+    if geral is None:
+        erros.append(f'{rel}: sem o recorte geral')
+    return erros, geral
 
 
 def _checar_tipos_brasil(rel, d, linhas_br, n_tipo):
@@ -601,6 +664,29 @@ def validar(pasta):
         if total_doador['BRASIL'] != soma_ufs:
             erros.append(f'doador-recorte/BRASIL.json soma '
                          f'{total_doador["BRASIL"]}, as UFs somam {soma_ufs}')
+
+    # o fluxo longo: cada unidade fecha consigo, e o pais soma as unidades
+    tot_fluxo = {}
+    for unidade in sorted(meta.get('ufs', {})) + ['BRASIL']:
+        rel = os.path.join('fluxo', f'{unidade}.json')
+        if falta(rel):
+            continue
+        caminho = os.path.join(pasta, rel)
+        mb = os.path.getsize(caminho) / 1e6
+        if mb > LIMITE_FLUXO_MB:
+            erros.append(f'{rel} tem {mb:.1f} MB, acima de {LIMITE_FLUXO_MB}')
+        d = _le(caminho)
+        do_arquivo, tot = _checar_fluxo(rel, d, n_part, cargos_meta, sem_pessoas)
+        erros.extend(do_arquivo)
+        if tot:
+            tot_fluxo[unidade] = tot
+            if unidade != 'BRASIL' and tot[1] != meta['ufs'][unidade].get('contratado'):
+                erros.append(f'{rel}: o gasto soma {tot[1]}, o meta diz '
+                             f'{meta["ufs"][unidade].get("contratado")}')
+    if 'BRASIL' in tot_fluxo:
+        soma = [sum(t[i] for u, t in tot_fluxo.items() if u != 'BRASIL') for i in (0, 1)]
+        if soma != tot_fluxo['BRASIL']:
+            erros.append(f'fluxo/BRASIL.json soma {tot_fluxo["BRASIL"]}, as UFs {soma}')
 
     # fornecedor cruzado: quem recebeu por tipo de despesa, e de que partidos
     # saiu o dinheiro que chegou a ele. Sao as duas contas da visao geral que o

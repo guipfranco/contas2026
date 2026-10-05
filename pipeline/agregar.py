@@ -97,7 +97,8 @@ class Agg:
                  'contratado', 'pago', 'pago_publico',
                  'receita', 'estimavel', 'receita_publica',
                  'n_despesas', 'por_tipo', 'por_forn', 'por_forn_tipo', 'por_dia',
-                 'por_origem', 'por_fonte_paga', 'por_doador',
+                 'por_origem', 'por_fonte_paga', 'por_doador', 'por_doador_fin',
+                 'receita_sem_doador',
                  'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao')
 
     def __init__(self, sq):
@@ -120,6 +121,10 @@ class Agg:
         self.por_origem = collections.Counter()
         self.por_fonte_paga = collections.Counter()
         self.por_doador = {}        # doc -> [valor, n, nome, origem]
+        # doc -> valor, so a receita em dinheiro, sem a estimavel: e a medida do
+        # fluxo longo, que tem de fechar com a receita do ranking
+        self.por_doador_fin = {}
+        self.receita_sem_doador = 0
         self.primeira = self.ultima = ''
 
     @property
@@ -329,6 +334,10 @@ def agregar_receitas(fluxo, aggs, nac):
             a.estimavel += r.valor
         else:
             a.receita += r.valor
+            if r.doc:
+                a.por_doador_fin[r.doc] = a.por_doador_fin.get(r.doc, 0) + r.valor
+            else:
+                a.receita_sem_doador += r.valor
         a.por_origem[r.origem or 'Não informada'] += r.valor
         if publica(r.fonte):
             a.receita_publica += r.valor
@@ -818,4 +827,104 @@ def recorte_forn_cruzado(aggs):
         for chave, mapa in celulas.items():
             _funde_cruzado(nacional[chave], mapa)
     saida['BRASIL'] = _cortar_cruzado(nacional)
+    return saida
+
+
+# ---------- o fluxo longo: doadores, partidos, candidaturas, fornecedores ----------
+#
+# Entrega 3 do plano de 20/09. Quatro colunas, e a candidatura e o funil: da
+# esquerda ate ela a medida e a receita em dinheiro (a mesma do ranking), dela
+# para a direita e o gasto contratado. As duas metades nao somam o mesmo
+# dinheiro, e a tela declara isso. O front nao tem como refazer esta conta: ele
+# nao conhece doador nem fornecedor por candidatura.
+#
+# Recortes: o geral, cada partido e cada cargo. A celula partido mais cargo fica
+# de fora, como o plano manda: o arquivo cresce pelo produto dos eixos, e aqui
+# sao quatro.
+
+FLUXO_DOADORES = 10
+FLUXO_PARTIDOS = 8
+FLUXO_CANDIDATURAS = 10
+FLUXO_FORNECEDORES = 10
+# a chave do no "outros" de cada coluna, e a do resto sem documento
+OUTROS, SEM_DOC = '~', '~sem'
+
+
+def _maiores(mapa, quantos):
+    return [k for k, _ in heapq.nlargest(quantos, mapa.items(),
+                                         key=lambda kv: (kv[1], kv[0])) if _ > 0]
+
+
+def _fluxo_do_recorte(lista):
+    """As quatro colunas e as tres ligacoes de um recorte, com a conta exata.
+
+    Devolve {'col': [doadores, partidos, sqs, fornecedores], 'lig': [[(a, b,
+    valor)] x 3], 'n': [quantos ha em cada coluna], 'tot': [receita,
+    contratado]}. Nas colunas e nas ligacoes, OUTROS e o no de quem ficou fora
+    da lista, e SEM_DOC o da receita sem doador ou do gasto sem fornecedor.
+    """
+    por_doador, por_partido, por_forn = {}, {}, {}
+    for a in lista:
+        for doc, v in a.por_doador_fin.items():
+            por_doador[doc] = por_doador.get(doc, 0) + v
+        if a.receita:
+            por_partido[a.partido] = por_partido.get(a.partido, 0) + a.receita
+        for doc, e in a.por_forn.items():
+            por_forn[doc] = por_forn.get(doc, 0) + e[0]
+    cands = sorted((a for a in lista if a.contratado or a.receita),
+                   key=lambda a: (-a.contratado, a.sq))[:FLUXO_CANDIDATURAS]
+    doadores = _maiores(por_doador, FLUXO_DOADORES)
+    partidos = _maiores(por_partido, FLUXO_PARTIDOS)
+    forns = _maiores(por_forn, FLUXO_FORNECEDORES)
+    sd, sp, sc, sf = set(doadores), set(partidos), {a.sq for a in cands}, set(forns)
+
+    def no(chave, conjunto):
+        return chave if chave in conjunto else OUTROS
+
+    l_dp, l_pc, l_cf = {}, {}, {}
+
+    def soma(mapa, a, b, v):
+        if v:
+            mapa[(a, b)] = mapa.get((a, b), 0) + v
+
+    for a in lista:
+        p = no(a.partido, sp)
+        for doc, v in a.por_doador_fin.items():
+            soma(l_dp, no(doc, sd), p, v)
+        soma(l_dp, SEM_DOC, p, a.receita_sem_doador)
+        c = no(a.sq, sc)
+        soma(l_pc, p, c, a.receita)
+        com_doc = 0
+        for doc, e in a.por_forn.items():
+            soma(l_cf, c, no(doc, sf), e[0])
+            com_doc += e[0]
+        soma(l_cf, c, SEM_DOC, a.contratado - com_doc)
+
+    def lig(mapa):
+        return sorted(((a, b, v) for (a, b), v in mapa.items()),
+                      key=lambda x: (-x[2], str(x[0]), str(x[1])))
+    return {
+        'col': [doadores, partidos, [a.sq for a in cands], forns],
+        'lig': [lig(l_dp), lig(l_pc), lig(l_cf)],
+        'n': [len(por_doador), len(por_partido), len(lista), len(por_forn)],
+        'tot': [sum(a.receita for a in lista), sum(a.contratado for a in lista)],
+    }
+
+
+def fluxo_longo(aggs):
+    """{unidade: {chave: recorte}}, com chave 'geral', ('p', partido) ou ('c', cargo)."""
+    saida = {}
+    grupos = dict(por_uf(aggs))
+    grupos['BRASIL'] = list(aggs.values())
+    for unidade, lista in grupos.items():
+        por_p, por_c = collections.defaultdict(list), collections.defaultdict(list)
+        for a in lista:
+            por_p[a.partido or ''].append(a)
+            por_c[a.cargo or ''].append(a)
+        r = {'geral': _fluxo_do_recorte(lista)}
+        for p, l in por_p.items():
+            r[('p', p)] = _fluxo_do_recorte(l)
+        for c, l in por_c.items():
+            r[('c', c)] = _fluxo_do_recorte(l)
+        saida[unidade] = r
     return saida

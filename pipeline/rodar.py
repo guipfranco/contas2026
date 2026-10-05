@@ -269,6 +269,10 @@ def main(argv=None):
                 for unidade, cruzado in sorted(cruzados.items()))
     passo(t0, f'fornecedor cruzado em {len(cruzados)} arquivos, '
               f'{b_cru / 1e6:.2f} MB')
+    longos = A.fluxo_longo(aggs)
+    b_flu = sum(E.escrever_fluxo(unidade, recortes_u, nac, aggs, dics, a.site)
+                for unidade, recortes_u in sorted(longos.items()))
+    passo(t0, f'fluxo longo em {len(longos)} arquivos, {b_flu / 1e6:.2f} MB')
     # o panorama e a lista nacional de fornecedores sairam em 18/09: a tela passou
     # a agrupar por partido, estado e cargo no proprio front, sobre as linhas que
     # ja estao filtradas, e quem recebeu vem do recorte por unidade
