@@ -105,40 +105,69 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
 
 
-def _forn_publico(doc, e, com_chave=None):
-    """O que pode ir ao ar sobre um fornecedor: endereco, documento, natureza.
+def total_papeis(nac, doc):
+    """O que aquele documento movimentou na eleicao inteira: recebido mais doado.
 
-    `e` e a entrada NACIONAL daquele fornecedor, porque o piso da ficha de
-    pessoa fisica e medido na eleicao inteira: quem recebeu R$ 12 mil no pais
-    tem ficha tambem na lista da UF onde recebeu R$ 300.
+    E a medida do piso da ficha de pessoa fisica desde 05/10. Medir so o
+    recebido deixava sem pagina quem doou R$ 50 mil e nao forneceu nada.
+    """
+    recebido = (nac.fornecedores.get(doc) or (0,))[0]
+    doado = (nac.doadores.get(doc) or (0,))[0]
+    return recebido + doado
+
+
+def _forn_publico(doc, total, com_chave=None):
+    """O que pode ir ao ar sobre um nome: endereco, documento, natureza.
+
+    `total` e o que aquele documento movimentou NO PAIS, recebido mais doado,
+    porque o piso da ficha de pessoa fisica e medido na eleicao inteira: quem
+    recebeu R$ 12 mil no pais tem ficha tambem na lista da UF onde recebeu R$ 300.
+    Quem chama tira o numero de `total_papeis`.
 
     O endereco vazio e o que define `tem_ficha` no arquivo. Sao duas contas
     (o piso, aqui, e a chave do ambiente, no ident) e amarrar a segunda na
     primeira e o que garante que nenhum nome aponte para pagina que nao existe.
     """
     from .ident import ident_publico
-    endereco = ident_publico(doc) if tem_ficha(doc, e, com_chave) else ''
+    endereco = ident_publico(doc) if tem_ficha(doc, total, com_chave) else ''
     return (endereco, mascara(doc), 1 if len(doc) == 14 else 0,
             1 if endereco else 0)
 
 
-def _forn_linha(doc, e, alarmes_do_forn, cnae_nome):
+def _forn_linha(doc, e, alarmes_do_forn, cnae_nome, total=None):
     # o ultimo campo e o endereco da ficha daquele fornecedor: sem ele a lista
-    # de quem recebeu seria a unica da tela que nao abre nada
-    endereco, documento, pj, _ = _forn_publico(doc, e)
+    # de quem recebeu seria a unica da tela que nao abre nada. O piso se mede
+    # no total nacional, nunca no que esta candidatura pagou, senao a pessoa
+    # com ficha apareceria aqui sem link
+    endereco, documento, pj, _ = _forn_publico(doc, e[0] if total is None else total)
     return [documento, curto(e[2] or 'Não informado'), e[0], e[1], pj,
             (cnae_nome.get(e[4]) or '')[:44],
             sorted(alarmes_do_forn),
             endereco]
 
 
-def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None):
+def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None,
+                   nac=None):
+    """A ficha de uma candidatura.
+
+    `nac` da o total nacional de cada nome, que e onde o piso da ficha de
+    pessoa fisica se mede. Sem ele, o link segue o valor desta candidatura.
+    """
     forn = sorted(a.por_forn.items(), key=lambda kv: -kv[1][0])[:TOPO_FORN_FICHA]
     por_forn_alarme = {}
     for x in alarmes:
         if x.doc:
             por_forn_alarme.setdefault(x.doc, set()).add(x.codigo)
     doadores = sorted(a.por_doador.items(), key=lambda kv: -kv[1][0])[:TOPO_DOADOR_FICHA]
+
+    def total(doc, e):
+        return total_papeis(nac, doc) if nac is not None else e[0]
+
+    def doador(d, e):
+        # o sexto campo e o endereco da ficha de quem doou, a mesma pagina de
+        # quem recebeu: o identificador e funcao do documento, nao do papel
+        endereco = _forn_publico(d, total(d, e))[0]
+        return [mascara(d), curto(e[2] or 'Não informado'), e[0], e[1], e[3], endereco]
     ficha = {
         'sq': a.sq, 'nome': a.nome, 'nr': a.nr, 'partido': a.partido,
         'cargo': CARGOS.get(a.cargo, a.cargo), 'uf': a.uf,
@@ -154,10 +183,9 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None)
         'tipos': [[t, v] for t, v in a.por_tipo.most_common() if v],
         'origens': [[t, v] for t, v in a.por_origem.most_common() if v],
         'fontes': [[t, v] for t, v in a.por_fonte_paga.most_common() if v],
-        'forn': [_forn_linha(d, e, por_forn_alarme.get(d, ()), cnae_nome)
+        'forn': [_forn_linha(d, e, por_forn_alarme.get(d, ()), cnae_nome, total(d, e))
                  for d, e in forn],
-        'doadores': [[mascara(d), curto(e[2] or 'Não informado'), e[0], e[1], e[3]]
-                     for d, e in doadores],
+        'doadores': [doador(d, e) for d, e in doadores],
         'serie': sorted(a.por_dia.items()),
         'indice': indice(a.contratado, alarmes),
         'faixa': faixa(indice(a.contratado, alarmes)),
@@ -292,6 +320,10 @@ def escrever_alarmes(alarmes, aggs_por_sq, dics, destino, limite=LIMITE_ALARMES)
 #   R$ 20 mil ->   129 fichas (1,4 %),            21,6 % do valor
 # R$ 10 mil deixa de fora 95 % das pessoas e ainda cobre mais de um terco do
 # dinheiro. Quem fica de fora continua nas listas, sem pagina propria.
+#
+# Desde 05/10 o piso mede a soma dos papeis, recebido mais doado
+# (`total_papeis`): o valor continua o mesmo, e quem doou R$ 50 mil sem
+# fornecer nada passa a ter pagina.
 PISO_FICHA_PF = 1000000     # R$ 10 mil, em centavos
 
 FORN_POR_BLOCO = 120        # quantos fornecedores cabem bem num arquivo
@@ -299,8 +331,8 @@ FORN_CANDS_NA_FICHA = 100   # quantas candidaturas a ficha lista, das maiores
 FORN_SINAIS_NA_FICHA = 20
 
 
-def tem_ficha(doc, entrada, com_chave=None):
-    """Se aquele fornecedor ganha pagina propria.
+def tem_ficha(doc, total, com_chave=None):
+    """Se aquele nome ganha pagina propria. `total` e o de `total_papeis`.
 
     Quem chama isto e tanto quem escreve a ficha quanto quem escreve link para
     ela: nome com link para pagina que nao existe e pior que nome sem link.
@@ -310,7 +342,50 @@ def tem_ficha(doc, entrada, com_chave=None):
         return True
     if com_chave is None:
         com_chave = tem_sal_de_verdade()
-    return bool(com_chave) and entrada[0] >= PISO_FICHA_PF
+    return bool(com_chave) and total >= PISO_FICHA_PF
+
+
+def _normaliza_nome(nome):
+    """Maiusculas, sem acento e com um espaco so: a forma em que dois cadastros
+    diferentes escrevem o mesmo nome."""
+    import unicodedata
+    sem = unicodedata.normalize('NFKD', nome or '')
+    sem = ''.join(ch for ch in sem if not unicodedata.combining(ch))
+    return ' '.join(sem.upper().split())
+
+
+def _miolo_do_socio(parcial):
+    """Os seis digitos do meio que a Receita publica do CPF do socio.
+
+    A Receita escreve `***903184**`; o TSE, mascarado aqui, `***.903.184-**`.
+    Sao os mesmos seis digitos nas mesmas posicoes, e e so por eles, junto com o
+    nome, que socio e doador viram a mesma pessoa. Qualquer outra forma devolve
+    vazio, e vazio nunca casa.
+    """
+    p = (parcial or '').strip()
+    if len(p) == 11 and p[:3] == '***' and p[9:] == '**' and p[3:9].isdigit():
+        return p[3:9]
+    return ''
+
+
+def indice_socios(receita):
+    """(nome normalizado, seis digitos) -> [(cnpj, qualificacao)].
+
+    Nome igual sozinho nao e a mesma pessoa: ha milhares de Marias da Silva no
+    pais. Sem os seis digitos batendo, nao ha vinculo.
+    """
+    indice = collections.defaultdict(list)
+    for cnpj, cad in receita.items():
+        if not cad or 'erro' in cad:
+            continue
+        for s in cad.get('socios') or ():
+            if not isinstance(s, dict):
+                continue     # formato antigo, so o nome: sem digito nao casa
+            miolo = _miolo_do_socio(s.get('doc'))
+            nome = _normaliza_nome(s.get('nome'))
+            if miolo and nome:
+                indice[(nome, miolo)].append((cnpj, s.get('qualificacao') or ''))
+    return indice
 
 
 def _n_blocos(quantos, por_bloco=FORN_POR_BLOCO, minimo=16):
@@ -337,6 +412,15 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
     socios) e os sinais levantados que citam aquele fornecedor, cada um com o
     texto que o pipeline escreveu. Pessoa fisica nao tem cadastro nem socio: a
     ficha dela e so o dinheiro, com o documento mascarado.
+
+    **Desde 05/10 a ficha e de quem aparece no dinheiro, em qualquer papel.** O
+    identificador e funcao do documento, nao do papel, entao quem doou e
+    forneceu ja caia no mesmo endereco: agora a mesma pagina mostra os dois
+    blocos, `recebeu` (os campos de sempre) e `doou`, um embaixo do outro e sem
+    somar os valores num total. A pessoa fisica ganha `socio_de`, as empresas
+    em que o nome dela e os seis digitos do meio do CPF batem com o quadro
+    societario da Receita. A ficha descreve dois registros publicos, e nenhum
+    sinal cruza os papeis.
     """
     from .ident import bloco, ident, tem_sal_de_verdade
     # Sem a chave do ambiente, o identificador de pessoa fisica e um HMAC com sal
@@ -349,15 +433,22 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
     for x in alarmes:
         if x.doc:
             por_doc_alarme.setdefault(x.doc, []).append(x)
-    quantos = _n_blocos(len(nac.fornecedores), por_bloco)
+    socios = indice_socios(receita) if com_chave else {}
+    nomes = list(nac.fornecedores)
+    nomes.extend(d for d in nac.doadores if d not in nac.fornecedores)
+    quantos = _n_blocos(len(nomes), por_bloco)
     blocos = collections.defaultdict(dict)
-    for doc, e in nac.fornecedores.items():
+    so_doou = n_socio = 0
+    vazio = [0, 0, '', '', '', 0, '', 0]
+    for doc in nomes:
         if len(doc) != 14 and not com_chave:
             pessoas_fora += 1
             continue
-        if not tem_ficha(doc, e, com_chave):
+        if not tem_ficha(doc, total_papeis(nac, doc), com_chave):
             pessoas_pequenas += 1
             continue
+        e = nac.fornecedores.get(doc) or vazio
+        dd = nac.doadores.get(doc)
         i = ident(doc)
         pagantes = sorted(nac.forn_cands.get(doc, {}).items(),
                           key=lambda kv: -kv[1])
@@ -369,7 +460,7 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
             cands.append([sq, a.nome, a.uf, a.cargo, a.partido, valor])
         ficha = {
             'id': i,
-            'nome': curto(e[2] or 'Não informado', 60),
+            'nome': curto(e[2] or (dd[2] if dd else '') or 'Não informado', 60),
             'doc': mascara(doc),
             'pj': 1 if len(doc) == 14 else 0,
             'valor': e[0],
@@ -378,6 +469,35 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
             'cands': cands,
             'cands_fora': max(0, len(pagantes) - len(cands)),
         }
+        if dd:
+            if doc not in nac.fornecedores:
+                so_doou += 1
+            beneficiadas = sorted(nac.doador_cands.get(doc, {}).items(),
+                                  key=lambda kv: (-kv[1], kv[0]))
+            para = []
+            for sq, valor in beneficiadas[:FORN_CANDS_NA_FICHA]:
+                a = aggs.get(sq)
+                if a:
+                    para.append([sq, a.nome, a.uf, a.cargo, a.partido, valor])
+            ficha['doou'] = {
+                'valor': dd[0], 'n': dd[1], 'n_camp': dd[4], 'tipo': dd[5],
+                'origem': dd[3],
+                'cands': para,
+                'cands_fora': max(0, len(beneficiadas) - len(para)),
+            }
+        if len(doc) == 11 and socios:
+            # o nome inteiro, e nao o da ficha, que corta em 60 com reticencia
+            nome_cheio = e[2] or (dd[2] if dd else '')
+            achadas = socios.get((_normaliza_nome(nome_cheio), doc[3:9]))
+            if achadas:
+                n_socio += 1
+                ficha['socio_de'] = sorted(
+                    ([cnpj, curto((receita.get(cnpj) or {}).get('razao_social')
+                                  or (nac.fornecedores.get(cnpj) or vazio)[2]
+                                  or 'Não informado', 60),
+                      qualif, (nac.fornecedores.get(cnpj) or vazio)[0]]
+                     for cnpj, qualif in achadas),
+                    key=lambda s: (-s[3], s[0]))
         nome_cnae = (cnae_nome.get(e[4]) or '')[:60] if e[4] else ''
         if nome_cnae:
             ficha['cnae'] = nome_cnae
@@ -407,10 +527,11 @@ def escrever_fornecedores_fichas(nac, aggs, receita, cnae_nome, alarmes,
                        {'b': n, 'n': len(fichas), 'f': fichas})
     # duas fichas no mesmo identificador seriam uma sobrescrevendo a outra em
     # silencio: a conta fecha ou a rodada avisa
-    esperadas = len(nac.fornecedores) - pessoas_fora - pessoas_pequenas
+    esperadas = len(nomes) - pessoas_fora - pessoas_pequenas
     return {'blocos': quantos, 'arquivos': len(blocos),
             'fornecedores': escritas, 'esperadas': esperadas,
             'colisoes': esperadas - escritas,
+            'so_doou': so_doou, 'socio': n_socio,
             'pessoas_fora': pessoas_fora, 'pessoas_pequenas': pessoas_pequenas,
             'piso_pf': PISO_FICHA_PF, 'bytes': total}
 
@@ -448,7 +569,8 @@ def escrever_forn_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
             # seria um CNPJ ganhando link para pagina que nao existe.
             return ['', 'Não informado', mascara(doc),
                     1 if len(doc) == 14 else 0, e[0], e[1], e[2], 0]
-        endereco, documento, pj, tem = _forn_publico(doc, cad, com_chave)
+        endereco, documento, pj, tem = _forn_publico(doc, total_papeis(nac, doc),
+                                                     com_chave)
         return [endereco, curto(cad[2] or 'Não informado'), documento, pj,
                 e[0], e[1], e[2], tem]
 
@@ -456,6 +578,48 @@ def escrever_forn_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
         return [entrada(d, e) for d, e in itens]
 
     return grava(os.path.join(destino, 'forn-recorte', f'{unidade}.json'), {
+        'uf': unidade,
+        'geral': lista(recorte['geral']),
+        'geral_por_camp': lista(recorte['geral_por_camp']),
+        'partido': {str(dpart.id(p)): lista(v)
+                    for p, v in recorte['partido'].items()},
+        'cargo': {c: lista(v) for c, v in recorte['cargo'].items()},
+        'celula': {f'{dpart.id(p)}:{c}': lista(v)
+                   for (p, c), v in recorte['celula'].items()},
+        'fora': {_chave_fora(k, dpart): v for k, v in recorte['fora'].items()},
+    })
+
+
+def escrever_doador_recorte(unidade, recorte, nac, dics, destino, com_chave=None):
+    """Quem doou, na unidade e em cada recorte de partido e cargo.
+
+    O irmao do `forn-recorte`, com a mesma forma e um campo a mais. Uma entrada
+    e [endereco, nome, documento, pj, valor, campanhas, doacoes, tem_ficha,
+    tipo]. O valor, as campanhas e as doacoes sao os DO RECORTE; o nome, o
+    documento, o tipo e a ficha vem do cadastro nacional.
+
+    O tipo e o selo da lista: 'partido', 'campanha', 'empresa' ou 'pf'. Medido
+    em Roraima: 98 % do valor dos maiores doadores e repasse partidario, e sem
+    o selo a lista seria so partido, sem a pessoa fisica aparecer nunca.
+    """
+    dpart = dics['partido']
+
+    def entrada(doc, e):
+        cad = nac.doadores.get(doc)
+        if cad is None:
+            # o mesmo caminho silencioso do recorte de fornecedor: sem cadastro
+            # nacional nao ha ficha, e entao nao ha endereco
+            return ['', 'Não informado', mascara(doc), 1 if len(doc) == 14 else 0,
+                    e[0], e[1], e[2], 0, 'empresa' if len(doc) == 14 else 'pf']
+        endereco, documento, pj, tem = _forn_publico(doc, total_papeis(nac, doc),
+                                                     com_chave)
+        return [endereco, curto(cad[2] or 'Não informado'), documento, pj,
+                e[0], e[1], e[2], tem, cad[5]]
+
+    def lista(itens):
+        return [entrada(d, e) for d, e in itens]
+
+    return grava(os.path.join(destino, 'doador-recorte', f'{unidade}.json'), {
         'uf': unidade,
         'geral': lista(recorte['geral']),
         'geral_por_camp': lista(recorte['geral_por_camp']),
@@ -511,7 +675,8 @@ def escrever_forn_cruzado(unidade, recorte, nac, dics, destino, com_chave=None):
             # nacional nao ha ficha, e entao nao ha endereco
             entrada = ['', 'Não informado', 1 if len(doc) == 14 else 0, 0]
         else:
-            endereco, _documento, pj, tem = _forn_publico(doc, cad, com_chave)
+            endereco, _documento, pj, tem = _forn_publico(
+                doc, total_papeis(nac, doc), com_chave)
             entrada = [endereco, curto(cad[2] or 'Não informado'), pj, tem]
         i = indice[doc] = len(forn)
         forn.append(entrada)

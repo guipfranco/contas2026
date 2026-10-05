@@ -16,6 +16,9 @@ LIMITE_INDICE_MB = 3.0
 # Sentinela do corte do recorte de fornecedor: sem os topos, o arquivo do pais
 # passaria de 34 MB. Se ele crescer ate aqui, o corte parou de funcionar.
 LIMITE_RECORTE_MB = 2.0
+# O irmao, para quem doou: mesmos topos, um campo a mais por entrada (o tipo).
+LIMITE_DOADOR_RECORTE_MB = 2.0
+TIPOS_DOADOR = ('partido', 'campanha', 'empresa', 'pf')
 # O cruzado multiplica fornecedores por tipos de despesa, entao ele cresce pelo
 # produto dos dois eixos e nao pela soma. Se estourar, o primeiro corte e o da
 # celula, em TOPO_CRUZADO_CELULA.
@@ -47,14 +50,17 @@ def _cpf_no_texto(texto):
     return ''
 
 
-def _queixa_da_entrada(e, sem_pessoas):
-    """O que uma entrada do recorte de fornecedor nao pode ser.
+def _queixa_da_entrada(e, sem_pessoas, campos=8):
+    """O que uma entrada do recorte de fornecedor ou de doador nao pode ser.
 
     Devolve a queixa em texto, ou vazio. A entrada e [endereco, nome,
-    documento, pj, valor, campanhas, lancamentos, tem_ficha].
+    documento, pj, valor, campanhas, lancamentos, tem_ficha], e a de doador
+    traz o tipo no nono campo.
     """
-    if len(e) != 8:
-        return f'entrada com {len(e)} campos, esperado 8'
+    if len(e) != campos:
+        return f'entrada com {len(e)} campos, esperado {campos}'
+    if campos == 9 and e[8] not in TIPOS_DOADOR:
+        return f'tipo de doador {e[8]!r} fora de {TIPOS_DOADOR}'
     endereco, nome, doc, pj, tem = e[0], e[1], e[2], e[3], e[7]
     if pj not in (0, 1) or tem not in (0, 1):
         return f'pj {pj!r} ou tem_ficha {tem!r} fora de 0 e 1'
@@ -80,7 +86,7 @@ def _queixa_da_entrada(e, sem_pessoas):
     return ''
 
 
-def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
+def _checar_recorte(rel, d, n_part, cargos, sem_pessoas, campos=8):
     """Confere um arquivo de recorte de fornecedor.
 
     Devolve (erros, total), e o total e a soma do recorte inteiro: o que as
@@ -97,7 +103,7 @@ def _checar_recorte(rel, d, n_part, cargos, sem_pessoas):
     def soma(itens, chave):
         total = 0
         for e in itens:
-            queixa = _queixa_da_entrada(e, sem_pessoas)
+            queixa = _queixa_da_entrada(e, sem_pessoas, campos)
             if queixa:
                 erros.append(f'{rel}: {queixa}')
                 ruim.append(chave)
@@ -509,6 +515,43 @@ def validar(pasta):
             if sem_ficha:
                 erros.append(f'forn-recorte/BRASIL.json: {sem_ficha} '
                              f'fornecedores marcados com ficha nao tem ficha')
+
+    # recorte de doador: a mesma conferencia do de fornecedor, com o tipo. Nao
+    # ha teto pelo contratado aqui, porque a doacao estimavel nao entra na
+    # receita do meta; o que se confere e o pais somar as UFs.
+    total_doador = {}
+    for unidade in sorted(meta.get('ufs', {})) + ['BRASIL']:
+        rel = os.path.join('doador-recorte', f'{unidade}.json')
+        if falta(rel):
+            continue
+        caminho = os.path.join(pasta, rel)
+        mb = os.path.getsize(caminho) / 1e6
+        if mb > LIMITE_DOADOR_RECORTE_MB:
+            erros.append(f'{rel} tem {mb:.1f} MB, acima de '
+                         f'{LIMITE_DOADOR_RECORTE_MB}')
+        d = _le(caminho)
+        if d.get('uf') != unidade:
+            erros.append(f'{rel}: cabecalho diz {d.get("uf")!r}')
+        faltam = [k for k in CHAVES_RECORTE if k not in d]
+        if faltam:
+            erros.append(f'{rel}: sem a chave {faltam[0]!r}')
+            continue
+        do_arquivo, total = _checar_recorte(rel, d, n_part, cargos_meta,
+                                            sem_pessoas, campos=9)
+        erros.extend(do_arquivo)
+        total_doador[unidade] = total
+        # o mesmo endereco nao pode ter ficha numa lista e nao ter na outra
+        alvo = fichas_por_unidade.setdefault(unidade, {})
+        for e in d['geral']:
+            if len(e) == 9 and e[0] and alvo.get(e[0], e[7]) != e[7]:
+                erros.append(f'{rel}: {e[0]} com tem_ficha diferente do '
+                             f'recorte de fornecedor')
+                break
+    if 'BRASIL' in total_doador:
+        soma_ufs = sum(v for u, v in total_doador.items() if u != 'BRASIL')
+        if total_doador['BRASIL'] != soma_ufs:
+            erros.append(f'doador-recorte/BRASIL.json soma '
+                         f'{total_doador["BRASIL"]}, as UFs somam {soma_ufs}')
 
     # fornecedor cruzado: quem recebeu por tipo de despesa, e de que partidos
     # saiu o dinheiro que chegou a ele. Sao as duas contas da visao geral que o

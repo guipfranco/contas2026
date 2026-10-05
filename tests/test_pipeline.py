@@ -1636,6 +1636,178 @@ class TestPontaAPonta(unittest.TestCase):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+class TestQuemDoou(unittest.TestCase):
+    """A ficha de quem aparece no dinheiro, em qualquer papel, e o recorte de doador.
+
+    Entrega 2 do plano de 20/09. A ficha descreve dois registros publicos um
+    embaixo do outro; o que estes testes guardam e que ela nao ligue gente
+    errada e nao abra pagina que nao deveria existir.
+    """
+
+    CPF = '11144477735'
+    CNPJ = '11222333000181'
+
+    def setUp(self):
+        self.antes = os.environ.get('CONTAS_SAL')
+        os.environ['CONTAS_SAL'] = 'chave-de-teste'
+        self.tmp = tempfile.mkdtemp()
+        self.nac = A.Nacional()
+        self.nac.fornecedores = {
+            self.CNPJ: [500000, 3, 'GRAFICA BOA LTDA', 'PESSOA JURIDICA',
+                        '1813099', 1, '', 0],
+        }
+        self.nac.forn_cands = {self.CNPJ: {'111': 500000}}
+        ag = A.Agg('111')
+        ag.uf, ag.cargo, ag.nome, ag.partido, ag.nr = 'RR', '6', 'CANDIDATO UM', 'ZZ', '10'
+        self.aggs = {'111': ag}
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+        if self.antes is None:
+            os.environ.pop('CONTAS_SAL', None)
+        else:
+            os.environ['CONTAS_SAL'] = self.antes
+
+    def _doa(self, doc, valor, nome='MARIA DOS SANTOS', origem='Recursos de pessoas físicas'):
+        self.nac.doadores[doc] = [valor, 1, nome, origem, 1, A.tipo_doador(origem, doc)]
+        self.nac.doador_cands[doc] = {'111': valor}
+
+    def _fichas(self, receita=None):
+        from pipeline.ident import bloco, ident
+        r = E.escrever_fornecedores_fichas(self.nac, self.aggs, receita or {}, {}, [],
+                                           self.tmp)
+
+        def abre(doc):
+            i = ident(doc)
+            p = os.path.join(self.tmp, 'forn', f'{bloco(i, r["blocos"])}.json')
+            if not os.path.exists(p):
+                return None
+            return json.load(open(p, encoding='utf-8'))['f'].get(i)
+        return r, abre
+
+    def _receita_com_socio(self, nome, parcial):
+        return {self.CNPJ: {'razao_social': 'GRAFICA BOA LTDA',
+                            'socios': [{'nome': nome, 'qualificacao': 'Sócia',
+                                        'doc': parcial}]}}
+
+    def test_quem_so_doou_ganha_ficha_com_o_bloco_doou(self):
+        self._doa(self.CPF, 5000000)
+        r, abre = self._fichas()
+        f = abre(self.CPF)
+        self.assertEqual(f['nome'], 'MARIA DOS SANTOS')
+        self.assertEqual(f['valor'], 0)
+        self.assertEqual(f['doou']['valor'], 5000000)
+        self.assertEqual(f['doou']['tipo'], 'pf')
+        self.assertEqual(f['doou']['cands'][0][1], 'CANDIDATO UM')
+        self.assertEqual(r['so_doou'], 1)
+
+    def test_o_piso_da_pessoa_fisica_soma_os_dois_papeis(self):
+        """R$ 6 mil recebidos e R$ 6 mil doados: nenhum passa do piso sozinho."""
+        self.nac.fornecedores[self.CPF] = [600000, 1, 'MARIA DOS SANTOS',
+                                           'PESSOA FISICA', '', 1, '', 0]
+        self._doa(self.CPF, 600000)
+        _, abre = self._fichas()
+        f = abre(self.CPF)
+        self.assertIsNotNone(f)
+        self.assertEqual((f['valor'], f['doou']['valor']), (600000, 600000))
+
+    def test_abaixo_do_piso_somando_tudo_nao_ha_ficha(self):
+        self._doa(self.CPF, E.PISO_FICHA_PF - 1)
+        r, abre = self._fichas()
+        self.assertIsNone(abre(self.CPF))
+        self.assertEqual(r['pessoas_pequenas'], 1)
+
+    def test_socio_e_doador_viram_a_mesma_pessoa_pelo_nome_e_pelos_seis_digitos(self):
+        self._doa(self.CPF, 5000000, nome='Maria dos  Santos')
+        _, abre = self._fichas(self._receita_com_socio('MARIA DOS SANTOS',
+                                                       '***444777**'))
+        f = abre(self.CPF)
+        self.assertEqual(f['socio_de'],
+                         [[self.CNPJ, 'GRAFICA BOA LTDA', 'Sócia', 500000]])
+
+    def test_nome_igual_com_digitos_diferentes_nao_liga_ninguem(self):
+        self._doa(self.CPF, 5000000)
+        _, abre = self._fichas(self._receita_com_socio('MARIA DOS SANTOS',
+                                                       '***999888**'))
+        self.assertNotIn('socio_de', abre(self.CPF))
+
+    def test_digitos_iguais_com_nome_diferente_nao_liga_ninguem(self):
+        self._doa(self.CPF, 5000000)
+        _, abre = self._fichas(self._receita_com_socio('MARIA DA SILVA',
+                                                       '***444777**'))
+        self.assertNotIn('socio_de', abre(self.CPF))
+
+    def test_socio_no_formato_antigo_nao_liga_ninguem(self):
+        self._doa(self.CPF, 5000000)
+        receita = {self.CNPJ: {'razao_social': 'GRAFICA BOA LTDA',
+                               'socios': ['MARIA DOS SANTOS']}}
+        _, abre = self._fichas(receita)
+        self.assertNotIn('socio_de', abre(self.CPF))
+
+    def test_o_tipo_do_doador_vem_da_origem_e_partido_tem_precedencia(self):
+        self.assertEqual(A.tipo_doador('Recursos de partido político', self.CNPJ), 'partido')
+        self.assertEqual(A.tipo_doador('Recursos de outros candidatos', self.CNPJ), 'campanha')
+        self.assertEqual(A.tipo_doador('Recursos de pessoas físicas', self.CPF), 'pf')
+        self.assertEqual(A.tipo_doador('Recursos próprios', self.CPF), 'pf')
+        self.assertEqual(A.tipo_doador('Doações pela Internet', self.CNPJ), 'empresa')
+
+    def test_a_ficha_do_candidato_liga_o_fornecedor_pelo_total_nacional(self):
+        """R$ 3 mil desta candidatura, R$ 50 mil no pais: o link existe."""
+        self.nac.fornecedores[self.CPF] = [5000000, 2, 'FULANA', 'PESSOA FISICA',
+                                           '', 2, '', 0]
+        ag = self.aggs['111']
+        ag.por_forn = {self.CPF: [300000, 1, 'FULANA', 'PESSOA FISICA', '', '', '', 300000]}
+        dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        E.escrever_ficha(ag, [], dics, {}, self.tmp, nac=self.nac)
+        f = json.load(open(os.path.join(self.tmp, 'cand', '111.json'), encoding='utf-8'))
+        self.assertTrue(f['forn'][0][7].startswith('p'))
+
+
+class TestRecorteDeDoador(unittest.TestCase):
+    """Quem doou, por unidade e por partido e cargo, contra Roraima de verdade."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.antes = os.environ.pop('CONTAS_SAL', None)
+        cls.tmp = tempfile.mkdtemp()
+        cls.aggs, cls.nac = _agregar_roraima()
+        dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
+        E.escrever_uf('RR', list(cls.aggs.values()), {}, dics, cls.tmp)
+        cls.rec = {}
+        for unidade, recorte in A.recorte_doadores(cls.aggs).items():
+            E.escrever_doador_recorte(unidade, recorte, cls.nac, dics, cls.tmp)
+            cls.rec[unidade] = json.load(open(
+                os.path.join(cls.tmp, 'doador-recorte', f'{unidade}.json'),
+                encoding='utf-8'))
+        cls.n_part = len(dics['partido'].lista)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+        if cls.antes is not None:
+            os.environ['CONTAS_SAL'] = cls.antes
+
+    def test_o_geral_soma_tudo_que_foi_doado_na_uf(self):
+        r = self.rec['RR']
+        erros, total = V._checar_recorte('RR', r, self.n_part, set(A.CARGOS_PAINEL),
+                                         True, campos=9)
+        self.assertEqual(erros, [])
+        doado = sum(e[0] for ag in self.aggs.values() for e in ag.por_doador.values())
+        self.assertEqual(total, doado)
+
+    def test_cada_entrada_traz_o_tipo_e_o_partido_lidera_em_roraima(self):
+        r = self.rec['RR']
+        self.assertEqual({len(e) for e in r['geral']}, {9})
+        self.assertEqual(r['geral'][0][8], 'partido')
+        self.assertIn('pf', {e[8] for e in r['geral']})
+
+    def test_sem_a_chave_nenhuma_pessoa_fisica_ganha_endereco(self):
+        for e in self.rec['BRASIL']['geral']:
+            if not e[3]:
+                self.assertEqual((e[0], e[7]), ('', 0))
+                self.assertIn('*', e[2])
+
+
 class TestValidador(unittest.TestCase):
     def test_pega_json_truncado(self):
         tmp = tempfile.mkdtemp()

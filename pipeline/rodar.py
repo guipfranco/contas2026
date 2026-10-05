@@ -229,7 +229,7 @@ def main(argv=None):
             continue
         bytes_ficha += E.escrever_ficha(ag, por_sq.get(ag.sq, []), dics,
                                         ctx.cnae_nome, a.site,
-                                        pares=A.posicao(ag, refs))
+                                        pares=A.posicao(ag, refs), nac=nac)
         n_ficha += 1
     passo(t0, f'{n_ficha:,} fichas, {bytes_ficha / 1e6:.1f} MB')
 
@@ -241,9 +241,10 @@ def main(argv=None):
     b_al = E.escrever_alarmes(todos, aggs, dics, a.site)
     fichas_forn = E.escrever_fornecedores_fichas(nac, aggs, dados_receita,
                                                  nac.cnae_nome, todos, a.site)
-    passo(t0, f'{fichas_forn["fornecedores"]:,} fichas de fornecedor em '
+    passo(t0, f'{fichas_forn["fornecedores"]:,} fichas em '
               f'{fichas_forn["arquivos"]:,} arquivos, '
-              f'{fichas_forn["bytes"] / 1e6:.1f} MB')
+              f'{fichas_forn["bytes"] / 1e6:.1f} MB; {fichas_forn["so_doou"]:,} so '
+              f'de quem doou, {fichas_forn["socio"]:,} com sociedade')
     if fichas_forn.get('colisoes'):
         passo(t0, f'   ATENCAO: {fichas_forn["colisoes"]:,} fichas de fornecedor '
                   f'nao foram escritas, o que indica identificador repetido')
@@ -256,6 +257,11 @@ def main(argv=None):
                 for unidade, recorte in sorted(recortes.items()))
     passo(t0, f'recorte de fornecedor em {len(recortes)} arquivos, '
               f'{b_rec / 1e6:.2f} MB')
+    rec_doador = A.recorte_doadores(aggs)
+    b_doa = sum(E.escrever_doador_recorte(unidade, recorte, nac, dics, a.site)
+                for unidade, recorte in sorted(rec_doador.items()))
+    passo(t0, f'recorte de doador em {len(rec_doador)} arquivos, '
+              f'{b_doa / 1e6:.2f} MB')
     cruzados = A.recorte_forn_cruzado(aggs)
     b_cru = sum(E.escrever_forn_cruzado(unidade, cruzado, nac, dics, a.site)
                 for unidade, cruzado in sorted(cruzados.items()))
@@ -288,6 +294,8 @@ def main(argv=None):
                           'pessoas_fora': fichas_forn['pessoas_fora'],
                           'pessoas_pequenas': fichas_forn['pessoas_pequenas'],
                           'piso_pf': fichas_forn['piso_pf'],
+                          'so_doou': fichas_forn['so_doou'],
+                          'socio': fichas_forn['socio'],
                           'com_cadastro': sum(1 for d in nac.fornecedores
                                               if len(d) == 14
                                               and d in dados_receita)})

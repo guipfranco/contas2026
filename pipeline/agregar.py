@@ -143,8 +143,13 @@ class Nacional:
         # o da nota, nunca o total do fornecedor: ele vai para o sinal D3 e de
         # la para o indice, entao medir o total inflaria a fila de conferencia.
         self.docs_colisao = collections.defaultdict(dict)
+        # doc -> [valor, n_doacoes, nome, origem, n_candidatos, tipo]. Ate 05/10
+        # era descartado no fim da rodada; virou a ficha de quem doou, e o tipo
+        # (partido, campanha, empresa, pessoa fisica) e o selo da lista.
         self.doadores = {}
-        self._doador_cands = collections.defaultdict(set)
+        # doc -> {sq: valor}, o irmao de forn_cands: quem recebeu daquele
+        # doador, e quanto. E o corpo do bloco "doou" da ficha.
+        self.doador_cands = collections.defaultdict(dict)
         # (partido, uf) -> [publico_total, publico_para_mulheres,
         #                   publico_para_negros, {sq das candidaturas}]
         self.fundo_partido = collections.defaultdict(lambda: [0, 0, 0, set()])
@@ -165,13 +170,27 @@ class Nacional:
         for doc, cands in self.forn_cands.items():
             if doc in self.fornecedores:
                 self.fornecedores[doc][5] = len(cands)
-        for doc, cands in self._doador_cands.items():
+        for doc, cands in self.doador_cands.items():
             if doc in self.doadores:
                 self.doadores[doc][4] = len(cands)
-        # forn_cands nao e limpo: ele e a ficha de cada fornecedor, escrita
-        # depois desta chamada
-        self._doador_cands.clear()
+        # forn_cands e doador_cands nao sao limpos: eles sao o corpo da ficha
+        # de cada um, escrita depois desta chamada
         self.docs_vistos.clear()
+
+
+# O tipo de quem doou, pela origem que o TSE declara na receita. Sao quatro, e a
+# ordem e de precedencia: um CNPJ que repassou como partido e partido, mesmo que
+# outra linha dele venha com outra origem.
+TIPOS_DOADOR = ('partido', 'campanha', 'empresa', 'pf')
+
+
+def tipo_doador(origem, doc):
+    o = (origem or '').lower()
+    if 'partido' in o:
+        return 'partido'
+    if 'outros candidatos' in o:
+        return 'campanha'
+    return 'empresa' if len(doc) == 14 else 'pf'
 
 
 def _bota_forn(mapa, doc, valor, nome, tipo_forn, cnae, sq_cand_forn='', tipo=''):
@@ -323,13 +342,19 @@ def agregar_receitas(fluxo, aggs, nac):
             else:
                 e[0] += r.valor
                 e[1] += 1
+            tipo = tipo_doador(r.origem, r.doc)
             e = nac.doadores.get(r.doc)
             if e is None:
-                nac.doadores[r.doc] = [r.valor, 1, nome, r.origem, 0]
+                nac.doadores[r.doc] = [r.valor, 1, nome, r.origem, 0, tipo]
             else:
                 e[0] += r.valor
                 e[1] += 1
-            nac._doador_cands[r.doc].add(r.sq)
+                if not e[2] and nome:
+                    e[2] = nome
+                if TIPOS_DOADOR.index(tipo) < TIPOS_DOADOR.index(e[5]):
+                    e[5] = tipo
+            porcand = nac.doador_cands[r.doc]
+            porcand[r.sq] = porcand.get(r.sq, 0) + r.valor
         nac.n_receitas += 1
         nac.total_receita += r.valor
 
@@ -429,16 +454,20 @@ def _funde_no(destino, mapa):
             x[2] += e[2]
 
 
-def _celulas(lista):
+def _celulas(lista, campo='por_forn'):
     """(partido, cargo) -> {doc: [valor, campanhas, lancamentos]}.
 
     A celula e a unidade menor do recorte, e partido e cargo saem dela por
     fusao: uma passada so pelas despesas ja agregadas, em vez de tres.
+
+    `campo` e o mapa da candidatura que se recorta: `por_forn` para quem
+    recebeu, `por_doador` para quem doou. Os dois guardam [valor, n, ...], e
+    no doador o terceiro numero da entrada conta doacoes, nao lancamentos.
     """
     celulas = collections.defaultdict(dict)
     for a in lista:
         alvo = celulas[(a.partido or '', a.cargo or '')]
-        for doc, e in a.por_forn.items():
+        for doc, e in getattr(a, campo).items():
             x = alvo.get(doc)
             if x is None:
                 alvo[doc] = [e[0], 1, e[1]]
@@ -525,10 +554,25 @@ def recorte_fornecedores(aggs):
     Devolve {unidade: recorte}, com 'BRASIL' no mesmo formato. Medido em RR:
     0,03 s para 10.933 pares.
     """
+    return _recorte(aggs, 'por_forn')
+
+
+def recorte_doadores(aggs):
+    """Quem doou, por unidade e por recorte de partido e cargo.
+
+    O irmao de `recorte_fornecedores`, e pelo mesmo motivo: a linha do ranking
+    nao diz quem doou, e 52 mil fichas de doador nao cabem no aparelho de
+    ninguem. Os topos sao os mesmos, e a soma inclui a receita estimavel,
+    porque doacao em bens e servicos tambem e doacao.
+    """
+    return _recorte(aggs, 'por_doador')
+
+
+def _recorte(aggs, campo):
     saida = {}
     nacional = collections.defaultdict(dict)
     for uf, lista in por_uf(aggs).items():
-        celulas = _celulas(lista)
+        celulas = _celulas(lista, campo)
         saida[uf] = _cortar_recorte(celulas)
         for chave, mapa in celulas.items():
             _funde_no(nacional[chave], mapa)
