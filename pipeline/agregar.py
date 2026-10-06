@@ -162,6 +162,9 @@ class Nacional:
         #                   publico_para_negros, {sq das candidaturas}]
         self.fundo_partido = collections.defaultdict(lambda: [0, 0, 0, set()])
         self.cargos = collections.Counter()
+        # doc do diretorio -> sigla do partido dele, para o fluxo longo saber se
+        # o repasse veio de dentro da federacao da candidatura
+        self.sigla_doador = {}
         # o proprio arquivo do TSE traz o nome de cada CNAE; nao
         # precisa de tabela mantida a mao
         self.cnae_nome = {}
@@ -347,6 +350,11 @@ def agregar_receitas(fluxo, aggs, nac):
                 a.receita_proprio_partido += r.valor
             else:
                 a.por_doador_fin[r.doc] = a.por_doador_fin.get(r.doc, 0) + r.valor
+                # a sigla de quem repassou como partido: o fluxo longo junta ao
+                # proprio partido o repasse vindo de outro partido da mesma
+                # federacao, e a federacao so e conhecida depois da lista mestra
+                if r.part_doador and tipo_doador(r.origem, r.doc) == 'partido':
+                    nac.sigla_doador[r.doc] = r.part_doador
         a.por_origem[r.origem or 'Não informada'] += r.valor
         if publica(r.fonte):
             a.receita_publica += r.valor
@@ -862,6 +870,12 @@ FLUXO_FORNECEDORES = 10
 # diretorio por diretorio, a coluna de doadores repetia a de partidos ao lado (em
 # Roraima, 97 % da receita) e o resto nao aparecia. Ele e agrupado, e nao
 # apagado, para a conta continuar fechando com a receita da tela.
+#
+# Em 06/10 o no passou a incluir o repasse vindo de outro partido da MESMA
+# federacao (Uniao e PP, PSDB e Cidadania, PT, PCdoB e PV...): federacao funciona
+# como um partido so na eleicao, e no pais esses diretorios ocupavam a coluna
+# como se fossem um partido apoiando outro. Fica com nome so quem doou para fora
+# da propria federacao.
 OUTROS, SEM_DOC, PROPRIO = '~', '~sem', '~prop'
 
 
@@ -870,17 +884,24 @@ def _maiores(mapa, quantos):
                                          key=lambda kv: (kv[1], kv[0])) if _ > 0]
 
 
-def _fluxo_do_recorte(lista):
+def _fluxo_do_recorte(lista, doadores_de=None):
     """As quatro colunas e as tres ligacoes de um recorte, com a conta exata.
 
     Devolve {'col': [doadores, partidos, sqs, fornecedores], 'lig': [[(a, b,
     valor)] x 3], 'n': [quantos ha em cada coluna], 'tot': [receita,
     contratado]}. Nas colunas e nas ligacoes, OUTROS e o no de quem ficou fora
-    da lista, e SEM_DOC o da receita sem doador ou do gasto sem fornecedor.
+    da lista, SEM_DOC o da receita sem doador ou do gasto sem fornecedor, e
+    PROPRIO o do repasse do proprio partido ou da propria federacao.
+
+    `doadores_de(a)` devolve ({doc: valor} de quem aparece com nome, repasse
+    proprio): e la que a federacao entra na conta.
     """
+    if doadores_de is None:
+        def doadores_de(a):
+            return a.por_doador_fin, a.receita_proprio_partido
     por_doador, por_partido, por_forn = {}, {}, {}
     for a in lista:
-        for doc, v in a.por_doador_fin.items():
+        for doc, v in doadores_de(a)[0].items():
             por_doador[doc] = por_doador.get(doc, 0) + v
         if a.receita:
             por_partido[a.partido] = por_partido.get(a.partido, 0) + a.receita
@@ -904,10 +925,11 @@ def _fluxo_do_recorte(lista):
 
     for a in lista:
         p = no(a.partido, sp)
-        for doc, v in a.por_doador_fin.items():
+        visiveis, proprio = doadores_de(a)
+        for doc, v in visiveis.items():
             soma(l_dp, no(doc, sd), p, v)
         soma(l_dp, SEM_DOC, p, a.receita_sem_doador)
-        soma(l_dp, PROPRIO, p, a.receita_proprio_partido)
+        soma(l_dp, PROPRIO, p, proprio)
         c = no(a.sq, sc)
         soma(l_pc, p, c, a.receita)
         com_doc = 0
@@ -927,8 +949,31 @@ def _fluxo_do_recorte(lista):
     }
 
 
-def fluxo_longo(aggs):
-    """{unidade: {chave: recorte}}, com chave 'geral', ('p', partido) ou ('c', cargo)."""
+def fluxo_longo(aggs, sigla_doador=None):
+    """{unidade: {chave: recorte}}, com chave 'geral', ('p', partido) ou ('c', cargo).
+
+    `sigla_doador` e o `Nacional.sigla_doador`. A federacao de cada partido sai da
+    propria lista mestra, que e onde o TSE a publica, e vale no pais inteiro.
+    """
+    sigla_doador = sigla_doador or {}
+    fed_de = {}
+    for a in aggs.values():
+        if a.fed and a.partido:
+            fed_de[a.partido] = a.fed
+    separados = {}
+    for a in aggs.values():
+        visiveis, proprio = {}, a.receita_proprio_partido
+        for doc, v in a.por_doador_fin.items():
+            sigla = sigla_doador.get(doc)
+            if a.fed and sigla and fed_de.get(sigla) == a.fed:
+                proprio += v
+            else:
+                visiveis[doc] = v
+        separados[a.sq] = (visiveis, proprio)
+
+    def doadores_de(a):
+        return separados[a.sq]
+
     saida = {}
     grupos = dict(por_uf(aggs))
     grupos['BRASIL'] = list(aggs.values())
@@ -937,10 +982,10 @@ def fluxo_longo(aggs):
         for a in lista:
             por_p[a.partido or ''].append(a)
             por_c[a.cargo or ''].append(a)
-        r = {'geral': _fluxo_do_recorte(lista)}
+        r = {'geral': _fluxo_do_recorte(lista, doadores_de)}
         for p, l in por_p.items():
-            r[('p', p)] = _fluxo_do_recorte(l)
+            r[('p', p)] = _fluxo_do_recorte(l, doadores_de)
         for c, l in por_c.items():
-            r[('c', c)] = _fluxo_do_recorte(l)
+            r[('c', c)] = _fluxo_do_recorte(l, doadores_de)
         saida[unidade] = r
     return saida

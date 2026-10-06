@@ -3006,7 +3006,7 @@ function montaFluxoLongo(r){
       } else if(k === -2){
         n.resto = 1; n.nome = nomeSem[c];
       } else if(k === -3){
-        n.prop = 1; n.nome = 'repasse do próprio partido';
+        n.prop = 1; n.nome = 'repasse do próprio partido ou federação';
       } else {
         var id = r.col[c][k];
         if(c === 0){
@@ -3192,7 +3192,7 @@ function fluxoLongoDesenho(m, id){
       var titulo = '<title>' + esc(n.nome + ': ' + (i === quebra
         ? 'receita de ' + moedaCheia(n.ve) + ' e gasto contratado de ' + moedaCheia(n.vd)
         : moedaCheia(n.valor)) + (capado(n) && n.compr < 1 ? ', desenhado fora de escala' : '') +
-        (n.prop ? '. É o que a direção do partido de cada candidatura repassou a ela; a aba Doador mostra os diretórios um a um' : '') +
+        (n.prop ? '. É o que a direção do partido de cada candidatura, ou de outro partido da mesma federação, repassou a ela; a aba Doador mostra os diretórios um a um' : '') +
         (n.href ? '' : (capado(n) || n.resto ? '. Este nó não abre nada' : '. Sem ficha própria'))) + '</title>';
       var dados = ' data-no="' + i + ':' + j + '"';
       svg += n.href
@@ -3222,10 +3222,10 @@ function fluxoLongoDesenho(m, id){
     'campanha o dinheiro se mistura, e o TSE não diz qual doação pagou qual despesa: uma faixa que ' +
     'entra numa candidatura e outra que sai dela não são o mesmo real.</p>' +
     (prop ? '<p class="notafx"><b>O repasse do próprio partido entra num nó só.</b> É o que a ' +
-      'direção do partido de cada candidatura repassou a ela, ' + esc(moeda(prop.valor)) + ' (' +
-      pct(prop.valor, m.tot[0]) + ' % da receita), e ele vai com altura limitada para os outros ' +
-      'doadores caberem com nome. Partido que doou a candidatura de outro partido continua com ' +
-      'nome, e a aba Doador mostra os diretórios um a um.</p>' : '') +
+      'direção do partido de cada candidatura, ou de outro partido da mesma federação, repassou a ' +
+      'ela: ' + esc(moeda(prop.valor)) + ' (' + pct(prop.valor, m.tot[0]) + ' % da receita). Ele ' +
+      'vai com altura limitada para os outros doadores caberem com nome. Partido que doou para ' +
+      'fora da própria federação continua com nome, e a aba Doador mostra os diretórios um a um.</p>' : '') +
     '<p class="notafx">' + (unica ? 'As quatro colunas estão na mesma escala.'
       : 'Cada coluna tem a sua escala: na escala da coluna mais cheia, os nós das outras não ' +
         'caberiam com o nome ao lado.') +

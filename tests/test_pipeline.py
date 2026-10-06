@@ -1865,7 +1865,7 @@ class TestFluxoLongo(unittest.TestCase):
         cls.aggs, cls.nac = _agregar_roraima()
         cls.dics = {k: E.Dic() for k in ('tipo', 'partido', 'fed', 'alarme')}
         E.escrever_uf('RR', list(cls.aggs.values()), {}, cls.dics, cls.tmp)
-        cls.longos = A.fluxo_longo(cls.aggs)
+        cls.longos = A.fluxo_longo(cls.aggs, cls.nac.sigla_doador)
         E.escrever_fluxo('RR', cls.longos['RR'], cls.nac, cls.aggs, cls.dics, cls.tmp)
         cls.d = json.load(open(os.path.join(cls.tmp, 'fluxo', 'RR.json'), encoding='utf-8'))
 
@@ -1922,6 +1922,9 @@ class TestFluxoLongo(unittest.TestCase):
         pdt = [self.d['d'][i] for i in g['col'][0] if 'TRABALHISTA' in self.d['d'][i][1]]
         self.assertTrue(pdt, 'o diretorio do PDT que doou ao MDB sumiu da coluna')
         self.assertEqual(pdt[0][2], 'partido')
+        # o PSDB doando a candidatura do Cidadania e dinheiro de dentro da mesma
+        # federacao, e entra no no do proprio partido desde 06/10
+        self.assertNotIn('PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA', listados)
         # e a primeira ligacao continua fechando com a receita
         self.assertEqual(sum(v for _, _, v in g['lig'][0]), g['tot'][0])
 
