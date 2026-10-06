@@ -74,9 +74,10 @@
   /* --- O desfecho da urna: a única cor que depende de um atributo da candidatura
          [decidido, Guilherme 05/10/2026]. É fato publicado pelo TSE, e não leitura
          do painel, então colorir não imputa nada. Verde para eleita, vermelho para
-         não eleita, azul-aço para suplente e 2º turno: azul, e não amarelo ou
+         não eleita, azul-aço para suplente: azul, e não amarelo ou
          laranja, porque a escala de sinal inteira é quente e uma pastilha quente ao
-         lado do selo de sinal leria como sinal. --- */
+         lado do selo de sinal leria como sinal. O 2º turno não leva cor própria: é uma
+         pastilha cheia de tinta, fora da família das três. --- */
   --des1:#DDF3E4; --des1b:#1E7A46; --des1tx:#0F4A2A;
   --des3:#FBE3E1; --des3b:#B3261E; --des3tx:#7A1A14;
   --des2:#DCE8F5; --des2b:#2F5F8F; --des2tx:#1B3A58;
@@ -419,11 +420,14 @@ details summary:focus-visible,.abas button:focus-visible{outline-offset:-3px;bor
 .attr{display:inline-block;max-width:100%;padding:4px 10px;border-radius:var(--raio);
   background:var(--chip);border:1px solid var(--b2);color:var(--ink);font-size:14px;font-weight:700;
   line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* a pastilha do desfecho: fio de 2 px e a cor do token; 2º turno usa a do suplente */
+/* a pastilha do desfecho: fio de 2 px e a cor do token */
 .attr.des{border-width:2px;padding:3px 9px}
 .attr.des1{background:var(--des1);border-color:var(--des1b);color:var(--des1tx)}
-.attr.des2,.attr.des4{background:var(--des2);border-color:var(--des2b);color:var(--des2tx)}
+.attr.des2{background:var(--des2);border-color:var(--des2b);color:var(--des2tx)}
 .attr.des3{background:var(--des3);border-color:var(--des3b);color:var(--des3tx)}
+/* a pastilha do 2º turno é cheia de tinta porque é a única que ainda vai mudar, em 25/10,
+   e precisa ser vista de longe; não leva cor própria para não entrar na família das outras três */
+.attr.des4{background:var(--ink);color:var(--pap);border-color:var(--ink);font-weight:800}
 /* CÉLULAS. Partido, estado e cargo não têm ficha para guardar as contas deles, então
    as contas ficam na linha, em pares de número e rótulo, e não em prosa separada por
    pontos: uma conta pela metade não é conta, e uma fileira de contas em prosa é uma
@@ -1908,13 +1912,13 @@ function temDesfecho(){ return !!(META && META.tem_desfecho); }
 /* o código é o último campo da linha: 16 na UF, 17 no Brasil, que carrega a UF antes */
 function desfechoDe(r){ return r.length > 17 ? (r[17] || 0) : (r[16] || 0); }
 var DESFECHO = {1:['Eleito','Eleita'], 2:['Suplente','Suplente'],
-                3:['Não eleito','Não eleita'], 4:['2º turno','2º turno']};
+                3:['Não eleito','Não eleita'], 4:['2º turno · 25/10','2º turno · 25/10']};
 function rotuloDesfecho(cod, fem){
   var par = DESFECHO[cod];
   return par ? par[fem ? 1 : 0] : '';
 }
 /* no chip o substantivo subentendido é "candidaturas", então o plural é feminino */
-var DESFECHO_CHIP = {0:'Sem desfecho publicado', 1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno'};
+var DESFECHO_CHIP = {0:'Sem desfecho publicado', 1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno · 25/10'};
 function rotuloDesfechoChip(v){ return DESFECHO_CHIP[v] || ''; }
 /* O texto do TSE, como ele escreve, no gênero da candidatura. Texto fora da
    tabela sai como veio, só com a caixa ajustada. */
@@ -1924,8 +1928,8 @@ function rotuloDesfechoTse(texto, fem){
   var o = fem ? 'a' : 'o';
   var tab = {'ELEITO':'Eleit' + o, 'ELEITO POR QP':'Eleit' + o + ' por quociente partidário',
              'ELEITO POR MEDIA':'Eleit' + o + ' por média', 'SUPLENTE':'Suplente',
-             'NAO ELEITO':'Não eleit' + o, '2O TURNO':'2º turno', '2 TURNO':'2º turno',
-             'SEGUNDO TURNO':'2º turno'};
+             'NAO ELEITO':'Não eleit' + o, '2O TURNO':'2º turno · 25/10', '2 TURNO':'2º turno · 25/10',
+             'SEGUNDO TURNO':'2º turno · 25/10'};
   if(tab[t]) return tab[t];
   var s = String(texto || '').toLowerCase();
   return s.charAt(0).toUpperCase() + s.slice(1);
