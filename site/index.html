@@ -3115,7 +3115,9 @@ function fluxoLongoDesenho(m, id){
   var x0 = lab + 8, x1 = W - lab - 8 - nw;
   var xs = cols.map(function(c, i){ return x0 + i * (x1 - x0) / (N - 1); });
   var passo = (x1 - x0) / (N - 1);
-  var chLado = Math.max(8, Math.floor(lab / 7.6));
+  /* 8,6 px por letra nas pontas, e não 7,6: doador e fornecedor vêm em maiúsculas, e no
+     país o nome do diretório cortado com a conta de minúscula saía pela borda esquerda */
+  var chLado = Math.max(8, Math.floor(lab / 8.6));
   var chMeio = Math.max(8, Math.floor((passo - nw - 24) / 7.4));
   function corta(s, k){ return s.length > k ? s.slice(0, k - 1) + '…' : s; }
   function fator(n){ return n.outros ? n.compr : 1; }
