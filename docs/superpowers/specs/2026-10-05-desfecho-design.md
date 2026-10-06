@@ -168,3 +168,8 @@ acima resumida, o vocabulário do código 0..4, e a troca "16 e 17 campos" por "
 3. Front: tokens e CSS, chip e `passa()`, pastilha, ficha, `foraDaDimensao`.
 4. `CLAUDE.md`.
 5. Rodada da fixture, validador, conferência visual, e só então merge.
+
+## Desvios registrados na implementação
+
+- "Aviso do validador" virou `meta.desfecho_desconhecidos` mais uma linha de aviso na saída de `rodar`: o validador não tem canal de aviso, só de erro, e abrir um só para isso era mais código que a informação vale.
+- Na ficha, o desfecho não é um par da grade de contas: a ficha não tem grade de pares no cabeçalho, tem a fileira de pastilhas da linha e uma linha de texto embaixo. A pastilha colorida vai na fileira, como primeira, para quem chega da lista reconhecer o que viu; e a linha de texto embaixo escreve o texto do TSE e a data.

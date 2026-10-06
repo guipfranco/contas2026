@@ -71,6 +71,17 @@
   --amf:#b35309;      /* 3, laranja queimado cheio */
   --amtx:#fff8ee;     /* a tinta que vai sobre o laranja cheio */
 
+  /* --- O desfecho da urna: a única cor que depende de um atributo da candidatura
+         [decidido, Guilherme 05/10/2026]. É fato publicado pelo TSE, e não leitura
+         do painel, então colorir não imputa nada. Verde para eleita, vermelho para
+         não eleita, azul-aço para suplente: azul, e não amarelo ou
+         laranja, porque a escala de sinal inteira é quente e uma pastilha quente ao
+         lado do selo de sinal leria como sinal. O 2º turno não leva cor própria: é uma
+         pastilha cheia de tinta, fora da família das três. --- */
+  --des1:#DDF3E4; --des1b:#1E7A46; --des1tx:#0F4A2A;
+  --des3:#FBE3E1; --des3b:#B3261E; --des3tx:#7A1A14;
+  --des2:#DCE8F5; --des2b:#2F5F8F; --des2tx:#1B3A58;
+
   /* --- o cartão: uma entrada da lista, um quadro do resumo, um bloco da ficha.
          Ele é a única caixa da página, e existe porque a tela mostra cinco
          dimensões da mesma lista: sem borda, uma linha de partido e uma linha
@@ -103,6 +114,9 @@
     /* no escuro o laranja do grau 3 e claro demais para tinta clara em cima:
        creme sobre ele da 3,5:1, tinta escura da 5,1:1 */
     --amtx:#1a1208;
+    --des1:#123A24; --des1b:#3FA96A; --des1tx:#BFEBCF;
+    --des3:#3E1613; --des3b:#D9534A; --des3tx:#F5C4BF;
+    --des2:#14283D; --des2b:#6FA3D8; --des2tx:#C6DCF2;
     --fc:#5CC4CC;
   }
 }
@@ -406,6 +420,14 @@ details summary:focus-visible,.abas button:focus-visible{outline-offset:-3px;bor
 .attr{display:inline-block;max-width:100%;padding:4px 10px;border-radius:var(--raio);
   background:var(--chip);border:1px solid var(--b2);color:var(--ink);font-size:14px;font-weight:700;
   line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a pastilha do desfecho: fio de 2 px e a cor do token */
+.attr.des{border-width:2px;padding:3px 9px}
+.attr.des1{background:var(--des1);border-color:var(--des1b);color:var(--des1tx)}
+.attr.des2{background:var(--des2);border-color:var(--des2b);color:var(--des2tx)}
+.attr.des3{background:var(--des3);border-color:var(--des3b);color:var(--des3tx)}
+/* a pastilha do 2º turno é cheia de tinta porque é a única que ainda vai mudar, em 25/10,
+   e precisa ser vista de longe; não leva cor própria para não entrar na família das outras três */
+.attr.des4{background:var(--ink);color:var(--pap);border-color:var(--ink);font-weight:800}
 /* CÉLULAS. Partido, estado e cargo não têm ficha para guardar as contas deles, então
    as contas ficam na linha, em pares de número e rótulo, e não em prosa separada por
    pontos: uma conta pela metade não é conta, e uma fileira de contas em prosa é uma
@@ -1025,7 +1047,7 @@ var FCR = null, TIPOS_BR = null;
    Os filtros são os mesmos nas cinco dimensões, e sobrevivem à troca. */
 var S = {
   v:'geral', view:'lista', uf:'', cargo:'', partido:'', fed:'', ord:'receita',
-  sinal:'', tipo:'', dt:'', q:'', cand:'', forn:'', limite:60
+  sinal:'', tipo:'', desf:'', dt:'', q:'', cand:'', forn:'', limite:60
 };
 /* A visão geral não é uma dimensão: é o cruzamento das outras. Ela abre a pergunta,
    e as dimensões respondem em lista, com os mesmos filtros. Doador entrou em 05/10, a
@@ -1214,6 +1236,11 @@ function aplicarHash(){
      tipo. Ele fica guardado mesmo onde não vale, e o chip desligado diz isso, em vez
      de a pessoa perder o recorte ao passar pela dimensão Estado. */
   S.tipo = o.tipo || '';
+  /* O desfecho só existe depois que o TSE publica a totalização: sem ele no meta, um
+     `d=` de link velho é descartado, senão a lista esvaziava em silêncio. Antes do meta
+     chegar o valor fica guardado e a checagem roda de novo no render. */
+  S.desf = /^[0-4]$/.test(o.d || '') ? o.d : '';
+  if(META && !temDesfecho()) S.desf = '';
   S.dt = TIPOS_DOADOR.indexOf(o.dt) >= 0 ? o.dt : '';
   S.q = o.q || '';
   S.cand = /^[0-9]{6,20}$/.test(o.cand || '') ? o.cand : '';
@@ -1242,7 +1269,7 @@ function montarHash(){
   function add(k,v,padrao){ if(v && v !== padrao) p.push(k + '=' + e(v)); }
   add('v',S.v,'geral');
   add('uf',S.uf); add('cargo',S.cargo); add('partido',S.partido); add('fed',S.fed);
-  add('sinal',S.sinal); add('tipo',S.tipo); add('dt',S.dt);
+  add('sinal',S.sinal); add('tipo',S.tipo); add('d',S.desf); add('dt',S.dt);
   add('ord',ordValida(S.ord),ordPadrao());
   add('q',S.q); add('cand',S.cand); add('forn',S.forn);
   return p.join('&');
@@ -1576,9 +1603,11 @@ function codigosDaLinha(r){
    barra, desligado, com o valor guardado à vista. Sinal também ficaria fora por outro
    motivo, e ele vale mais: aqui não há sinal nem índice em lugar nenhum. */
 function foraDaDimensao(){
-  /* o recorte de doador é somado como o de fornecedor, por partido e por cargo */
-  if(S.v === 'fornecedor' || S.v === 'doador') return 'sinal,tipo,fed';
-  return S.v === 'geral' ? 'sinal,fed' : '';
+  /* o recorte de doador é somado como o de fornecedor, por partido e por cargo; o
+     desfecho fica de fora nos três pelo mesmo motivo: forn-recorte, doador-recorte e
+     forn-cruzado são somados no pipeline e não sabem honrá-lo */
+  if(S.v === 'fornecedor' || S.v === 'doador') return 'sinal,tipo,fed,desf';
+  return S.v === 'geral' ? 'sinal,fed,desf' : '';
 }
 function passa(r, ignorar){
   var ig = (ignorar ? ignorar + ',' : '') + foraDaDimensao();
@@ -1593,6 +1622,7 @@ function passa(r, ignorar){
       if(!cods.some(function(c){ return c.charAt(0) === S.sinal; })) return false;
     } else if(cods.indexOf(S.sinal) < 0) return false;
   }
+  if(S.desf && !pula('desf') && String(desfechoDe(r)) !== S.desf) return false;
   if(noTipo() && !pula('tipo')){
     var ti = +S.tipo;
     if(!r[11].some(function(t){ return t[0] === ti; })) return false;
@@ -1673,6 +1703,11 @@ function renderChips(){
        federação: com uma federação escolhida, ali o chip fica desligado. */
     h += chip('f-partido','Partido', S.fed ? fedCurta(S.fed) : S.partido,
               !!(S.partido || S.fed), naoRecorta.indexOf('fed') >= 0 && !!S.fed);
+    /* o chip do desfecho só existe depois que o TSE publica a totalização */
+    if(temDesfecho()){
+      h += chip('f-desf','Desfecho', S.desf ? rotuloDesfechoChip(S.desf) : '', !!S.desf,
+                naoRecorta.indexOf('desf') >= 0);
+    }
     h += chip('f-sinal','Sinais', rotuloSinal(S.sinal), !!S.sinal,
               naoRecorta.indexOf('sinal') >= 0);
     /* O chip do tipo passa a existir sempre, e desligado onde o tipo não vale: ele
@@ -1683,7 +1718,7 @@ function renderChips(){
        desligado escrevia o primeiro tipo do dicionário como se ele estivesse guardado */
     h += chip('f-tipo','Tipo de gasto', S.tipo === '' ? '' : (META.dic.tipo[+S.tipo] || ''),
               S.tipo !== '', !temTipoPorLinha() || naoRecorta.indexOf('tipo') >= 0);
-    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== ordPadrao() ||
+    if(S.cargo || S.partido || S.fed || S.sinal || S.desf || S.tipo !== '' || S.ord !== ordPadrao() ||
        (S.dt && S.v === 'doador'))
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
@@ -1816,7 +1851,7 @@ function blocoResumo(lista){
      com o número que o pipeline conta, que é do país inteiro e de todos os cargos. */
   var sub = '';
   if(temLista && ufDaTela() === 'BRASIL'){
-    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || noTipo());
+    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || S.desf || noTipo());
     if(semFiltro && typeof UFD.sem_movimento === 'number' && UFD.sem_movimento > 0)
       sub = inteiro(UFD.sem_movimento) + ' sem movimento, fora da lista';
   } else if(semMov){
@@ -1872,6 +1907,33 @@ function quadroMediana(){
    de um estado. Enquanto o arquivo não chegou, o comportamento é o de sempre. */
 var tiposAplicados = false;
 function temTipoPorLinha(){ return ufDaTela() !== 'BRASIL' || tiposAplicados; }
+/* ---------- o desfecho da urna ---------- */
+function temDesfecho(){ return !!(META && META.tem_desfecho); }
+/* o código é o último campo da linha: 16 na UF, 17 no Brasil, que carrega a UF antes */
+function desfechoDe(r){ return r.length > 17 ? (r[17] || 0) : (r[16] || 0); }
+var DESFECHO = {1:['Eleito','Eleita'], 2:['Suplente','Suplente'],
+                3:['Não eleito','Não eleita'], 4:['2º turno · 25/10','2º turno · 25/10']};
+function rotuloDesfecho(cod, fem){
+  var par = DESFECHO[cod];
+  return par ? par[fem ? 1 : 0] : '';
+}
+/* no chip o substantivo subentendido é "candidaturas", então o plural é feminino */
+var DESFECHO_CHIP = {0:'Sem desfecho publicado', 1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno · 25/10'};
+function rotuloDesfechoChip(v){ return DESFECHO_CHIP[v] || ''; }
+/* O texto do TSE, como ele escreve, no gênero da candidatura. Texto fora da
+   tabela sai como veio, só com a caixa ajustada. */
+function rotuloDesfechoTse(texto, fem){
+  var t = String(texto || '').toUpperCase().replace(/\s+/g,' ').trim();
+  t = t.replace(/[ÁÀÂÃ]/g,'A').replace(/[ÉÊ]/g,'E').replace(/[Í]/g,'I').replace(/[ÓÔÕ]/g,'O').replace(/[ÚÜ]/g,'U').replace(/Ç/g,'C').replace(/[º°]/g,'O');
+  var o = fem ? 'a' : 'o';
+  var tab = {'ELEITO':'Eleit' + o, 'ELEITO POR QP':'Eleit' + o + ' por quociente partidário',
+             'ELEITO POR MEDIA':'Eleit' + o + ' por média', 'SUPLENTE':'Suplente',
+             'NAO ELEITO':'Não eleit' + o, '2O TURNO':'2º turno · 25/10', '2 TURNO':'2º turno · 25/10',
+             'SEGUNDO TURNO':'2º turno · 25/10'};
+  if(tab[t]) return tab[t];
+  var s = String(texto || '').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 /* Um tipo escolhido só vale onde a linha carrega tipo. Guardado sem valer, ele não
    muda a lista nem os números, e quem conta isso é o chip desligado. */
 function noTipo(){ return S.tipo !== '' && S.v !== 'fornecedor' && S.v !== 'doador' && temTipoPorLinha(); }
@@ -1911,8 +1973,8 @@ function blocoTipos(lista){
      painel já diz "no país inteiro", e o chip de Tipo desligado na barra diz o resto. */
   return h + '</details></div>';
 }
-/* Na visão do país a linha tem 17 campos e o último é a sigla da UF; nas UFs ela
-   tem 16 e não existe. Ler a sigla por posição fixa punha o array inteiro na tela
+/* Na visão do país a linha tem 18 campos e o último é a sigla da UF; nas UFs ela
+   tem 17 e não existe. Ler a sigla por posição fixa punha o array inteiro na tela
    como texto quando o formato mudava, então quem manda é o tamanho da linha. */
 function ufDaLinha(r){
   return (r.length > 16 && typeof r[16] === 'string') ? r[16] : '';
@@ -1944,6 +2006,9 @@ function chipsAttr(lista){
   var itens = (lista || []).filter(Boolean);
   if(!itens.length) return '';
   return '<span class="chips-attr">' + itens.map(function(t){
+    /* um item pode ser {t, cls}: é assim que a pastilha do desfecho leva a cor dela,
+       e é a única que leva */
+    if(typeof t === 'object') return '<span class="attr ' + esc(t.cls || '') + '">' + esc(String(t.t)) + '</span>';
     return '<span class="attr">' + esc(String(t)) + '</span>';
   }).join('') + '</span>';
 }
@@ -2004,7 +2069,9 @@ function linhaRanking(r, i){
   var co = cargoOnde(META.cargos[r[4]] || '', ufDaLinha(r));
   var part = META.dic.partido[r[3]] || '';
   var fed = fedCurta(META.dic.fed[r[5]] || '');
-  var chips = chipsAttr([part, co.cargo + (co.onde ? ' · ' + co.onde : ''),
+  var des = temDesfecho() ? desfechoDe(r) : 0;
+  var chips = chipsAttr([des ? {t:rotuloDesfecho(des, r[13] === 1), cls:'des des' + des} : '',
+                         part, co.cargo + (co.onde ? ' · ' + co.onde : ''),
                          r[2] ? 'nº ' + r[2] : '', fed]);
   /* A base do percentual é o que foi pago, e o número grande da linha logo acima dele
      é a receita. Sem a base escrita, quem aplicava os 99 % ao número que via errava
@@ -4118,13 +4185,18 @@ function viewCand(){
      aqui de uma linha precisa reconhecer na ficha o que viu na linha. */
   var h = '<div class="cartao"><div class="fhead">' +
     '<h1>' + esc(f.nome) + '</h1>' +
-    chipsAttr([f.partido, f.nr ? 'nº ' + f.nr : '',
+    chipsAttr([temDesfecho() && f.desfecho ? {t:rotuloDesfecho(f.desfecho, /^F/i.test(f.genero || '')), cls:'des des' + f.desfecho} : '',
+               f.partido, f.nr ? 'nº ' + f.nr : '',
                co.cargo + (co.onde ? ' · ' + co.onde : ''), fedCurta(f.fed || '')]) +
     '<div class="sub">' + esc([f.genero, f.cor_raca].filter(Boolean).join(' · ').toLowerCase()) +
       /* a ocupação declarada no registro da candidatura: o TSE manda, e era o
          único campo do cadastro que o painel tinha e não mostrava */
       (f.ocupacao ? ' · ' + esc(String(f.ocupacao).toLowerCase()) : '') +
       (f.prestacao ? ' · prestação ' + esc(String(f.prestacao).toLowerCase()) : '') + '</div>' +
+    /* o desfecho como o TSE escreve, com a data em que ele apareceu na base */
+    (temDesfecho() ? '<div class="sub">' +
+       (f.desfecho ? esc(rotuloDesfechoTse(f.desfecho_tse, /^F/i.test(f.genero || ''))) : 'Sem desfecho publicado') +
+       ' · desfecho do 1º turno, TSE' + (META.desfecho_em ? ', ' + esc(dataBR(META.desfecho_em)) : '') + '</div>' : '') +
     '</div>';
   /* quatro tiles de R$ 0 e um '0% público' de 26px nao sao dado: sao ruido com cara de conclusao */
   if(nada){
@@ -4484,6 +4556,7 @@ function devolverFoco(g){
 }
 function render(){
   if(!META) return;
+  if(!temDesfecho()) S.desf = '';
   var foco = guardarFoco();
   recorteTela = '';
   renderChips();
@@ -4588,7 +4661,7 @@ document.addEventListener('click', function(e){
   if(a === 'mais'){ S.limite += 60; render(); focarNovaLinha(); return; }
   if(a === 'limpar'){
     /* a unidade e a dimensão não são filtros: limpar não muda de tela */
-    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', dt:'', ord:ordPadrao()});
+    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', desf:'', dt:'', ord:ordPadrao()});
     return;
   }
   if(a === 'limpatipo'){ ir({tipo:''}); return; }
@@ -4637,6 +4710,7 @@ function descreverRecorte(){
     if(S.partido) p.push(S.partido);
     if(S.fed && foraDaqui.indexOf('fed') < 0) p.push(fedCurta(S.fed));
     if(S.sinal && foraDaqui.indexOf('sinal') < 0) p.push('sinal ' + rotuloSinal(S.sinal));
+    if(S.desf && foraDaqui.indexOf('desf') < 0) p.push(rotuloDesfechoChip(S.desf).toLowerCase());
     if(noTipo()) p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
     if(S.v === 'doador' && S.dt) p.push(ROT_TIPO_D[S.dt]);
     if(S.view === 'busca') p.push('busca por "' + S.q + '"');
@@ -4723,6 +4797,21 @@ function abrirFiltro(qual, bt){
       isx.push({v:c, r:nomeDe(c), c: inteiro(cs[c] || 0)});
     });
     abrir('Sinais', opcoes('sinal', isx, S.sinal));
+  } else if(qual === 'desf'){
+    /* a contagem de cada opção é sobre o recorte atual sem o próprio filtro; "2º turno"
+       só entra onde existe, e "Todas" fecha a lista */
+    var cd = contarPor(function(r){ return String(desfechoDe(r)); }, 'desf');
+    var idf = [];
+    ['1','2','3','4'].forEach(function(v){
+      if(v === '4' && !cd[v] && S.desf !== '4') return;
+      idf.push({v:v, r:rotuloDesfechoChip(v), c:inteiro(cd[v] || 0)});
+    });
+    /* o código 0 fecha a conta: sem ele as opções não somariam o total de "Todas" */
+    if(cd['0'] > 0) idf.push({v:'0', r:'Sem desfecho publicado', c:inteiro(cd['0'])});
+    /* "Todas" sai da mesma unidade que as quatro opções: com o arquivo de outra unidade
+       em mãos, contarPor devolve vazio e o total ao lado não pode vir de lá */
+    idf.push({v:'', r:'Todas', c: UFD && UFD.uf === ufDaTela() ? inteiro(UFD.c.filter(function(r){ return passa(r, 'desf'); }).length) : ''});
+    abrir('Desfecho do 1º turno', opcoes('desf', idf, S.desf));
   } else if(qual === 'tipo'){
     /* O tipo de gasto tinha menu nenhum: o chip só existia depois de escolhido, no painel
        lateral. Os valores vêm somados do mesmo recorte da tela, sem aplicar o próprio

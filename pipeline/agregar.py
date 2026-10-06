@@ -99,13 +99,13 @@ class Agg:
                  'n_despesas', 'por_tipo', 'por_forn', 'por_forn_tipo', 'por_dia',
                  'por_origem', 'por_fonte_paga', 'por_doador', 'por_doador_fin',
                  'receita_sem_doador', 'receita_proprio_partido',
-                 'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao')
+                 'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao', 'sit_turno')
 
     def __init__(self, sq):
         self.sq = sq
         self.uf = self.cargo = self.nr = self.nome = self.partido = self.cpf = ''
         self.fed = ''
-        self.genero = self.cor_raca = self.ocupacao = ''
+        self.genero = self.cor_raca = self.ocupacao = self.sit_turno = ''
         self.prestadores = set()
         self.tipo_prest = ''
         self.contratado = self.pago = self.pago_publico = 0
@@ -418,9 +418,12 @@ def juntar_candidaturas(cands, aggs):
         a.cor_raca = a.cor_raca or c.cor_raca
         # A ocupacao declarada e o unico campo do cadastro que diz o que a
         # pessoa faz. Ela e declaracao de quem se candidatou, nunca registro
-        # de mandato: DS_SIT_TOT_TURNO vem #NULO em 100 % das linhas de 2026,
-        # porque a eleicao ainda nao aconteceu.
+        # de mandato.
         a.ocupacao = a.ocupacao or c.ocupacao
+        # DS_SIT_TOT_TURNO: #NULO em toda linha ate a eleicao, preenchido pelo
+        # TSE depois da totalizacao. O texto fica como veio; quem o traduz para
+        # codigo e pipeline/desfecho.py, na hora de escrever.
+        a.sit_turno = c.sit_turno or a.sit_turno
         a.fed = c.fed or a.fed
     ficha = {c.sq for c in cands}
     for sq, a in aggs.items():

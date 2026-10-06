@@ -166,6 +166,11 @@ class TestAgregadoReal(unittest.TestCase):
         for a in self.aggs.values():
             self.assertIn(a.cargo, A.CARGOS_PAINEL)
 
+    def test_a_fixture_e_de_antes_da_eleicao_e_nao_tem_desfecho(self):
+        from pipeline import desfecho as D
+        self.assertTrue(all(a.sit_turno == '' for a in self.aggs.values()))
+        self.assertTrue(all(D.codigo(a.sit_turno) == 0 for a in self.aggs.values()))
+
 
 class TestComparacaoEntrePares(unittest.TestCase):
     """Um numero sozinho nao diz nada; o grupo de comparacao e (UF, cargo)."""
@@ -1537,6 +1542,112 @@ class TestFornecedorCruzado(unittest.TestCase):
             self.assertLess(mb, V.LIMITE_FORN_CRUZADO_MB, unidade)
 
 
+class TestDesfecho(unittest.TestCase):
+    """O desfecho da urna vem como texto do TSE e vira um codigo pequeno."""
+
+    def test_eleito_nas_tres_formas(self):
+        from pipeline import desfecho as D
+        for t in ('ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA', 'ELEITO POR MEDIA',
+                  'eleito por qp', ' Eleito  por  Média '):
+            self.assertEqual(D.codigo(t), D.ELEITA, t)
+
+    def test_suplente_nao_eleito_e_segundo_turno(self):
+        from pipeline import desfecho as D
+        self.assertEqual(D.codigo('SUPLENTE'), D.SUPLENTE)
+        self.assertEqual(D.codigo('NÃO ELEITO'), D.NAO_ELEITA)
+        self.assertEqual(D.codigo('NAO ELEITO'), D.NAO_ELEITA)
+        for t in ('2º TURNO', '2O TURNO', 'SEGUNDO TURNO', '2° TURNO'):
+            self.assertEqual(D.codigo(t), D.SEGUNDO_TURNO, t)
+
+    def test_as_quatro_formas_de_vazio_dao_zero_e_nao_sao_desconhecidas(self):
+        from pipeline import desfecho as D
+        for t in ('', '#NULO', '#NULO#', '-1', '#NE', None):
+            self.assertEqual(D.codigo(t), 0, repr(t))
+            self.assertFalse(D.desconhecido(t), repr(t))
+
+    def test_texto_desconhecido_da_zero_mas_e_marcado(self):
+        from pipeline import desfecho as D
+        self.assertEqual(D.codigo('RENUNCIOU'), 0)
+        self.assertTrue(D.desconhecido('RENUNCIOU'))
+
+    def test_juntar_candidaturas_leva_o_texto_ao_agg(self):
+        cand = C.Cand(uf='RR', ue='RR', cargo='7', ds_cargo='DEPUTADO ESTADUAL',
+                      sq='999000001', nr='10123', nome='EXEMPLO', urna='EXEMPLO',
+                      cpf='', situacao='APTO', nr_partido='10', partido='PAB',
+                      nm_partido='', nr_fed='', fed='', comp_fed='', genero='FEMININO',
+                      cor_raca='', ocupacao='', nascimento='', sit_turno='ELEITO POR QP')
+        aggs = {}
+        A.juntar_candidaturas([cand], aggs)
+        self.assertEqual(aggs['999000001'].sit_turno, 'ELEITO POR QP')
+
+    def test_a_linha_enxuta_tambem_carrega_o_desfecho(self):
+        a = A.Agg('999000002')
+        a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'
+        a.sit_turno = 'ELEITO'
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_uf('RR', [a], {}, dics, tmp)
+            uf = json.load(open(os.path.join(tmp, 'uf', 'RR.json'), encoding='utf-8'))
+            self.assertEqual(len(uf['c'][0]), 17)
+            self.assertEqual(uf['c'][0][16], 1)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_a_data_do_desfecho_fica_na_primeira_rodada_que_o_viu(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-05', False), '')
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-05', True), '2026-10-05')
+            # a rodada seguinte nao anda a data
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-06', True), '2026-10-05')
+            # e sem desfecho na rodada de hoje a data gravada continua valendo
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-07', False), '2026-10-05')
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_a_ficha_carrega_codigo_e_texto(self):
+        a = A.Agg('999000003')
+        a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'
+        a.sit_turno = 'ELEITO POR QP'
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_ficha(a, [], dics, {}, tmp)
+            f = json.load(open(os.path.join(tmp, 'cand', '999000003.json'), encoding='utf-8'))
+            self.assertEqual(f['desfecho'], 1)
+            self.assertEqual(f['desfecho_tse'], 'ELEITO POR QP')
+            a.sit_turno = ''
+            E.escrever_ficha(a, [], dics, {}, tmp)
+            f = json.load(open(os.path.join(tmp, 'cand', '999000003.json'), encoding='utf-8'))
+            self.assertEqual(f['desfecho'], 0)
+            self.assertIsNone(f['desfecho_tse'])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_brasil_inclui_quem_tem_desfecho_sem_movimento(self):
+        a1 = A.Agg('999000004')
+        a1.uf, a1.cargo, a1.nome, a1.partido = 'RR', '7', 'ELEITO SEM DINHEIRO', 'PAB'
+        a1.sit_turno = 'ELEITO'
+        a2 = A.Agg('999000005')
+        a2.uf, a2.cargo, a2.nome, a2.partido = 'RR', '7', 'SEM NADA', 'PAB'
+        a2.sit_turno = ''
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_brasil([a1, a2], {}, dics, tmp)
+            br = json.load(open(os.path.join(tmp, 'uf', 'BRASIL.json'), encoding='utf-8'))
+            self.assertEqual(len(br['c']), 1)
+            l = br['c'][0]
+            self.assertEqual(len(l), 18)
+            self.assertEqual(l[17], 1)
+            self.assertEqual(l[16], 'RR')
+            self.assertEqual(l[6], 0)
+            self.assertEqual(br['sem_movimento'], 1)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
         # a rodada de producao exige a chave que torna o identificador de pessoa
@@ -1563,9 +1674,16 @@ class TestPontaAPonta(unittest.TestCase):
             meta = json.load(open(os.path.join(site, 'meta.json'), encoding='utf-8'))
             self.assertEqual(meta['contagens']['contratado'], 6909092605)
             self.assertIn('RR', meta['ufs'])
+            # a fixture e de antes da eleicao
+            self.assertIs(meta['tem_desfecho'], False)
+            self.assertIsNone(meta['desfecho_em'])
+            self.assertEqual(meta['desfecho_desconhecidos'], [])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
-            self.assertTrue(all(len(l) == 16 for l in uf['c']))
+            self.assertTrue(all(len(l) == 17 for l in uf['c']))
+            # a fixture e de antes da eleicao: codigo 0 em toda linha, inclusive
+            # na linha enxuta de quem nao movimentou nada
+            self.assertTrue(all(l[16] == 0 for l in uf['c']))
             # A receita por origem saiu da linha do ranking em 17/09: ela
             # alimentava um filtro que lia a coluna errada do TSE (origem em
             # vez de fonte) e custava 100 KB no arquivo do pais. A pergunta
@@ -1574,8 +1692,9 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertNotIn('origem', meta['dic'])
             br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
                                 encoding='utf-8'))
-            self.assertTrue(all(len(l) == 17 for l in br['c']))
+            self.assertTrue(all(len(l) == 18 for l in br['c']))
             self.assertTrue(all(l[16] == 'RR' for l in br['c']))
+            self.assertTrue(all(l[17] == 0 for l in br['c']))
             # o campo 15 e a receita publica, e entrou para a coluna de cota de
             # genero na visao por partido: o campo 9 e pagamento, e a fatia de
             # 30 % que a Constituicao manda medir e sobre a receita
@@ -1630,6 +1749,17 @@ class TestPontaAPonta(unittest.TestCase):
                           encoding='utf-8') as f:
                     json.dump(d, f, ensure_ascii=False)
                 self.assertTrue(V.validar(site))
+            # o validador reprova linha com a forma antiga e codigo fora de 0..4
+            caminho_uf = os.path.join(site, 'uf', 'RR.json')
+            original = open(caminho_uf, encoding='utf-8').read()
+            for mexe in (lambda l: l[:16], lambda l: l[:16] + [5]):
+                d = json.loads(original)
+                d['c'][0] = mexe(d['c'][0])
+                with open(caminho_uf, 'w', encoding='utf-8') as f:
+                    json.dump(d, f, ensure_ascii=False)
+                self.assertTrue(V.validar(site))
+            with open(caminho_uf, 'w', encoding='utf-8') as f:
+                f.write(original)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

@@ -23,6 +23,7 @@ import os
 from .agregar import CARGOS, NOME_UF
 from .alarmes import faixa, indice
 from .carregar import mascara
+from . import desfecho as D
 
 def curto(texto, k=48):
     """Corta com reticencia, para o nome cortado nao parecer o nome inteiro."""
@@ -88,7 +89,8 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             # candidato sem nenhum movimento: cabecalho enxuto, para a busca
             linhas.append([a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo,
                            dfed.id(a.fed),
-                           0, 0, 0, 0, 0, [], [], 0, 0, 0])
+                           0, 0, 0, 0, 0, [], [], 0, 0, 0,
+                           D.codigo(a.sit_turno)])
             continue
         tipos = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
         linhas.append([
@@ -100,6 +102,8 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
             a.receita_publica,
+            # o desfecho da urna, 0..4; pipeline/desfecho.py diz qual e qual
+            D.codigo(a.sit_turno),
         ])
     return grava(os.path.join(destino, 'uf', f'{uf}.json'),
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
@@ -175,6 +179,10 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None,
         # a ocupacao declarada no registro da candidatura. E declaracao de
         # quem se candidatou, nunca registro de mandato
         'ocupacao': a.ocupacao,
+        # o desfecho da urna: o codigo que a lista usa e o texto do TSE, para a
+        # tela escrever "eleita por quociente partidario" como ele escreve
+        'desfecho': D.codigo(a.sit_turno),
+        'desfecho_tse': a.sit_turno or None,
         'contratado': a.contratado, 'pago': a.pago, 'pago_publico': a.pago_publico,
         'receita': a.receita, 'estimavel': a.estimavel,
         'receita_publica': a.receita_publica,
@@ -225,8 +233,12 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
     for a in sorted(aggs, key=lambda x: -x.contratado):
         # A visao nacional e sobre dinheiro. Quem nao declarou nada continua
         # achavel pela busca e pela propria UF, mas nao entra num ranking de
-        # 20 mil linhas onde so ocuparia espaco.
-        if not a.movimento:
+        # 20 mil linhas onde so ocuparia espaco. A excecao e quem tem desfecho:
+        # quem se elegeu sem declarar movimento precisa existir na lista do
+        # pais, senao o filtro de desfecho subconta. Sem movimento e sem
+        # desfecho continua fora, como antes. A linha dele sai com os campos
+        # de dinheiro em zero, porque os somatorios do agg ja sao zero.
+        if not a.movimento and not D.codigo(a.sit_turno):
             continue
         al = alarmes_por_sq.get(a.sq, ())
         for t, v in a.por_tipo.items():
@@ -242,8 +254,12 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
             indice(a.contratado, al),
             a.receita_publica,
             a.uf,
+            D.codigo(a.sit_turno),
         ])
-    sem_movimento = sum(1 for a in aggs if not a.movimento)
+    # O front mostra este numero como "fora da lista", entao ele conta so
+    # quem de fato ficou de fora: sem movimento e sem desfecho.
+    sem_movimento = sum(1 for a in aggs
+                        if not a.movimento and not D.codigo(a.sit_turno))
     return grava(os.path.join(destino, 'uf', 'BRASIL.json'),
                  {'uf': 'BRASIL', 'n': len(linhas),
                   'sem_movimento': sem_movimento,
@@ -806,7 +822,7 @@ def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
 
 
 def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
-                  catalogo=None, gravidades=None, forn=None):
+                  catalogo=None, gravidades=None, forn=None, desfecho=None):
     """O meta carrega os dicionarios e o catalogo de sinais.
 
     O catalogo sai indexado PELO CODIGO, nao por posicao numa lista. A versao
@@ -841,6 +857,14 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
         # quantos blocos a ficha de fornecedor tem: o front acha o bloco
         # pela mesma conta do ident.bloco, sem baixar indice nenhum
         'forn': forn or {},
+        # O desfecho da urna. `tem_desfecho` falso significa que o TSE ainda nao
+        # publicou a totalizacao: a tela nao desenha chip nem pastilha. Texto que a
+        # tabela de pipeline/desfecho.py nao reconhece sai listado aqui, em vez de
+        # derrubar a rodada: o site de hoje com um desfecho a menos vale mais que o
+        # de ontem no ar.
+        'tem_desfecho': bool((desfecho or {}).get('tem')),
+        'desfecho_em': (desfecho or {}).get('em') or None,
+        'desfecho_desconhecidos': (desfecho or {}).get('desconhecidos', []),
         'indice': {
             'nome': 'índice de conferência',
             'o_que_e': 'Soma dos sinais levantados, pesada pela intensidade de '

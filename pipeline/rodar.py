@@ -19,6 +19,7 @@ from datetime import date, timedelta
 
 from . import agregar as A
 from . import carregar as C
+from . import desfecho as D
 from . import escrever as E
 from . import historico as H
 from .alarmes import (CATALOGO, GRAVIDADE, Contexto, avaliar,
@@ -291,10 +292,20 @@ def main(argv=None):
         'cnpj_com_receita': len(dados_receita),
         'despesas_com_data_no_futuro': nac.datas_no_futuro,
     }
+    tem_desfecho = any(D.codigo(ag.sit_turno) for ag in aggs.values())
+    desconhecidos = sorted({D.normaliza(ag.sit_turno) for ag in aggs.values()
+                            if D.desconhecido(ag.sit_turno)})
+    if desconhecidos:
+        print(f'::warning::   aviso: {len(desconhecidos)} textos de desfecho fora da tabela: '
+              + ', '.join(desconhecidos))
+    desfecho = {'tem': tem_desfecho,
+                'em': H.desfecho_em(a.estado, hoje, tem_desfecho),
+                'desconhecidos': desconhecidos}
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},
                     a.site, catalogo=CATALOGO, gravidades=GRAVIDADE,
+                    desfecho=desfecho,
                     forn={'blocos': fichas_forn['blocos'],
                           'n': fichas_forn['fornecedores'],
                           'pessoas_fora': fichas_forn['pessoas_fora'],
