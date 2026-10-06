@@ -166,6 +166,11 @@ class TestAgregadoReal(unittest.TestCase):
         for a in self.aggs.values():
             self.assertIn(a.cargo, A.CARGOS_PAINEL)
 
+    def test_a_fixture_e_de_antes_da_eleicao_e_nao_tem_desfecho(self):
+        from pipeline import desfecho as D
+        self.assertTrue(all(a.sit_turno == '' for a in self.aggs.values()))
+        self.assertTrue(all(D.codigo(a.sit_turno) == 0 for a in self.aggs.values()))
+
 
 class TestComparacaoEntrePares(unittest.TestCase):
     """Um numero sozinho nao diz nada; o grupo de comparacao e (UF, cargo)."""
@@ -1564,6 +1569,16 @@ class TestDesfecho(unittest.TestCase):
         from pipeline import desfecho as D
         self.assertEqual(D.codigo('RENUNCIOU'), 0)
         self.assertTrue(D.desconhecido('RENUNCIOU'))
+
+    def test_juntar_candidaturas_leva_o_texto_ao_agg(self):
+        cand = C.Cand(uf='RR', ue='RR', cargo='7', ds_cargo='DEPUTADO ESTADUAL',
+                      sq='999000001', nr='10123', nome='EXEMPLO', urna='EXEMPLO',
+                      cpf='', situacao='APTO', nr_partido='10', partido='PAB',
+                      nm_partido='', nr_fed='', fed='', comp_fed='', genero='FEMININO',
+                      cor_raca='', ocupacao='', nascimento='', sit_turno='ELEITO POR QP')
+        aggs = {}
+        A.juntar_candidaturas([cand], aggs)
+        self.assertEqual(aggs['999000001'].sit_turno, 'ELEITO POR QP')
 
 
 class TestPontaAPonta(unittest.TestCase):
