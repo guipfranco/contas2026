@@ -1908,6 +1908,23 @@ class TestFluxoLongo(unittest.TestCase):
             if e[0]:
                 self.assertFalse(e[0].startswith('p'), e)
 
+    def test_o_repasse_do_proprio_partido_vira_um_no_so(self):
+        """Em Roraima ele e 97 % da receita, e saia diretorio por diretorio.
+
+        O que sobra listado e quem nao e a direcao do partido da candidatura: o PDT
+        doando a uma candidatura do MDB continua com nome.
+        """
+        g = self.d['r']['geral']
+        proprio = sum(v for a, _, v in g['lig'][0] if a == -3)
+        self.assertGreater(proprio / g['tot'][0], 0.95)
+        listados = {self.d['d'][i][1] for i in g['col'][0]}
+        self.assertNotIn('UNIAO BRASIL', listados)
+        pdt = [self.d['d'][i] for i in g['col'][0] if 'TRABALHISTA' in self.d['d'][i][1]]
+        self.assertTrue(pdt, 'o diretorio do PDT que doou ao MDB sumiu da coluna')
+        self.assertEqual(pdt[0][2], 'partido')
+        # e a primeira ligacao continua fechando com a receita
+        self.assertEqual(sum(v for _, _, v in g['lig'][0]), g['tot'][0])
+
 
 class TestValidador(unittest.TestCase):
     def test_pega_json_truncado(self):

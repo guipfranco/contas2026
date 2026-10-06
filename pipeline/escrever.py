@@ -740,12 +740,13 @@ def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
     Doadores, fornecedores e candidaturas moram em dicionarios locais (`d`, `f`,
     `c`), como no cruzado, e cada recorte aponta para eles. Nas colunas de um
     recorte vai o indice do dicionario (o do meta, para partido); nas ligacoes,
-    a POSICAO na coluna daquele recorte, com -1 para o no "outros" e -2 para a
-    receita sem doador ou o gasto sem fornecedor. Uma entrada de `d` e
+    a POSICAO na coluna daquele recorte, com -1 para o no "outros", -2 para a
+    receita sem doador ou o gasto sem fornecedor e -3, so na coluna de doadores,
+    para o repasse da direcao do proprio partido. Uma entrada de `d` e
     [endereco, nome, tipo, tem_ficha]; de `f`, [endereco, nome, pj, tem_ficha];
     de `c`, [sq, nome, partido, cargo]. Nenhuma traz documento.
     """
-    from .agregar import OUTROS, SEM_DOC
+    from .agregar import OUTROS, PROPRIO, SEM_DOC
     dpart = dics['partido']
     dd, df, dc = [], [], []
     idx_d, idx_f, idx_c = {}, {}, {}
@@ -789,6 +790,8 @@ def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
                 return -1
             if k == SEM_DOC:
                 return -2
+            if k == PROPRIO:
+                return -3
             return pos[coluna][k]
         saida[nome] = {
             'col': [[i_d(x) for x in cols[0]], [dpart.id(x) for x in cols[1]],

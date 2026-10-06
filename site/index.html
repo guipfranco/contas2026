@@ -2990,7 +2990,10 @@ function montaFluxoLongo(r){
     var entra = {}, sai = {};
     if(c > 0) r.lig[c - 1].forEach(function(l){ entra[l[1]] = (entra[l[1]] || 0) + l[2]; });
     if(c < 3) r.lig[c].forEach(function(l){ sai[l[0]] = (sai[l[0]] || 0) + l[2]; });
-    var chaves = r.col[c].map(function(x, i){ return i; }).concat([-1, -2]);
+    /* -3 é o repasse da direção do próprio partido, um nó só no alto da coluna de
+       doadores: diretório por diretório ele repetia a coluna de partidos ao lado, e em
+       Roraima é 97 % da receita. */
+    var chaves = (c === 0 ? [-3] : []).concat(r.col[c].map(function(x, i){ return i; }), [-1, -2]);
     var nos = [], mapa = {};
     chaves.forEach(function(k){
       var e = entra[k] || 0, s = sai[k] || 0, v = Math.max(e, s);
@@ -3002,6 +3005,8 @@ function montaFluxoLongo(r){
         n.nome = nomeDeOutros(c, n.qtd);
       } else if(k === -2){
         n.resto = 1; n.nome = nomeSem[c];
+      } else if(k === -3){
+        n.prop = 1; n.nome = 'repasse do próprio partido';
       } else {
         var id = r.col[c][k];
         if(c === 0){
@@ -3042,11 +3047,15 @@ function fluxoLongoDesenho(m, id){
   var nw = 10, gap = 6, topo = 52;
   var alt = Math.max.apply(null, cols.map(function(c){ return c.length; }));
   var H = Math.max(300, Math.min(ALTURA_MAX_FX, 34 * alt + 70));
-  function medida(n){ return n.outros ? Math.min(n.valor, n.teto) : n.valor; }
+  /* Dois nós entram com altura limitada e a nota "fora de escala": o "outros" de cada
+     coluna e o repasse do próprio partido, que é o dinheiro quase todo. Com ele em escala
+     real, os outros doadores não apareciam. */
+  function capado(n){ return n.outros || n.prop; }
+  function medida(n){ return capado(n) ? Math.min(n.valor, n.teto) : n.valor; }
   function prepara(nos){
-    var listados = nos.reduce(function(s, n){ return s + (n.outros ? 0 : n.valor); }, 0);
+    var listados = nos.reduce(function(s, n){ return s + (capado(n) ? 0 : n.valor); }, 0);
     nos.forEach(function(n){
-      if(!n.outros) return;
+      if(!capado(n)) return;
       n.teto = listados * TETO_OUTROS / (1 - TETO_OUTROS);
       n.compr = n.valor > n.teto ? n.teto / n.valor : 1;
     });
@@ -3059,7 +3068,7 @@ function fluxoLongoDesenho(m, id){
     var Kuni = Infinity, menor = 0;
     cols.forEach(function(c, i){ Kuni = Math.min(Kuni, disp[i] / (tots[i] || 1)); });
     cols.forEach(function(c){ c.forEach(function(n){
-      if(n.outros || n.resto || n.valor <= 0) return;
+      if(capado(n) || n.resto || n.valor <= 0) return;
       if(!menor || n.valor < menor) menor = n.valor;
     }); });
     unica = !!menor && menor * Kuni >= MIN_NO_FX;
@@ -3071,7 +3080,7 @@ function fluxoLongoDesenho(m, id){
      diretório grande e nove traços mudos. */
   function podar(c){
     var nos = cols[c], k = K[c];
-    var some = nos.filter(function(n){ return !n.outros && !n.resto && medida(n) * k < 9; });
+    var some = nos.filter(function(n){ return !capado(n) && !n.resto && medida(n) * k < 9; });
     if(!some.length || nos.length - some.length < 2) return false;
     var outro = nos.filter(function(n){ return n.outros; })[0];
     if(!outro){ outro = {outros:1, qtd:0, valor:0, ve:0, vd:0}; }
@@ -3081,8 +3090,9 @@ function fluxoLongoDesenho(m, id){
     });
     if(outro.ve !== undefined && c === quebra) outro.valor = Math.max(outro.ve, outro.vd);
     outro.nome = nomeDeOutros(c, outro.qtd);
-    var novos = nos.filter(function(n){ return !n.outros && !n.resto && some.indexOf(n) < 0; })
-      .concat([outro], nos.filter(function(n){ return n.resto; }));
+    var novos = nos.filter(function(n){ return n.prop; })
+      .concat(nos.filter(function(n){ return !capado(n) && !n.resto && some.indexOf(n) < 0; }),
+              [outro], nos.filter(function(n){ return n.resto; }));
     var mapa = nos.map(function(n){ return novos.indexOf(some.indexOf(n) >= 0 ? outro : n); });
     function remapeia(L, lado){
       var somados = {}, saida = [];
@@ -3120,7 +3130,7 @@ function fluxoLongoDesenho(m, id){
   var chLado = Math.max(8, Math.floor(lab / 8.6));
   var chMeio = Math.max(8, Math.floor((passo - nw - 24) / 7.4));
   function corta(s, k){ return s.length > k ? s.slice(0, k - 1) + '…' : s; }
-  function fator(n){ return n.outros ? n.compr : 1; }
+  function fator(n){ return capado(n) ? n.compr : 1; }
   var svg = '<svg class="fluxo" viewBox="0 0 ' + W + ' ' + (H + topo + 4) + '" width="' + W +
     '" height="' + (H + topo + 4) + '" role="img" aria-label="Diagrama de fluxo de quatro ' +
     'colunas; os mesmos números estão na tabela logo abaixo">';
@@ -3164,7 +3174,7 @@ function fluxoLongoDesenho(m, id){
       var anc = primeira ? ' text-anchor="end"' : '';
       var halo = (!primeira && !ultima) ? ' halo' : '';
       var k = (primeira || ultima) ? chLado : chMeio;
-      var fraco = (n.outros || n.resto) ? ' outros' : '';
+      var fraco = (capado(n) || n.resto) ? ' outros' : '';
       var corpo;
       if(i === quebra){
         var he = Math.max(1.5, n.ve * K[i] * fator(n)), hd = Math.max(1.5, n.vd * K[i] * fator(n));
@@ -3178,11 +3188,12 @@ function fluxoLongoDesenho(m, id){
       var valor = i === quebra ? moeda(n.ve) + ' | ' + moeda(n.vd) : moeda(n.valor);
       if(n.h >= 9) corpo += '<text class="rot' + halo + (fraco ? ' fraco' : '') + '" x="' + tx + '" y="' + (cy + 4).toFixed(1) + '"' + anc + '>' + esc(corta(n.nome, k)) + '</text>';
       if(n.h >= 22) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc + '>' + esc(corta(valor, k + 4)) + '</text>';
-      if(n.outros && n.compr < 1 && n.h >= 36) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc + '>fora de escala</text>';
+      if(capado(n) && n.compr < 1 && n.h >= 36) corpo += '<text class="val' + halo + '" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc + '>fora de escala</text>';
       var titulo = '<title>' + esc(n.nome + ': ' + (i === quebra
         ? 'receita de ' + moedaCheia(n.ve) + ' e gasto contratado de ' + moedaCheia(n.vd)
-        : moedaCheia(n.valor)) + (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '') +
-        (n.href ? '' : (n.outros || n.resto ? '. Este nó não abre nada' : '. Sem ficha própria'))) + '</title>';
+        : moedaCheia(n.valor)) + (capado(n) && n.compr < 1 ? ', desenhado fora de escala' : '') +
+        (n.prop ? '. É o que a direção do partido de cada candidatura repassou a ela; a aba Doador mostra os diretórios um a um' : '') +
+        (n.href ? '' : (capado(n) || n.resto ? '. Este nó não abre nada' : '. Sem ficha própria'))) + '</title>';
       var dados = ' data-no="' + i + ':' + j + '"';
       svg += n.href
         ? '<a class="fno" href="#' + esc(n.href) + '"' + dados + '>' + titulo + corpo + '</a>'
@@ -3202,6 +3213,7 @@ function fluxoLongoDesenho(m, id){
         }).join('') + '</tbody></table>';
     }).join('') + '</details>';
   var temCompr = cols.some(function(c){ return c.some(function(n){ return n.compr < 1; }); });
+  var prop = cols[0].filter(function(n){ return n.prop; })[0];
   var nota = '<p class="notafx"><b>As duas metades não medem o mesmo dinheiro.</b> Até as ' +
     'candidaturas, a largura é a receita em dinheiro (' + esc(moeda(m.tot[0])) + '); delas para a ' +
     'direita, é o gasto contratado (' + esc(moeda(m.tot[1])) + '). Cada candidatura tem duas barras, ' +
@@ -3209,6 +3221,11 @@ function fluxoLongoDesenho(m, id){
     '<p class="notafx"><b>O desenho não segue o dinheiro de ponta a ponta.</b> Dentro da conta de uma ' +
     'campanha o dinheiro se mistura, e o TSE não diz qual doação pagou qual despesa: uma faixa que ' +
     'entra numa candidatura e outra que sai dela não são o mesmo real.</p>' +
+    (prop ? '<p class="notafx"><b>O repasse do próprio partido entra num nó só.</b> É o que a ' +
+      'direção do partido de cada candidatura repassou a ela, ' + esc(moeda(prop.valor)) + ' (' +
+      pct(prop.valor, m.tot[0]) + ' % da receita), e ele vai com altura limitada para os outros ' +
+      'doadores caberem com nome. Partido que doou a candidatura de outro partido continua com ' +
+      'nome, e a aba Doador mostra os diretórios um a um.</p>' : '') +
     '<p class="notafx">' + (unica ? 'As quatro colunas estão na mesma escala.'
       : 'Cada coluna tem a sua escala: na escala da coluna mais cheia, os nós das outras não ' +
         'caberiam com o nome ao lado.') +

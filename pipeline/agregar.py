@@ -98,7 +98,7 @@ class Agg:
                  'receita', 'estimavel', 'receita_publica',
                  'n_despesas', 'por_tipo', 'por_forn', 'por_forn_tipo', 'por_dia',
                  'por_origem', 'por_fonte_paga', 'por_doador', 'por_doador_fin',
-                 'receita_sem_doador',
+                 'receita_sem_doador', 'receita_proprio_partido',
                  'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao')
 
     def __init__(self, sq):
@@ -125,6 +125,9 @@ class Agg:
         # fluxo longo, que tem de fechar com a receita do ranking
         self.por_doador_fin = {}
         self.receita_sem_doador = 0
+        # o repasse em dinheiro da direcao do proprio partido, fora de
+        # por_doador_fin: no fluxo longo ele e um no so
+        self.receita_proprio_partido = 0
         self.primeira = self.ultima = ''
 
     @property
@@ -334,10 +337,16 @@ def agregar_receitas(fluxo, aggs, nac):
             a.estimavel += r.valor
         else:
             a.receita += r.valor
-            if r.doc:
-                a.por_doador_fin[r.doc] = a.por_doador_fin.get(r.doc, 0) + r.valor
-            else:
+            if not r.doc:
                 a.receita_sem_doador += r.valor
+            elif (tipo_doador(r.origem, r.doc) == 'partido' and r.part_doador
+                  and r.part_doador == r.partido):
+                # o repasse da direcao do proprio partido: e 97 % da receita em
+                # Roraima, e no fluxo longo ele vira um no so, em vez de dez
+                # diretorios repetindo a coluna de partidos ao lado
+                a.receita_proprio_partido += r.valor
+            else:
+                a.por_doador_fin[r.doc] = a.por_doador_fin.get(r.doc, 0) + r.valor
         a.por_origem[r.origem or 'Não informada'] += r.valor
         if publica(r.fonte):
             a.receita_publica += r.valor
@@ -846,8 +855,14 @@ FLUXO_DOADORES = 10
 FLUXO_PARTIDOS = 8
 FLUXO_CANDIDATURAS = 10
 FLUXO_FORNECEDORES = 10
-# a chave do no "outros" de cada coluna, e a do resto sem documento
-OUTROS, SEM_DOC = '~', '~sem'
+# a chave do no "outros" de cada coluna, a do resto sem documento e a do repasse
+# do proprio partido, que na coluna de doadores e um no so
+#
+# O repasse do proprio partido entrou em 05/10, a pedido do Guilherme: com ele
+# diretorio por diretorio, a coluna de doadores repetia a de partidos ao lado (em
+# Roraima, 97 % da receita) e o resto nao aparecia. Ele e agrupado, e nao
+# apagado, para a conta continuar fechando com a receita da tela.
+OUTROS, SEM_DOC, PROPRIO = '~', '~sem', '~prop'
 
 
 def _maiores(mapa, quantos):
@@ -892,6 +907,7 @@ def _fluxo_do_recorte(lista):
         for doc, v in a.por_doador_fin.items():
             soma(l_dp, no(doc, sd), p, v)
         soma(l_dp, SEM_DOC, p, a.receita_sem_doador)
+        soma(l_dp, PROPRIO, p, a.receita_proprio_partido)
         c = no(a.sq, sc)
         soma(l_pc, p, c, a.receita)
         com_doc = 0

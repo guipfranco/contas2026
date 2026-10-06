@@ -243,7 +243,10 @@ def _checar_fluxo(rel, d, n_part, cargos, sem_pessoas):
         for g, L in enumerate(ligs):
             s = 0
             for a, b, v in L:
-                if not (-2 <= a < len(cols[g])) or not (-2 <= b < len(cols[g + 1])) or v <= 0:
+                # -3 e o repasse do proprio partido, e so existe na origem da
+                # primeira ligacao, a dos doadores
+                piso_a = -3 if g == 0 else -2
+                if not (piso_a <= a < len(cols[g])) or not (-2 <= b < len(cols[g + 1])) or v <= 0:
                     erros.append(f'{rel}: recorte {nome}, ligacao {g} invalida: {[a, b, v]}')
                     break
                 s += v
