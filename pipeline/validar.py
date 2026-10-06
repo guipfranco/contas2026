@@ -494,11 +494,14 @@ def validar(pasta):
         soma = 0
         do_tipo = tipos_por_unidade.setdefault(uf, {})
         for l in linhas:
-            if len(l) == 16:
+            if len(l) == 17:
                 for tid, v in l[11]:
                     do_tipo[tid] = do_tipo.get(tid, 0) + v
-            if len(l) != 16:
-                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 16')
+            if len(l) != 17:
+                erros.append(f'uf/{uf}.json: linha com {len(l)} campos, esperado 17')
+                break
+            if not (0 <= l[16] <= 4):
+                erros.append(f'uf/{uf}.json: desfecho {l[16]!r} fora de 0..4')
                 break
             if not (0 <= l[3] < n_part):
                 erros.append(f'uf/{uf}.json: id de partido {l[3]} fora do dicionario')
@@ -534,12 +537,15 @@ def validar(pasta):
         br = _le(caminho).get('c', [])
         ufs_conhecidas = set(meta.get('ufs', {}))
         for l in br[:500]:
-            if len(l) != 17:
+            if len(l) != 18:
                 erros.append(f'uf/BRASIL.json: linha com {len(l)} campos, '
-                             f'esperado 17')
+                             f'esperado 18')
                 break
             if l[16] not in ufs_conhecidas:
                 erros.append(f'uf/BRASIL.json: UF {l[16]!r} fora de meta.ufs')
+                break
+            if not (0 <= l[17] <= 4):
+                erros.append(f'uf/BRASIL.json: desfecho {l[17]!r} fora de 0..4')
                 break
         com_movimento = sum(v['com_gasto'] for v in meta.get('ufs', {}).values())
         if len(br) < com_movimento:

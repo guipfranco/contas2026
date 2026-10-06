@@ -1580,6 +1580,20 @@ class TestDesfecho(unittest.TestCase):
         A.juntar_candidaturas([cand], aggs)
         self.assertEqual(aggs['999000001'].sit_turno, 'ELEITO POR QP')
 
+    def test_a_linha_enxuta_tambem_carrega_o_desfecho(self):
+        a = A.Agg('999000002')
+        a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'
+        a.sit_turno = 'ELEITO'
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_uf('RR', [a], {}, dics, tmp)
+            uf = json.load(open(os.path.join(tmp, 'uf', 'RR.json'), encoding='utf-8'))
+            self.assertEqual(len(uf['c'][0]), 17)
+            self.assertEqual(uf['c'][0][16], 1)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
 
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
@@ -1609,7 +1623,10 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIn('RR', meta['ufs'])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
-            self.assertTrue(all(len(l) == 16 for l in uf['c']))
+            self.assertTrue(all(len(l) == 17 for l in uf['c']))
+            # a fixture e de antes da eleicao: codigo 0 em toda linha, inclusive
+            # na linha enxuta de quem nao movimentou nada
+            self.assertTrue(all(l[16] == 0 for l in uf['c']))
             # A receita por origem saiu da linha do ranking em 17/09: ela
             # alimentava um filtro que lia a coluna errada do TSE (origem em
             # vez de fonte) e custava 100 KB no arquivo do pais. A pergunta
@@ -1618,8 +1635,9 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertNotIn('origem', meta['dic'])
             br = json.load(open(os.path.join(site, 'uf', 'BRASIL.json'),
                                 encoding='utf-8'))
-            self.assertTrue(all(len(l) == 17 for l in br['c']))
+            self.assertTrue(all(len(l) == 18 for l in br['c']))
             self.assertTrue(all(l[16] == 'RR' for l in br['c']))
+            self.assertTrue(all(l[17] == 0 for l in br['c']))
             # o campo 15 e a receita publica, e entrou para a coluna de cota de
             # genero na visao por partido: o campo 9 e pagamento, e a fatia de
             # 30 % que a Constituicao manda medir e sobre a receita
@@ -1674,6 +1692,17 @@ class TestPontaAPonta(unittest.TestCase):
                           encoding='utf-8') as f:
                     json.dump(d, f, ensure_ascii=False)
                 self.assertTrue(V.validar(site))
+            # o validador reprova linha com a forma antiga e codigo fora de 0..4
+            caminho_uf = os.path.join(site, 'uf', 'RR.json')
+            original = open(caminho_uf, encoding='utf-8').read()
+            for mexe in (lambda l: l[:16], lambda l: l[:16] + [5]):
+                d = json.loads(original)
+                d['c'][0] = mexe(d['c'][0])
+                with open(caminho_uf, 'w', encoding='utf-8') as f:
+                    json.dump(d, f, ensure_ascii=False)
+                self.assertTrue(V.validar(site))
+            with open(caminho_uf, 'w', encoding='utf-8') as f:
+                f.write(original)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

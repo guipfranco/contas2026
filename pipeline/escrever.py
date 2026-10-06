@@ -23,6 +23,7 @@ import os
 from .agregar import CARGOS, NOME_UF
 from .alarmes import faixa, indice
 from .carregar import mascara
+from . import desfecho as D
 
 def curto(texto, k=48):
     """Corta com reticencia, para o nome cortado nao parecer o nome inteiro."""
@@ -88,7 +89,8 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             # candidato sem nenhum movimento: cabecalho enxuto, para a busca
             linhas.append([a.sq, a.nome, a.nr, dpart.id(a.partido), a.cargo,
                            dfed.id(a.fed),
-                           0, 0, 0, 0, 0, [], [], 0, 0, 0])
+                           0, 0, 0, 0, 0, [], [], 0, 0, 0,
+                           D.codigo(a.sit_turno)])
             continue
         tipos = [[dtipo.id(t), v] for t, v in a.por_tipo.most_common() if v]
         linhas.append([
@@ -100,6 +102,8 @@ def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
             1 if (a.genero or '').upper().startswith('F') else 0,
             indice(a.contratado, al),
             a.receita_publica,
+            # o desfecho da urna, 0..4; pipeline/desfecho.py diz qual e qual
+            D.codigo(a.sit_turno),
         ])
     return grava(os.path.join(destino, 'uf', f'{uf}.json'),
                  {'uf': uf, 'n': len(linhas), 'c': linhas})
@@ -242,6 +246,7 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
             indice(a.contratado, al),
             a.receita_publica,
             a.uf,
+            D.codigo(a.sit_turno),
         ])
     sem_movimento = sum(1 for a in aggs if not a.movimento)
     return grava(os.path.join(destino, 'uf', 'BRASIL.json'),
