@@ -1043,7 +1043,7 @@ var FCR = null, TIPOS_BR = null;
    Os filtros são os mesmos nas cinco dimensões, e sobrevivem à troca. */
 var S = {
   v:'geral', view:'lista', uf:'', cargo:'', partido:'', fed:'', ord:'receita',
-  sinal:'', tipo:'', dt:'', q:'', cand:'', forn:'', limite:60
+  sinal:'', tipo:'', desf:'', dt:'', q:'', cand:'', forn:'', limite:60
 };
 /* A visão geral não é uma dimensão: é o cruzamento das outras. Ela abre a pergunta,
    e as dimensões respondem em lista, com os mesmos filtros. Doador entrou em 05/10, a
@@ -1232,6 +1232,11 @@ function aplicarHash(){
      tipo. Ele fica guardado mesmo onde não vale, e o chip desligado diz isso, em vez
      de a pessoa perder o recorte ao passar pela dimensão Estado. */
   S.tipo = o.tipo || '';
+  /* O desfecho só existe depois que o TSE publica a totalização: sem ele no meta, um
+     `d=` de link velho é descartado, senão a lista esvaziava em silêncio. Antes do meta
+     chegar o valor fica guardado e a checagem roda de novo no render. */
+  S.desf = /^[1-4]$/.test(o.d || '') ? o.d : '';
+  if(META && !temDesfecho()) S.desf = '';
   S.dt = TIPOS_DOADOR.indexOf(o.dt) >= 0 ? o.dt : '';
   S.q = o.q || '';
   S.cand = /^[0-9]{6,20}$/.test(o.cand || '') ? o.cand : '';
@@ -1260,7 +1265,7 @@ function montarHash(){
   function add(k,v,padrao){ if(v && v !== padrao) p.push(k + '=' + e(v)); }
   add('v',S.v,'geral');
   add('uf',S.uf); add('cargo',S.cargo); add('partido',S.partido); add('fed',S.fed);
-  add('sinal',S.sinal); add('tipo',S.tipo); add('dt',S.dt);
+  add('sinal',S.sinal); add('tipo',S.tipo); add('d',S.desf); add('dt',S.dt);
   add('ord',ordValida(S.ord),ordPadrao());
   add('q',S.q); add('cand',S.cand); add('forn',S.forn);
   return p.join('&');
@@ -1594,9 +1599,11 @@ function codigosDaLinha(r){
    barra, desligado, com o valor guardado à vista. Sinal também ficaria fora por outro
    motivo, e ele vale mais: aqui não há sinal nem índice em lugar nenhum. */
 function foraDaDimensao(){
-  /* o recorte de doador é somado como o de fornecedor, por partido e por cargo */
-  if(S.v === 'fornecedor' || S.v === 'doador') return 'sinal,tipo,fed';
-  return S.v === 'geral' ? 'sinal,fed' : '';
+  /* o recorte de doador é somado como o de fornecedor, por partido e por cargo; o
+     desfecho fica de fora nos três pelo mesmo motivo: forn-recorte, doador-recorte e
+     forn-cruzado são somados no pipeline e não sabem honrá-lo */
+  if(S.v === 'fornecedor' || S.v === 'doador') return 'sinal,tipo,fed,desf';
+  return S.v === 'geral' ? 'sinal,fed,desf' : '';
 }
 function passa(r, ignorar){
   var ig = (ignorar ? ignorar + ',' : '') + foraDaDimensao();
@@ -1611,6 +1618,7 @@ function passa(r, ignorar){
       if(!cods.some(function(c){ return c.charAt(0) === S.sinal; })) return false;
     } else if(cods.indexOf(S.sinal) < 0) return false;
   }
+  if(S.desf && !pula('desf') && String(desfechoDe(r)) !== S.desf) return false;
   if(noTipo() && !pula('tipo')){
     var ti = +S.tipo;
     if(!r[11].some(function(t){ return t[0] === ti; })) return false;
@@ -1691,6 +1699,11 @@ function renderChips(){
        federação: com uma federação escolhida, ali o chip fica desligado. */
     h += chip('f-partido','Partido', S.fed ? fedCurta(S.fed) : S.partido,
               !!(S.partido || S.fed), naoRecorta.indexOf('fed') >= 0 && !!S.fed);
+    /* o chip do desfecho só existe depois que o TSE publica a totalização */
+    if(temDesfecho()){
+      h += chip('f-desf','Desfecho', S.desf ? rotuloDesfechoChip(S.desf) : '', !!S.desf,
+                naoRecorta.indexOf('desf') >= 0);
+    }
     h += chip('f-sinal','Sinais', rotuloSinal(S.sinal), !!S.sinal,
               naoRecorta.indexOf('sinal') >= 0);
     /* O chip do tipo passa a existir sempre, e desligado onde o tipo não vale: ele
@@ -1701,7 +1714,7 @@ function renderChips(){
        desligado escrevia o primeiro tipo do dicionário como se ele estivesse guardado */
     h += chip('f-tipo','Tipo de gasto', S.tipo === '' ? '' : (META.dic.tipo[+S.tipo] || ''),
               S.tipo !== '', !temTipoPorLinha() || naoRecorta.indexOf('tipo') >= 0);
-    if(S.cargo || S.partido || S.fed || S.sinal || S.tipo !== '' || S.ord !== ordPadrao() ||
+    if(S.cargo || S.partido || S.fed || S.sinal || S.desf || S.tipo !== '' || S.ord !== ordPadrao() ||
        (S.dt && S.v === 'doador'))
       h += '<button class="chip limpar" data-act="limpar">limpar ✕</button>';
   }
@@ -1900,6 +1913,9 @@ function rotuloDesfecho(cod, fem){
   var par = DESFECHO[cod];
   return par ? par[fem ? 1 : 0] : '';
 }
+/* no chip o substantivo subentendido é "candidaturas", então o plural é feminino */
+var DESFECHO_CHIP = {1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno'};
+function rotuloDesfechoChip(v){ return DESFECHO_CHIP[v] || ''; }
 /* O texto do TSE, como ele escreve, no gênero da candidatura. Texto fora da
    tabela sai como veio, só com a caixa ajustada. */
 function rotuloDesfechoTse(texto, fem){
@@ -4519,6 +4535,7 @@ function devolverFoco(g){
 }
 function render(){
   if(!META) return;
+  if(!temDesfecho()) S.desf = '';
   var foco = guardarFoco();
   recorteTela = '';
   renderChips();
@@ -4623,7 +4640,7 @@ document.addEventListener('click', function(e){
   if(a === 'mais'){ S.limite += 60; render(); focarNovaLinha(); return; }
   if(a === 'limpar'){
     /* a unidade e a dimensão não são filtros: limpar não muda de tela */
-    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', dt:'', ord:ordPadrao()});
+    ir({cargo:'', partido:'', fed:'', sinal:'', tipo:'', desf:'', dt:'', ord:ordPadrao()});
     return;
   }
   if(a === 'limpatipo'){ ir({tipo:''}); return; }
@@ -4758,6 +4775,17 @@ function abrirFiltro(qual, bt){
       isx.push({v:c, r:nomeDe(c), c: inteiro(cs[c] || 0)});
     });
     abrir('Sinais', opcoes('sinal', isx, S.sinal));
+  } else if(qual === 'desf'){
+    /* a contagem de cada opção é sobre o recorte atual sem o próprio filtro; "2º turno"
+       só entra onde existe, e "Todas" fecha a lista */
+    var cd = contarPor(function(r){ return String(desfechoDe(r)); }, 'desf');
+    var idf = [];
+    ['1','2','3','4'].forEach(function(v){
+      if(v === '4' && !cd[v]) return;
+      idf.push({v:v, r:rotuloDesfechoChip(v), c:inteiro(cd[v] || 0)});
+    });
+    idf.push({v:'', r:'Todas', c: UFD ? inteiro(UFD.c.filter(function(r){ return passa(r, 'desf'); }).length) : ''});
+    abrir('Desfecho do 1º turno', opcoes('desf', idf, S.desf));
   } else if(qual === 'tipo'){
     /* O tipo de gasto tinha menu nenhum: o chip só existia depois de escolhido, no painel
        lateral. Os valores vêm somados do mesmo recorte da tela, sem aplicar o próprio
