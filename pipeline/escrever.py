@@ -233,8 +233,12 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
     for a in sorted(aggs, key=lambda x: -x.contratado):
         # A visao nacional e sobre dinheiro. Quem nao declarou nada continua
         # achavel pela busca e pela propria UF, mas nao entra num ranking de
-        # 20 mil linhas onde so ocuparia espaco.
-        if not a.movimento:
+        # 20 mil linhas onde so ocuparia espaco. A excecao e quem tem desfecho:
+        # quem se elegeu sem declarar movimento precisa existir na lista do
+        # pais, senao o filtro de desfecho subconta. Sem movimento e sem
+        # desfecho continua fora, como antes. A linha dele sai com os campos
+        # de dinheiro em zero, porque os somatorios do agg ja sao zero.
+        if not a.movimento and not D.codigo(a.sit_turno):
             continue
         al = alarmes_por_sq.get(a.sq, ())
         for t, v in a.por_tipo.items():
@@ -252,7 +256,10 @@ def escrever_brasil(aggs, alarmes_por_sq, dics, destino):
             a.uf,
             D.codigo(a.sit_turno),
         ])
-    sem_movimento = sum(1 for a in aggs if not a.movimento)
+    # O front mostra este numero como "fora da lista", entao ele conta so
+    # quem de fato ficou de fora: sem movimento e sem desfecho.
+    sem_movimento = sum(1 for a in aggs
+                        if not a.movimento and not D.codigo(a.sit_turno))
     return grava(os.path.join(destino, 'uf', 'BRASIL.json'),
                  {'uf': 'BRASIL', 'n': len(linhas),
                   'sem_movimento': sem_movimento,

@@ -1625,6 +1625,28 @@ class TestDesfecho(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_brasil_inclui_quem_tem_desfecho_sem_movimento(self):
+        a1 = A.Agg('999000004')
+        a1.uf, a1.cargo, a1.nome, a1.partido = 'RR', '7', 'ELEITO SEM DINHEIRO', 'PAB'
+        a1.sit_turno = 'ELEITO'
+        a2 = A.Agg('999000005')
+        a2.uf, a2.cargo, a2.nome, a2.partido = 'RR', '7', 'SEM NADA', 'PAB'
+        a2.sit_turno = ''
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_brasil([a1, a2], {}, dics, tmp)
+            br = json.load(open(os.path.join(tmp, 'uf', 'BRASIL.json'), encoding='utf-8'))
+            self.assertEqual(len(br['c']), 1)
+            l = br['c'][0]
+            self.assertEqual(len(l), 18)
+            self.assertEqual(l[17], 1)
+            self.assertEqual(l[16], 'RR')
+            self.assertEqual(l[6], 0)
+            self.assertEqual(br['sem_movimento'], 1)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
 
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
