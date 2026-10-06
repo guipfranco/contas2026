@@ -17,11 +17,15 @@ Quatro regras de redação, verificadas por teste a cada rodada:
 
 **A cor do sinal sobe de intensidade, e para antes do vermelho** `[decidido, Guilherme 17/09/2026]`. A escala é amarelo, âmbar e laranja queimado, com o fundo virando cor no grau 3 e a espessura do fio da esquerda crescendo junto, para quem não separa as cores. Vermelho fica de fora por decisão: num painel que aponta gente pelo nome, ele lê como veredito, não como "confira".
 
+**O desfecho da urna é a única cor que depende do dado** `[decidido, Guilherme 05/10/2026]`. Eleita em verde, não eleita em vermelho, suplente e 2º turno em azul-aço, numa pastilha de atributo que é a primeira da fileira da linha. É fato publicado pelo TSE, e não leitura do painel, por isso colorir não imputa nada. O suplente é azul, e não amarelo nem laranja, porque a escala de sinal inteira é quente e uma pastilha quente ao lado do selo de sinal leria como sinal. O vermelho é exceção declarada à decisão acima: ali ele leria como veredito sobre conduta; aqui ele diz um resultado. Fora disso, **nenhuma cor depende do dado**: partido, cargo e grandeza têm todos a mesma cor.
+
 **Português do Brasil com acentuação correta em todo texto de interface.** Há um teste que reprova f-string de mensagem sem acento. **Nunca use travessão.**
 
 **Os testes de redação passaram três meses sem testar nada, e isso pode acontecer de novo.** Um heredoc de shell decodificou `\b` e gravou um caractere de backspace (0x08) dentro das expressões regulares de `tests/test_pipeline.py`: os três testes aprovavam qualquer conteúdo, e 46 sinais foram ao ar sem acento. Corrigido em 17/09, com `TestHigieneDoFonte` varrendo o repositório atrás de caractere de controle. **Nunca grave código com barra invertida por heredoc**: escreva o arquivo com a ferramenta de edição.
 
 ## O que o dado ensinou, e que não está no manual do TSE
+
+**O desfecho da urna mora no `consulta_cand`, em `DS_SIT_TOT_TURNO`, e só muda depois da totalização.** Até 04/10 ele era `#NULO` em toda linha; em 05/10, lido no Actions, o arquivo nacional tinha 20.989 candidaturas e o campo preenchido em 19.894 delas (11.140 suplentes, 6.952 não eleitas, 1.774 eleitas, 28 no 2º turno), com 1.095 ainda em `#NULO`. `pipeline/desfecho.py` traduz o texto para um código 0..4 e lista em `meta.desfecho_desconhecidos` o que a tabela não reconhece, sem derrubar a rodada: grafia nova do TSE é um fato para corrigir na rodada seguinte, não motivo para o site de ontem ficar no ar. `meta.tem_desfecho` falso deixa a tela exatamente como antes da eleição. O filtro fica desligado em fornecedor, doador e na visão geral, porque esses recortes são somados no pipeline.
 
 **Somar todas as linhas de despesa é o certo.** `SQ_DESPESA` não identifica uma linha: identifica um grupo, uma nota com vários itens. Medido nos dois caminhos: somando tudo, nenhum candidato aparece com pagamento maior que a despesa contratada; deduplicando por `SQ_DESPESA`, 72 candidatos de Roraima ficam impossíveis, com R$ 2,6 milhões de excesso. O teste `test_somar_tudo_nunca_deixa_pago_maior_que_contratado` guarda a decisão. **Não tente deduplicar.**
 
@@ -57,7 +61,7 @@ O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de on
 
 - **O validador é a porta.** `python -m pipeline.validar site/dados` roda antes de publicar, e a rodada falha se ele apontar qualquer coisa. Melhor o site de ontem no ar do que número errado.
 - **Teste antes de mexer em número.** `python -m unittest discover -s tests`. A fixture é dado real, então um teste que quebra costuma ser um fato sobre o TSE, não um bug seu.
-- **Mudou a forma da linha do ranking?** Mude `validar.py` junto, e o front. A linha da UF tem 16 campos e a do Brasil tem 17.
+- **Mudou a forma da linha do ranking?** Mude `validar.py` junto, e o front. A linha da UF tem 17 campos e a do Brasil tem 18; o último é o desfecho da urna, 0..4.
 - **Layout do TSE muda sem aviso.** `carregar.py` falha alto listando as colunas que sumiram. Quando isso acontecer, rode `python -m ferramentas.inspecionar` no Actions antes de adivinhar.
 - **Não commite `site/dados/`.** É gerado.
 - **A ficha de fornecedor mora em blocos, e o endereço dela não é o documento.** São 419.531 fornecedores no país, 92 % deles com um único lançamento: um arquivo para cada derrubaria a publicação do Pages. Eles vão em blocos de cerca de 120 fichas, e o front acha o bloco refazendo a conta de `ident.bloco` em JavaScript. **Se mexer numa das duas contas, mexa na outra**, e confira com 200 identificadores reais. O mesmo vale para o tamanho do identificador de pessoa física (`TAMANHO` em `ident.py`, a expressão de `S.forn` no front): de 18/09 a 05/10 o pipeline escrevia 16 hex, o front aceitava 12, e nenhuma ficha de pessoa física abriu. Um teste amarra as duas pontas desde então.
