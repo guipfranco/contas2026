@@ -4784,7 +4784,9 @@ function abrirFiltro(qual, bt){
       if(v === '4' && !cd[v]) return;
       idf.push({v:v, r:rotuloDesfechoChip(v), c:inteiro(cd[v] || 0)});
     });
-    idf.push({v:'', r:'Todas', c: UFD ? inteiro(UFD.c.filter(function(r){ return passa(r, 'desf'); }).length) : ''});
+    /* "Todas" sai da mesma unidade que as quatro opções: com o arquivo de outra unidade
+       em mãos, contarPor devolve vazio e o total ao lado não pode vir de lá */
+    idf.push({v:'', r:'Todas', c: UFD && UFD.uf === ufDaTela() ? inteiro(UFD.c.filter(function(r){ return passa(r, 'desf'); }).length) : ''});
     abrir('Desfecho do 1º turno', opcoes('desf', idf, S.desf));
   } else if(qual === 'tipo'){
     /* O tipo de gasto tinha menu nenhum: o chip só existia depois de escolhido, no painel
