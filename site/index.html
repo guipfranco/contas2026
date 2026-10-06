@@ -71,7 +71,7 @@
   --amf:#b35309;      /* 3, laranja queimado cheio */
   --amtx:#fff8ee;     /* a tinta que vai sobre o laranja cheio */
 
-  /* --- O desfecho da urna: a única cor que depende do dado nesta página
+  /* --- O desfecho da urna: a única cor que depende de um atributo da candidatura
          [decidido, Guilherme 05/10/2026]. É fato publicado pelo TSE, e não leitura
          do painel, então colorir não imputa nada. Verde para eleita, vermelho para
          não eleita, azul-aço para suplente e 2º turno: azul, e não amarelo ou
@@ -1235,7 +1235,7 @@ function aplicarHash(){
   /* O desfecho só existe depois que o TSE publica a totalização: sem ele no meta, um
      `d=` de link velho é descartado, senão a lista esvaziava em silêncio. Antes do meta
      chegar o valor fica guardado e a checagem roda de novo no render. */
-  S.desf = /^[1-4]$/.test(o.d || '') ? o.d : '';
+  S.desf = /^[0-4]$/.test(o.d || '') ? o.d : '';
   if(META && !temDesfecho()) S.desf = '';
   S.dt = TIPOS_DOADOR.indexOf(o.dt) >= 0 ? o.dt : '';
   S.q = o.q || '';
@@ -1847,7 +1847,7 @@ function blocoResumo(lista){
      com o número que o pipeline conta, que é do país inteiro e de todos os cargos. */
   var sub = '';
   if(temLista && ufDaTela() === 'BRASIL'){
-    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || noTipo());
+    var semFiltro = !(S.cargo || S.partido || S.fed || S.sinal || S.desf || noTipo());
     if(semFiltro && typeof UFD.sem_movimento === 'number' && UFD.sem_movimento > 0)
       sub = inteiro(UFD.sem_movimento) + ' sem movimento, fora da lista';
   } else if(semMov){
@@ -1914,7 +1914,7 @@ function rotuloDesfecho(cod, fem){
   return par ? par[fem ? 1 : 0] : '';
 }
 /* no chip o substantivo subentendido é "candidaturas", então o plural é feminino */
-var DESFECHO_CHIP = {1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno'};
+var DESFECHO_CHIP = {0:'Sem desfecho publicado', 1:'Eleitas', 2:'Suplentes', 3:'Não eleitas', 4:'2º turno'};
 function rotuloDesfechoChip(v){ return DESFECHO_CHIP[v] || ''; }
 /* O texto do TSE, como ele escreve, no gênero da candidatura. Texto fora da
    tabela sai como veio, só com a caixa ajustada. */
@@ -1969,8 +1969,8 @@ function blocoTipos(lista){
      painel já diz "no país inteiro", e o chip de Tipo desligado na barra diz o resto. */
   return h + '</details></div>';
 }
-/* Na visão do país a linha tem 17 campos e o último é a sigla da UF; nas UFs ela
-   tem 16 e não existe. Ler a sigla por posição fixa punha o array inteiro na tela
+/* Na visão do país a linha tem 18 campos e o último é a sigla da UF; nas UFs ela
+   tem 17 e não existe. Ler a sigla por posição fixa punha o array inteiro na tela
    como texto quando o formato mudava, então quem manda é o tamanho da linha. */
 function ufDaLinha(r){
   return (r.length > 16 && typeof r[16] === 'string') ? r[16] : '';
@@ -4689,6 +4689,7 @@ function descreverRecorte(){
     if(S.partido) p.push(S.partido);
     if(S.fed && foraDaqui.indexOf('fed') < 0) p.push(fedCurta(S.fed));
     if(S.sinal && foraDaqui.indexOf('sinal') < 0) p.push('sinal ' + rotuloSinal(S.sinal));
+    if(S.desf && foraDaqui.indexOf('desf') < 0) p.push(rotuloDesfechoChip(S.desf).toLowerCase());
     if(noTipo()) p.push(String(META.dic.tipo[+S.tipo] || '').toLowerCase());
     if(S.v === 'doador' && S.dt) p.push(ROT_TIPO_D[S.dt]);
     if(S.view === 'busca') p.push('busca por "' + S.q + '"');
@@ -4781,9 +4782,11 @@ function abrirFiltro(qual, bt){
     var cd = contarPor(function(r){ return String(desfechoDe(r)); }, 'desf');
     var idf = [];
     ['1','2','3','4'].forEach(function(v){
-      if(v === '4' && !cd[v]) return;
+      if(v === '4' && !cd[v] && S.desf !== '4') return;
       idf.push({v:v, r:rotuloDesfechoChip(v), c:inteiro(cd[v] || 0)});
     });
+    /* o código 0 fecha a conta: sem ele as opções não somariam o total de "Todas" */
+    if(cd['0'] > 0) idf.push({v:'0', r:'Sem desfecho publicado', c:inteiro(cd['0'])});
     /* "Todas" sai da mesma unidade que as quatro opções: com o arquivo de outra unidade
        em mãos, contarPor devolve vazio e o total ao lado não pode vir de lá */
     idf.push({v:'', r:'Todas', c: UFD && UFD.uf === ufDaTela() ? inteiro(UFD.c.filter(function(r){ return passa(r, 'desf'); }).length) : ''});

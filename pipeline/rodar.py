@@ -296,7 +296,7 @@ def main(argv=None):
     desconhecidos = sorted({D.normaliza(ag.sit_turno) for ag in aggs.values()
                             if D.desconhecido(ag.sit_turno)})
     if desconhecidos:
-        print(f'   aviso: {len(desconhecidos)} textos de desfecho fora da tabela: '
+        print(f'::warning::   aviso: {len(desconhecidos)} textos de desfecho fora da tabela: '
               + ', '.join(desconhecidos))
     desfecho = {'tem': tem_desfecho,
                 'em': H.desfecho_em(a.estado, hoje, tem_desfecho),

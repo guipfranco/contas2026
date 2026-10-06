@@ -17,7 +17,7 @@ Quatro regras de redação, verificadas por teste a cada rodada:
 
 **A cor do sinal sobe de intensidade, e para antes do vermelho** `[decidido, Guilherme 17/09/2026]`. A escala é amarelo, âmbar e laranja queimado, com o fundo virando cor no grau 3 e a espessura do fio da esquerda crescendo junto, para quem não separa as cores. Vermelho fica de fora por decisão: num painel que aponta gente pelo nome, ele lê como veredito, não como "confira".
 
-**O desfecho da urna é a única cor que depende do dado** `[decidido, Guilherme 05/10/2026]`. Eleita em verde, não eleita em vermelho, suplente e 2º turno em azul-aço, numa pastilha de atributo que é a primeira da fileira da linha. É fato publicado pelo TSE, e não leitura do painel, por isso colorir não imputa nada. O suplente é azul, e não amarelo nem laranja, porque a escala de sinal inteira é quente e uma pastilha quente ao lado do selo de sinal leria como sinal. O vermelho é exceção declarada à decisão acima: ali ele leria como veredito sobre conduta; aqui ele diz um resultado. Fora disso, **nenhuma cor depende do dado**: partido, cargo e grandeza têm todos a mesma cor.
+**O desfecho da urna é a única cor que depende de um atributo da candidatura** `[decidido, Guilherme 05/10/2026]`. Eleita em verde, não eleita em vermelho, suplente e 2º turno em azul-aço, numa pastilha de atributo que é a primeira da fileira da linha. É fato publicado pelo TSE, e não leitura do painel, por isso colorir não imputa nada. O suplente é azul, e não amarelo nem laranja, porque a escala de sinal inteira é quente e uma pastilha quente ao lado do selo de sinal leria como sinal. O vermelho é exceção declarada à decisão acima: ali ele leria como veredito sobre conduta; aqui ele diz um resultado. Fora disso, **nenhuma cor depende de atributo de candidatura**: partido, cargo e grandeza têm todos a mesma cor.
 
 **Português do Brasil com acentuação correta em todo texto de interface.** Há um teste que reprova f-string de mensagem sem acento. **Nunca use travessão.**
 
@@ -25,7 +25,7 @@ Quatro regras de redação, verificadas por teste a cada rodada:
 
 ## O que o dado ensinou, e que não está no manual do TSE
 
-**O desfecho da urna mora no `consulta_cand`, em `DS_SIT_TOT_TURNO`, e só muda depois da totalização.** Até 04/10 ele era `#NULO` em toda linha; em 05/10, lido no Actions, o arquivo nacional tinha 20.989 candidaturas e o campo preenchido em 19.894 delas (11.140 suplentes, 6.952 não eleitas, 1.774 eleitas, 28 no 2º turno), com 1.095 ainda em `#NULO`. `pipeline/desfecho.py` traduz o texto para um código 0..4 e lista em `meta.desfecho_desconhecidos` o que a tabela não reconhece, sem derrubar a rodada: grafia nova do TSE é um fato para corrigir na rodada seguinte, não motivo para o site de ontem ficar no ar. `meta.tem_desfecho` falso deixa a tela exatamente como antes da eleição. O filtro fica desligado em fornecedor, doador e na visão geral, porque esses recortes são somados no pipeline.
+**O desfecho da urna mora no `consulta_cand`, em `DS_SIT_TOT_TURNO`, e só muda depois da totalização.** Até 04/10 ele era `#NULO` em toda linha; em 05/10, lido no Actions, o arquivo nacional tinha 20.989 candidaturas e o campo preenchido em 19.894 delas (11.140 suplentes, 6.952 não eleitas, 1.774 eleitas, 28 no 2º turno), com 1.095 ainda em `#NULO`. `pipeline/desfecho.py` traduz o texto para um código 0..4 (0 sem desfecho, 1 eleita, 2 suplente, 3 não eleita, 4 segundo turno) e lista em `meta.desfecho_desconhecidos` o que a tabela não reconhece, sem derrubar a rodada: grafia nova do TSE é um fato para corrigir na rodada seguinte, não motivo para o site de ontem ficar no ar. `meta.tem_desfecho` falso deixa a tela exatamente como antes da eleição. O filtro fica desligado em fornecedor, doador e na visão geral, porque esses recortes são somados no pipeline.
 
 **Somar todas as linhas de despesa é o certo.** `SQ_DESPESA` não identifica uma linha: identifica um grupo, uma nota com vários itens. Medido nos dois caminhos: somando tudo, nenhum candidato aparece com pagamento maior que a despesa contratada; deduplicando por `SQ_DESPESA`, 72 candidatos de Roraima ficam impossíveis, com R$ 2,6 milhões de excesso. O teste `test_somar_tudo_nunca_deixa_pago_maior_que_contratado` guarda a decisão. **Não tente deduplicar.**
 
@@ -55,7 +55,7 @@ Quatro regras de redação, verificadas por teste a cada rodada:
 | `ferramentas/` | `inspecionar` descreve o layout dos zips, `investigar` responde pergunta de modelagem contra o dado real |
 | `.github/workflows/` | `diario` roda duas vezes por dia e publica; `spike` diagnostica o acesso ao TSE; `inspecionar` e `investigar` rodam à mão |
 
-O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de ontem) vive na branch `dados`, não em `main`.
+O estado entre rodadas (cache da Receita, fornecedores já vistos, o total de ontem, a data do desfecho) vive na branch `dados`, não em `main`.
 
 ## Regras de trabalho
 
