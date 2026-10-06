@@ -179,6 +179,10 @@ def escrever_ficha(a, alarmes, dics, cnae_nome, destino, extra=None, pares=None,
         # a ocupacao declarada no registro da candidatura. E declaracao de
         # quem se candidatou, nunca registro de mandato
         'ocupacao': a.ocupacao,
+        # o desfecho da urna: o codigo que a lista usa e o texto do TSE, para a
+        # tela escrever "eleita por quociente partidario" como ele escreve
+        'desfecho': D.codigo(a.sit_turno),
+        'desfecho_tse': a.sit_turno or None,
         'contratado': a.contratado, 'pago': a.pago, 'pago_publico': a.pago_publico,
         'receita': a.receita, 'estimavel': a.estimavel,
         'receita_publica': a.receita_publica,
@@ -808,7 +812,7 @@ def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
 
 
 def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
-                  catalogo=None, gravidades=None, forn=None):
+                  catalogo=None, gravidades=None, forn=None, desfecho=None):
     """O meta carrega os dicionarios e o catalogo de sinais.
 
     O catalogo sai indexado PELO CODIGO, nao por posicao numa lista. A versao
@@ -843,6 +847,14 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
         # quantos blocos a ficha de fornecedor tem: o front acha o bloco
         # pela mesma conta do ident.bloco, sem baixar indice nenhum
         'forn': forn or {},
+        # O desfecho da urna. `tem_desfecho` falso significa que o TSE ainda nao
+        # publicou a totalizacao: a tela nao desenha chip nem pastilha. Texto que a
+        # tabela de pipeline/desfecho.py nao reconhece sai listado aqui, em vez de
+        # derrubar a rodada: o site de hoje com um desfecho a menos vale mais que o
+        # de ontem no ar.
+        'tem_desfecho': bool((desfecho or {}).get('tem')),
+        'desfecho_em': (desfecho or {}).get('em') or None,
+        'desfecho_desconhecidos': (desfecho or {}).get('desconhecidos', []),
         'indice': {
             'nome': 'índice de conferência',
             'o_que_e': 'Soma dos sinais levantados, pesada pela intensidade de '

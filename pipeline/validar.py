@@ -466,6 +466,9 @@ def validar(pasta):
             erros.append(f'meta.dic sem "{chave}"')
     if not meta.get('ufs'):
         erros.append('meta.ufs vazio')
+    for chave in ('tem_desfecho', 'desfecho_em', 'desfecho_desconhecidos'):
+        if chave not in meta:
+            erros.append(f'meta sem "{chave}"')
     c = meta.get('contagens', {})
     if not c.get('candidaturas'):
         erros.append('meta.contagens.candidaturas e zero')

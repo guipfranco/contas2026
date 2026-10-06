@@ -1594,6 +1594,37 @@ class TestDesfecho(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_a_data_do_desfecho_fica_na_primeira_rodada_que_o_viu(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-05', False), '')
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-05', True), '2026-10-05')
+            # a rodada seguinte nao anda a data
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-06', True), '2026-10-05')
+            # e sem desfecho na rodada de hoje a data gravada continua valendo
+            self.assertEqual(H.desfecho_em(tmp, '2026-10-07', False), '2026-10-05')
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_a_ficha_carrega_codigo_e_texto(self):
+        a = A.Agg('999000003')
+        a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'
+        a.sit_turno = 'ELEITO POR QP'
+        dics = {k: E.Dic() for k in ('partido', 'fed', 'tipo', 'alarme', 'ocupacao')}
+        tmp = tempfile.mkdtemp()
+        try:
+            E.escrever_ficha(a, [], dics, {}, tmp)
+            f = json.load(open(os.path.join(tmp, 'cand', '999000003.json'), encoding='utf-8'))
+            self.assertEqual(f['desfecho'], 1)
+            self.assertEqual(f['desfecho_tse'], 'ELEITO POR QP')
+            a.sit_turno = ''
+            E.escrever_ficha(a, [], dics, {}, tmp)
+            f = json.load(open(os.path.join(tmp, 'cand', '999000003.json'), encoding='utf-8'))
+            self.assertEqual(f['desfecho'], 0)
+            self.assertIsNone(f['desfecho_tse'])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
 
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
@@ -1621,6 +1652,10 @@ class TestPontaAPonta(unittest.TestCase):
             meta = json.load(open(os.path.join(site, 'meta.json'), encoding='utf-8'))
             self.assertEqual(meta['contagens']['contratado'], 6909092605)
             self.assertIn('RR', meta['ufs'])
+            # a fixture e de antes da eleicao
+            self.assertIs(meta['tem_desfecho'], False)
+            self.assertIsNone(meta['desfecho_em'])
+            self.assertEqual(meta['desfecho_desconhecidos'], [])
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
             self.assertTrue(all(len(l) == 17 for l in uf['c']))

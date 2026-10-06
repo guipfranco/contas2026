@@ -140,3 +140,24 @@ def gravar(estado, hoje, nac, aggs):
     for velho in dias[:-DIAS_GUARDADOS]:
         os.remove(_p(dir_snap, velho))
     return len(novos), len(snap)
+
+
+def desfecho_em(estado, hoje, tem):
+    """O dia em que o desfecho da urna apareceu pela primeira vez, ou ''.
+
+    A ficha cita essa data como "TSE, dd/mm/aaaa". Ela e gravada uma vez e nao
+    anda com as rodadas seguintes, senao a mesma informacao mudaria de data
+    todo dia.
+    """
+    caminho = _p(estado, 'desfecho-em.txt')
+    if os.path.exists(caminho):
+        with open(caminho, encoding='utf-8') as f:
+            dia = f.read().strip()
+        if dia:
+            return dia
+    if not tem:
+        return ''
+    os.makedirs(estado, exist_ok=True)
+    with open(caminho, 'w', encoding='utf-8') as f:
+        f.write(hoje + '\n')
+    return hoje
