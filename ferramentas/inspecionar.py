@@ -23,7 +23,7 @@ def _texto(z, membro, encoding='latin-1'):
     return io.TextIOWrapper(z.open(membro), encoding=encoding, newline='')
 
 
-def descreve_csv(z, membro, amostra=3):
+def descreve_csv(z, membro, amostra=3, contar=''):
     """Cabecalho, contagem de linhas e primeiras linhas de um membro CSV."""
     print(f'\n  --- {membro}')
     try:
@@ -40,11 +40,19 @@ def descreve_csv(z, membro, amostra=3):
                 print('      ' + ' | '.join(f'{j + i}:{c}' for j, c in enumerate(cab[i:i + 4])))
             linhas = []
             n = 0
+            contagem = {}
             for linha in leitor:
                 n += 1
                 if len(linhas) < amostra:
                     linhas.append(linha)
+                if contar and contar in cab:
+                    v = linha[cab.index(contar)] if len(linha) == len(cab) else ''
+                    contagem[v] = contagem.get(v, 0) + 1
             print(f'      {n} linhas de dados')
+            if contar and contagem:
+                print(f'      valores de {contar}:')
+                for v, k in sorted(contagem.items(), key=lambda kv: -kv[1]):
+                    print(f'        {k:>8}  {v!r}')
             for linha in linhas:
                 pares = [f'{c}={v!r}' for c, v in zip(cab, linha) if v not in ('', '#NULO#', '-1', '#NULO')]
                 print(f'      . {"; ".join(pares[:14])}')
@@ -60,6 +68,7 @@ def main(argv=None):
     p.add_argument('--destino', default=os.environ.get('RUNNER_TEMP', 'tmp') + '/tse')
     p.add_argument('--linhas', type=int, default=3)
     p.add_argument('--quais', default='candidatos,consulta_cand,orgaos,cnpj_campanha')
+    p.add_argument('--contar', default='', help='coluna cujos valores distintos devem ser contados')
     a = p.parse_args(argv)
 
     quais = [q.strip() for q in a.quais.split(',') if q.strip()]
@@ -88,7 +97,7 @@ def main(argv=None):
                 if base in vistos:
                     continue
                 vistos.add(base)
-                r = descreve_csv(z, i.filename, a.linhas)
+                r = descreve_csv(z, i.filename, a.linhas, a.contar)
                 if r:
                     resumo[f'{nome}:{i.filename}'] = r
                 if len(vistos) >= 8:
