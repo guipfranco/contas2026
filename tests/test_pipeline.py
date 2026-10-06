@@ -1537,6 +1537,35 @@ class TestFornecedorCruzado(unittest.TestCase):
             self.assertLess(mb, V.LIMITE_FORN_CRUZADO_MB, unidade)
 
 
+class TestDesfecho(unittest.TestCase):
+    """O desfecho da urna vem como texto do TSE e vira um codigo pequeno."""
+
+    def test_eleito_nas_tres_formas(self):
+        from pipeline import desfecho as D
+        for t in ('ELEITO', 'ELEITO POR QP', 'ELEITO POR MÉDIA', 'ELEITO POR MEDIA',
+                  'eleito por qp', ' Eleito  por  Média '):
+            self.assertEqual(D.codigo(t), D.ELEITA, t)
+
+    def test_suplente_nao_eleito_e_segundo_turno(self):
+        from pipeline import desfecho as D
+        self.assertEqual(D.codigo('SUPLENTE'), D.SUPLENTE)
+        self.assertEqual(D.codigo('NÃO ELEITO'), D.NAO_ELEITA)
+        self.assertEqual(D.codigo('NAO ELEITO'), D.NAO_ELEITA)
+        for t in ('2º TURNO', '2O TURNO', 'SEGUNDO TURNO', '2° TURNO'):
+            self.assertEqual(D.codigo(t), D.SEGUNDO_TURNO, t)
+
+    def test_as_quatro_formas_de_vazio_dao_zero_e_nao_sao_desconhecidas(self):
+        from pipeline import desfecho as D
+        for t in ('', '#NULO', '#NULO#', '-1', '#NE', None):
+            self.assertEqual(D.codigo(t), 0, repr(t))
+            self.assertFalse(D.desconhecido(t), repr(t))
+
+    def test_texto_desconhecido_da_zero_mas_e_marcado(self):
+        from pipeline import desfecho as D
+        self.assertEqual(D.codigo('RENUNCIOU'), 0)
+        self.assertTrue(D.desconhecido('RENUNCIOU'))
+
+
 class TestPontaAPonta(unittest.TestCase):
     def setUp(self):
         # a rodada de producao exige a chave que torna o identificador de pessoa
