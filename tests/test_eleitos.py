@@ -325,6 +325,25 @@ class TestCruzamento(ComSal):
                         [cand(cpf='11144477735', partido='PT', sit_turno='ELEITO')])
         self.assertEqual(ps[0]['mudou'], 0)
 
+    def test_sem_cpf_e_sem_nascimento_continua_na_lista(self):
+        ps, _ = self.um([antes(cpf='', nasc='')], [])
+        self.assertEqual(len(ps), 1)
+        self.assertEqual(ps[0]['destino'], EL.SEM_CANDIDATURA)
+
+    def test_sem_cpf_junta_2018_e_2022_pela_chave_de_nome(self):
+        ps, _ = self.um([antes(ano=2018, cpf='', cargo='5', nasc='1970-01-01'),
+                         antes(ano=2022, cpf='', cargo='3', nasc='1970-01-01')], [])
+        self.assertEqual(len(ps), 1)
+        self.assertEqual(ps[0]['ano_antes'], 2022)
+
+    def test_duas_pessoas_de_antes_nunca_ligam_a_mesma_candidatura(self):
+        ps, est = self.um([antes(cpf='11144477735', nome='MARIA DA SILVA'),
+                           antes(cpf='22255588846', nome='MARIA DA SILVA')],
+                          [cand(cpf='', nome='MARIA DA SILVA', sit_turno='ELEITO', sq='9')])
+        sqs = [p['sq'] for p in ps]
+        self.assertEqual(sqs.count('9'), 1)
+        self.assertEqual(est['ligados_por_nome'], 1)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -175,31 +175,27 @@ def cruzar(anteriores, cands, suc, ufs=None):
     """Uma linha por pessoa: todo eleito de antes, e toda candidatura de 2026
     eleita ou no 2o turno nos cargos contados. Devolve (pessoas, estatisticas)."""
     ufs = set(ufs or ())
-    brutas = {}
-    antes = {}
-    nasc_para_chave = {}
+    brutas, antes, nasc_para_chave = {}, {}, {}
 
-    # Primeira passagem: registros com chave (CPF), e mapa chave_nasc -> chave
-    for a in anteriores:
-        if ufs and a['uf'] not in ufs:
-            continue
+    def guarda(k, a):
+        # quem foi eleito em 2018 e de novo em 2022 e lido pelo registro de 2022
+        if k not in antes or a['ano'] > antes[k]['ano']:
+            antes[k] = a
+
+    selecionados = [a for a in anteriores if not ufs or a['uf'] in ufs]
+    for a in selecionados:
         doano = brutas.setdefault(str(a['ano']), {})
         doano[a['cargo']] = doano.get(a['cargo'], 0) + 1
         if a['chave']:
-            k = a['chave']
-            if k not in antes or a['ano'] > antes[k]['ano']:
-                antes[k] = a
+            guarda(a['chave'], a)
             if a['chave_nasc']:
-                nasc_para_chave.setdefault(a['chave_nasc'], k)
-
-    # Segunda passagem: registros sem chave, mesclam se chave_nasc conhecida
-    for a in anteriores:
-        if ufs and a['uf'] not in ufs:
+                nasc_para_chave.setdefault(a['chave_nasc'], a['chave'])
+    # sem CPF: junta com o registro que tem CPF e o mesmo nome e nascimento
+    for a in selecionados:
+        if a['chave']:
             continue
-        if not a['chave'] and a['chave_nasc']:
-            k = nasc_para_chave.get(a['chave_nasc']) or 'sem:' + a['nome_urna'] + a['uf']
-            if k not in antes or a['ano'] > antes[k]['ano']:
-                antes[k] = a
+        guarda(nasc_para_chave.get(a['chave_nasc']) or a['chave_nasc']
+               or 'sem:' + a['nome_urna'] + a['uf'], a)
 
     agora, fed = {}, {}
     for c in cands:
@@ -220,17 +216,17 @@ def cruzar(anteriores, cands, suc, ufs=None):
 
     pessoas, usados, por_nome = [], set(), 0
     for a in antes.values():
-        ka = None
+        ka, pelo_nome = None, False
         if a['chave'] and a['chave'] in agora:
             ka = a['chave']
-        elif a['chave'] and a['chave'] not in agora and a['chave_nasc'] in por_nasc:
-            ka = por_nasc[a['chave_nasc']]
-            por_nome += 1
-        elif not a['chave'] and a['chave_nasc'] in por_nasc:
-            ka = por_nasc[a['chave_nasc']]
-            por_nome += 1
-        if ka and ka not in usados:
+        elif a['chave_nasc'] and a['chave_nasc'] in por_nasc:
+            ka, pelo_nome = por_nasc[a['chave_nasc']], True
+        # uma pessoa de 2026 liga a uma pessoa de antes so: nunca dois sq iguais
+        if ka in usados:
+            ka, pelo_nome = None, False
+        if ka:
             usados.add(ka)
+            por_nome += pelo_nome
         pessoas.append(_pessoa(a, agora.get(ka) if ka else None, suc))
     for k, c in agora.items():
         if k in usados or c.cargo not in CARGOS_CONTADOS:
