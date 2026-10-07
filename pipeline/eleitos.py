@@ -30,6 +30,9 @@ CARGOS_CONTADOS = ('1', '3', '5', '6', '7', '8')
 CARGOS_VICE = ('2', '4', '9', '10')
 SENADO = '5'
 ARQUIVO = 'anteriores.json'
+# o que cada linha de anteriores.json precisa ter para o cruzamento
+CAMPOS_ANTERIORES = frozenset(('chave', 'chave_nasc', 'ano', 'cargo', 'uf',
+                               'partido', 'nome_urna', 'genero'))
 
 
 def normaliza_nome(nome):
@@ -96,15 +99,24 @@ def gravar_anteriores(estado, linhas):
 
 
 def ler_anteriores(estado):
-    """(linhas, motivo). Motivo '' quando serve, 'falta' ou 'sal' quando nao."""
+    """(linhas, motivo). Motivo '' quando serve; 'falta', 'sal' ou 'corrompido'
+    quando nao. Um arquivo truncado ou fora da forma tira a aba do ar, e nao o
+    site: a rodada segue sem ela."""
     caminho = os.path.join(estado, ARQUIVO)
     if not os.path.exists(caminho):
         return [], 'falta'
-    with open(caminho, encoding='utf-8') as f:
-        d = json.load(f)
-    if d.get('sal_marca') != sal_marca():
+    try:
+        with open(caminho, encoding='utf-8') as f:
+            d = json.load(f)
+        marca, linhas = d['sal_marca'], d['linhas']
+    except (ValueError, OSError, KeyError, TypeError):
+        return [], 'corrompido'
+    if not isinstance(linhas, list) or any(
+            not isinstance(l, dict) or not CAMPOS_ANTERIORES <= l.keys() for l in linhas):
+        return [], 'corrompido'
+    if marca != sal_marca():
         return [], 'sal'
-    return d.get('linhas', []), ''
+    return linhas, ''
 
 
 MESMO_CARGO, OUTRO_CARGO, SEGUNDO_TURNO, VICE, NAO_ELEITA, SEM_CANDIDATURA = range(1, 7)
@@ -127,6 +139,19 @@ def sucessor(sigla, tabela):
         vistos.add(sigla)
         sigla = tabela[sigla]
     return sigla
+
+
+def _turno(c):
+    t = (c.turno or '').strip()
+    return int(t) if t.isdigit() else 0
+
+
+def _vence_turno(c, atual):
+    """A linha c substitui a atual da mesma candidatura? A do turno mais alto
+    vence, desde que tenha desfecho; uma linha vazia nunca apaga um desfecho."""
+    if not c.sit_turno:
+        return not atual.sit_turno and _turno(c) > _turno(atual)
+    return not atual.sit_turno or _turno(c) > _turno(atual)
 
 
 def _prioridade(c):
@@ -178,12 +203,20 @@ def cruzar(anteriores, cands, suc, ufs=None):
     """Uma linha por pessoa: todo eleito de antes, e toda candidatura de 2026
     eleita ou no 2o turno nos cargos contados. Devolve (pessoas, estatisticas)."""
     ufs = set(ufs or ())
-    brutas, antes, nasc_para_chave = {}, {}, {}
+    brutas, antes, nasc_para_chave, absorvidos = {}, {}, {}, {}
 
     def guarda(k, a):
         # quem foi eleito em 2018 e de novo em 2022 e lido pelo registro de 2022
-        if k not in antes or a['ano'] > antes[k]['ano']:
-            antes[k] = a
+        atual = antes.get(k)
+        if atual is None or a['ano'] > atual['ano']:
+            antes[k], perdeu = a, atual
+        else:
+            perdeu = a
+        # o senador de 2018 lido pelo registro de 2022 sai da conta do Senado, e
+        # a tela precisa saber quantos, senao diz um numero de eleitos errado
+        if perdeu and perdeu['ano'] == 2018 and perdeu['cargo'] == SENADO \
+                and antes[k]['ano'] == 2022:
+            absorvidos[perdeu['uf']] = absorvidos.get(perdeu['uf'], 0) + 1
 
     selecionados = [a for a in anteriores if not ufs or a['uf'] in ufs]
     for a in selecionados:
@@ -200,8 +233,17 @@ def cruzar(anteriores, cands, suc, ufs=None):
         guarda(nasc_para_chave.get(a['chave_nasc']) or a['chave_nasc']
                or 'sem:' + a['nome_urna'] + a['uf'], a)
 
-    agora, fed = {}, {}
+    # Quem foi ao 2o turno tem uma linha por turno, e a do turno 2 as vezes vem
+    # antes. Vale a do turno mais alto que ja tem desfecho, senao quem perdeu no
+    # dia 25/10 ficaria em "2o turno" para sempre.
+    por_sq = {}
     for c in cands:
+        atual = por_sq.get(c.sq)
+        if atual is None or _vence_turno(c, atual):
+            por_sq[c.sq] = c
+
+    agora, fed = {}, {}
+    for c in por_sq.values():
         if ufs and c.uf not in ufs:
             continue
         if c.cargo not in CARGOS_CONTADOS and c.cargo not in CARGOS_VICE:
@@ -217,20 +259,29 @@ def cruzar(anteriores, cands, suc, ufs=None):
         if kn:
             por_nasc.setdefault(kn, k)
 
-    pessoas, usados, por_nome = [], set(), 0
-    for a in antes.values():
-        ka, pelo_nome = None, False
+    # Duas passadas. Primeiro o CPF exato, para que nenhuma ligacao pelo nome
+    # tome a candidatura de quem casa pelo CPF. Depois o nome e o nascimento, so
+    # quando um dos dois lados nao tem CPF: com CPF nos dois lados e diferente,
+    # sao duas pessoas. Uma pessoa de 2026 liga a uma de antes so.
+    lista = list(antes.values())
+    liga, usados, por_nome = [None] * len(lista), set(), 0
+    for i, a in enumerate(lista):
         if a['chave'] and a['chave'] in agora:
-            ka = a['chave']
-        elif a['chave_nasc'] and a['chave_nasc'] in por_nasc:
-            ka, pelo_nome = por_nasc[a['chave_nasc']], True
-        # uma pessoa de 2026 liga a uma pessoa de antes so: nunca dois sq iguais
-        if ka in usados:
-            ka, pelo_nome = None, False
-        if ka:
-            usados.add(ka)
-            por_nome += pelo_nome
-        pessoas.append(_pessoa(a, agora.get(ka) if ka else None, suc))
+            liga[i] = a['chave']
+            usados.add(a['chave'])
+    for i, a in enumerate(lista):
+        if liga[i] or not a['chave_nasc']:
+            continue
+        ka = por_nasc.get(a['chave_nasc'])
+        if not ka or ka in usados:
+            continue
+        if a['chave'] and chave_cpf(agora[ka].cpf):
+            continue
+        liga[i] = ka
+        usados.add(ka)
+        por_nome += 1
+    pessoas = [_pessoa(a, agora[ka] if ka else None, suc)
+               for a, ka in zip(lista, liga)]
     for k, c in agora.items():
         if k in usados or c.cargo not in CARGOS_CONTADOS:
             continue
@@ -242,4 +293,5 @@ def cruzar(anteriores, cands, suc, ufs=None):
                       if a['partido'] and a['partido'] not in siglas_agora
                       and a['partido'] not in suc})
     return pessoas, {'anteriores': brutas, 'ligados_por_nome': por_nome,
-                     'siglas_sem_par': sem_par, 'fed': fed}
+                     'siglas_sem_par': sem_par, 'fed': fed,
+                     'absorvidos': absorvidos}

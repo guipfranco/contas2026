@@ -67,27 +67,40 @@ def grava(caminho, obj):
     return len(texto.encode('utf-8'))
 
 
-def escrever_eleitos(pessoas, est, dics, destino):
+def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None):
     """eleitos/BRASIL.json: uma linha de 13 campos por pessoa.
 
     Partido vai como indice do dicionario do meta, como na linha do ranking, e
     -1 quando o lado nao existe. A sigla de 2022 que sumiu em 2026 entra no
     dicionario do mesmo jeito. Nenhum documento, nem mascarado.
+
+    O sq e o endereco da ficha da candidatura, e vem vazio quando nao ha
+    candidatura em 2026 ou quando ela nao tem ficha: com `com_ficha`, so os sq
+    daquele conjunto sao escritos. Vice, suplencia e candidatura sem movimento
+    nao ganham cand/<sq>.json, e nome apontando para pagina que nao existe e
+    pior que nome sem link.
+
+    `absorvidos` conta, por UF, os senadores eleitos em 2018 que foram eleitos
+    para outro cargo em 2022 e por isso entram na comparacao daquele cargo.
     """
     def pid(sigla):
         return dics['partido'].id(sigla) if sigla else -1
+
+    def sq(p):
+        return p['sq'] if com_ficha is None or p['sq'] in com_ficha else ''
 
     linhas = []
     for p in sorted(pessoas, key=lambda p: (p['nome'], p['sq'], p['uf_antes'])):
         linhas.append([p['nome'], p['uf_antes'], p['cargo_antes'],
                        pid(p['partido_antes']), p['ano_antes'], p['destino'],
                        p['uf_agora'], p['cargo_agora'], pid(p['partido_agora']),
-                       p['desfecho'], p['sq'], p['genero'], p['mudou']])
+                       p['desfecho'], sq(p), p['genero'], p['mudou']])
     fed = {str(dics['partido'].id(sg)): dics['fed'].id(nome)
            for sg, nome in sorted(est['fed'].items())}
     return grava(os.path.join(destino, 'eleitos', 'BRASIL.json'), {
         'anteriores': est['anteriores'],
         'ligados_por_nome': est['ligados_por_nome'],
+        'absorvidos': dict(sorted(est['absorvidos'].items())),
         'fed': fed, 'c': linhas})
 
 

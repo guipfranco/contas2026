@@ -1580,6 +1580,20 @@ class TestDesfecho(unittest.TestCase):
         A.juntar_candidaturas([cand], aggs)
         self.assertEqual(aggs['999000001'].sit_turno, 'ELEITO POR QP')
 
+    def test_juntar_candidaturas_fica_com_o_turno_mais_alto(self):
+        # uma linha por turno para quem foi ao 2o turno, e a ordem nao e garantida
+        t1 = C.Cand(uf='RR', ue='RR', cargo='3', ds_cargo='GOVERNADOR',
+                    sq='999000003', nr='10', nome='EXEMPLO', urna='EXEMPLO',
+                    cpf='', situacao='APTO', nr_partido='10', partido='PAB',
+                    nm_partido='', nr_fed='', fed='', comp_fed='', genero='FEMININO',
+                    cor_raca='', ocupacao='', nascimento='', sit_turno='2º TURNO',
+                    turno='1')
+        t2 = t1._replace(sit_turno='NÃO ELEITO', turno='2')
+        for ordem in ([t1, t2], [t2, t1]):
+            aggs = {}
+            A.juntar_candidaturas(ordem, aggs)
+            self.assertEqual(aggs['999000003'].sit_turno, 'NÃO ELEITO', ordem)
+
     def test_a_linha_enxuta_tambem_carrega_o_desfecho(self):
         a = A.Agg('999000002')
         a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'

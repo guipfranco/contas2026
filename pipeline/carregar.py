@@ -84,8 +84,9 @@ Receita = namedtuple('Receita', 'uf cargo sq partido fonte origem natureza '
 Originario = namedtuple('Originario', 'uf doc nome nome_rfb tipo sq_receita dt valor')
 Cand = namedtuple('Cand', 'uf ue cargo ds_cargo sq nr nome urna cpf situacao '
                           'nr_partido partido nm_partido nr_fed fed comp_fed '
-                          'genero cor_raca ocupacao nascimento sit_turno tipo_eleicao',
-             defaults=('',))
+                          'genero cor_raca ocupacao nascimento sit_turno tipo_eleicao '
+                          'turno',
+             defaults=('', ''))
 
 
 class LayoutMudou(RuntimeError):
@@ -332,7 +333,9 @@ def candidaturas(z, uf=None, ano=2026):
             genero=limpo(r['DS_GENERO']), cor_raca=limpo(r['DS_COR_RACA']),
             ocupacao=limpo(r['DS_OCUPACAO']), nascimento=data(r['DT_NASCIMENTO']),
             sit_turno=limpo(r['DS_SIT_TOT_TURNO']),
-            tipo_eleicao=limpo(r.get('CD_TIPO_ELEICAO')))
+            tipo_eleicao=limpo(r.get('CD_TIPO_ELEICAO')),
+            # quem vai ao 2o turno tem uma linha por turno, em qualquer ordem
+            turno=limpo(r.get('NR_TURNO')))
 
 
 def geracao(z, prefixo='despesas_contratadas_candidatos_2026'):

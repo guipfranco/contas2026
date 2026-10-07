@@ -84,6 +84,36 @@ def carregar_cnae_nome(caminho):
     return nomes
 
 
+def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0):
+    """Grava eleitos/BRASIL.json e devolve o pedaco do meta, ou None quando
+    anteriores.json nao serve."""
+    anteriores, motivo = EL.ler_anteriores(a.estado)
+    if motivo == 'falta':
+        print('::warning::   aviso: anteriores.json nao esta no estado; rode o '
+              'workflow "eleitos de antes". A aba de eleitos fica de fora.')
+        return None
+    if motivo == 'sal':
+        print('::warning::   aviso: anteriores.json foi feito com outra CONTAS_SAL; '
+              'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
+        return None
+    if motivo == 'corrompido':
+        print('::warning::   aviso: anteriores.json esta truncado ou fora da forma; '
+              'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
+        return None
+    suc = EL.carregar_sucessao(os.path.join(a.dados, 'sucessao-partidos.csv'))
+    pessoas, est = EL.cruzar(anteriores, cands, suc, ufs=ufs_pedidas or None)
+    b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha)
+    n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
+    if est['siglas_sem_par']:
+        print('::warning::   aviso: partidos de antes sem par em 2026 nem na '
+              'tabela de sucessao: ' + ', '.join(est['siglas_sem_par']))
+    if n_ant and est['ligados_por_nome'] > 0.05 * n_ant:
+        print(f'::warning::   aviso: {est["ligados_por_nome"]} de {n_ant} '
+              'eleitos de antes ligados pelo nome, sem CPF')
+    passo(t0, f'eleitos: {len(pessoas):,} pessoas, {b_ele / 1e3:.0f} KB')
+    return {'n': len(pessoas), 'ligados_por_nome': est['ligados_por_nome']}
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--site', default='site/dados')
@@ -226,12 +256,15 @@ def main(argv=None):
     passo(t0, f'{len(ufs_saida)} UFs, {bytes_uf / 1e6:.1f} MB')
 
     n_ficha = bytes_ficha = 0
+    # quem ganhou cand/<sq>.json: a aba de eleitos so poe link para eles
+    com_ficha = set()
     for ag in aggs.values():
         if not ag.movimento and ag.sq not in por_sq:
             continue
         bytes_ficha += E.escrever_ficha(ag, por_sq.get(ag.sq, []), dics,
                                         ctx.cnae_nome, a.site,
                                         pares=A.posicao(ag, refs), nac=nac)
+        com_ficha.add(ag.sq)
         n_ficha += 1
     passo(t0, f'{n_ficha:,} fichas, {bytes_ficha / 1e6:.1f} MB')
 
@@ -304,30 +337,21 @@ def main(argv=None):
                 'desconhecidos': desconhecidos}
     # Quem foi eleito antes e quem e eleito agora. So existe depois do desfecho
     # e com anteriores.json valido no estado; sem ele a rodada segue, porque
-    # nada mais do site depende disso.
+    # nada mais do site depende disso. Qualquer erro aqui tira a aba do ar, e
+    # nao a rodada.
     eleitos_meta = None
     if tem_desfecho:
-        anteriores, motivo = EL.ler_anteriores(a.estado)
-        if motivo == 'falta':
-            print('::warning::   aviso: anteriores.json nao esta no estado; rode o '
-                  'workflow "eleitos de antes". A aba de eleitos fica de fora.')
-        elif motivo == 'sal':
-            print('::warning::   aviso: anteriores.json foi feito com outra CONTAS_SAL; '
-                  'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
-        else:
-            suc = EL.carregar_sucessao(os.path.join(a.dados, 'sucessao-partidos.csv'))
-            pessoas, est = EL.cruzar(anteriores, cands, suc, ufs=ufs_pedidas or None)
-            b_ele = E.escrever_eleitos(pessoas, est, dics, a.site)
-            n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
-            if est['siglas_sem_par']:
-                print('::warning::   aviso: partidos de antes sem par em 2026 nem na '
-                      'tabela de sucessao: ' + ', '.join(est['siglas_sem_par']))
-            if n_ant and est['ligados_por_nome'] > 0.05 * n_ant:
-                print(f'::warning::   aviso: {est["ligados_por_nome"]} de {n_ant} '
-                      'eleitos de antes ligados pelo nome, sem CPF')
-            eleitos_meta = {'n': len(pessoas),
-                            'ligados_por_nome': est['ligados_por_nome']}
-            passo(t0, f'eleitos: {len(pessoas):,} pessoas, {b_ele / 1e3:.0f} KB')
+        try:
+            eleitos_meta = _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0)
+        except Exception as e:  # noqa: BLE001
+            # so o tipo do erro: a mensagem pode trazer uma linha com nome de pessoa
+            print(f'::warning::   aviso: a aba de eleitos falhou ({type(e).__name__}) '
+                  'e fica de fora desta rodada.')
+            eleitos_meta = None
+            try:
+                os.remove(os.path.join(a.site, 'eleitos', 'BRASIL.json'))
+            except OSError:
+                pass
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},

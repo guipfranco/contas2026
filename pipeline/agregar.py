@@ -99,13 +99,15 @@ class Agg:
                  'n_despesas', 'por_tipo', 'por_forn', 'por_forn_tipo', 'por_dia',
                  'por_origem', 'por_fonte_paga', 'por_doador', 'por_doador_fin',
                  'receita_sem_doador', 'receita_proprio_partido',
-                 'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao', 'sit_turno')
+                 'primeira', 'ultima', 'genero', 'cor_raca', 'ocupacao', 'sit_turno',
+                 'turno')
 
     def __init__(self, sq):
         self.sq = sq
         self.uf = self.cargo = self.nr = self.nome = self.partido = self.cpf = ''
         self.fed = ''
         self.genero = self.cor_raca = self.ocupacao = self.sit_turno = ''
+        self.turno = 0
         self.prestadores = set()
         self.tipo_prest = ''
         self.contratado = self.pago = self.pago_publico = 0
@@ -394,6 +396,12 @@ def agregar_receitas(fluxo, aggs, nac):
         nac.total_receita += r.valor
 
 
+def numero_turno(t):
+    """NR_TURNO como inteiro; vazio ou fora do formato vale 0."""
+    t = (t or '').strip()
+    return int(t) if t.isdigit() else 0
+
+
 def juntar_candidaturas(cands, aggs):
     """Casa a lista mestra de candidaturas com quem tem movimento.
 
@@ -422,8 +430,12 @@ def juntar_candidaturas(cands, aggs):
         a.ocupacao = a.ocupacao or c.ocupacao
         # DS_SIT_TOT_TURNO: #NULO em toda linha ate a eleicao, preenchido pelo
         # TSE depois da totalizacao. O texto fica como veio; quem o traduz para
-        # codigo e pipeline/desfecho.py, na hora de escrever.
-        a.sit_turno = c.sit_turno or a.sit_turno
+        # codigo e pipeline/desfecho.py, na hora de escrever. Quem foi ao 2o
+        # turno tem uma linha por turno, em qualquer ordem: vale a do turno mais
+        # alto, senao quem perdeu no dia 25/10 ficaria em "2o turno" para sempre.
+        t = numero_turno(c.turno)
+        if c.sit_turno and (not a.sit_turno or t >= a.turno):
+            a.sit_turno, a.turno = c.sit_turno, t
         a.fed = c.fed or a.fed
     ficha = {c.sq for c in cands}
     for sq, a in aggs.items():

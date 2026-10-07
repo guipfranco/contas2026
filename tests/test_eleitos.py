@@ -150,6 +150,19 @@ class TestAnteriores(ComSal):
         os.environ['CONTAS_SAL'] = 'outra-chave'
         self.assertEqual(EL.ler_anteriores(self.tmp), ([], 'sal'))
 
+    def test_ler_anteriores_truncado_e_corrompido(self):
+        ls = EL.linhas_anteriores([cand(sit_turno='ELEITO', cpf='11144477735')], 2022)
+        caminho = EL.gravar_anteriores(self.tmp, ls)
+        texto = open(caminho, encoding='utf-8').read()
+        with open(caminho, 'w', encoding='utf-8') as f:
+            f.write(texto[:len(texto) // 2])
+        self.assertEqual(EL.ler_anteriores(self.tmp), ([], 'corrompido'))
+
+    def test_ler_anteriores_que_nao_e_objeto_e_corrompido(self):
+        with open(os.path.join(self.tmp, EL.ARQUIVO), 'w', encoding='utf-8') as f:
+            f.write('[1, 2]')
+        self.assertEqual(EL.ler_anteriores(self.tmp), ([], 'corrompido'))
+
 
 class TestFerramentaAnteriores(ComSal):
     def _fontes(self):
@@ -345,6 +358,79 @@ class TestCruzamento(ComSal):
         self.assertEqual(len(ps), 1)
         self.assertEqual(ps[0]['ano_antes'], 2022)
 
+    def test_perdeu_no_segundo_turno_nas_duas_ordens(self):
+        # o consulta_cand tem uma linha por turno, e a do turno 2 as vezes vem antes
+        t1 = cand(cpf='11144477735', cargo='3', sit_turno='2º TURNO', sq='9', turno='1')
+        t2 = cand(cpf='11144477735', cargo='3', sit_turno='NÃO ELEITO', sq='9', turno='2')
+        for ordem in ([t1, t2], [t2, t1]):
+            ps, _ = self.um([antes(cargo='3')], ordem)
+            self.assertEqual(len(ps), 1)
+            self.assertEqual((ps[0]['destino'], ps[0]['desfecho']),
+                             (EL.NAO_ELEITA, EL.D.NAO_ELEITA))
+
+    def test_eleita_no_segundo_turno_nas_duas_ordens(self):
+        t1 = cand(cpf='11144477735', cargo='3', sit_turno='2º TURNO', sq='9', turno='1')
+        t2 = cand(cpf='11144477735', cargo='3', sit_turno='ELEITO', sq='9', turno='2')
+        for ordem in ([t1, t2], [t2, t1]):
+            ps, _ = self.um([antes(cargo='3')], ordem)
+            self.assertEqual((ps[0]['destino'], ps[0]['desfecho']),
+                             (EL.MESMO_CARGO, EL.D.ELEITA))
+
+    def test_novata_que_perdeu_no_segundo_turno_sai(self):
+        t1 = cand(cpf='22255588846', cargo='3', sit_turno='2º TURNO', sq='9', turno='1')
+        t2 = cand(cpf='22255588846', cargo='3', sit_turno='NÃO ELEITO', sq='9', turno='2')
+        for ordem in ([t1, t2], [t2, t1]):
+            ps, _ = self.um([], ordem)
+            self.assertEqual(ps, [])
+
+    def test_senador_de_2018_absorvido_por_2022_e_contado_por_uf(self):
+        _, est = self.um([antes(ano=2018, cargo='5', uf='SC'),
+                          antes(ano=2022, cargo='3', uf='SC'),
+                          antes(cpf='22255588846', ano=2018, cargo='5', uf='SC',
+                                nome='ANA LIMA'),
+                          antes(cpf='33366699957', ano=2022, cargo='3', uf='AM',
+                                nome='BIA LIMA'),
+                          antes(cpf='33366699957', ano=2018, cargo='5', uf='AM',
+                                nome='BIA LIMA')], [])
+        self.assertEqual(est['absorvidos'], {'SC': 1, 'AM': 1})
+
+    def test_sem_absorvido_da_dicionario_vazio(self):
+        _, est = self.um([antes(ano=2018, cargo='5')], [])
+        self.assertEqual(est['absorvidos'], {})
+
+    def test_absorvido_sem_cpf_pela_chave_de_nome(self):
+        _, est = self.um([antes(ano=2018, cpf='', cargo='5', uf='SC'),
+                          antes(ano=2022, cpf='11144477735', cargo='3', uf='SC')], [])
+        self.assertEqual(est['absorvidos'], {'SC': 1})
+
+    def test_cpf_diferente_nos_dois_lados_nao_liga_pelo_nome(self):
+        ps, est = self.um([antes(cpf='11144477735', nome='MARIA DA SILVA')],
+                          [cand(cpf='22255588846', nome='MARIA DA SILVA',
+                                sit_turno='ELEITO', sq='9')])
+        self.assertEqual(est['ligados_por_nome'], 0)
+        por_sq = {p['sq']: p for p in ps}
+        self.assertEqual(por_sq['']['destino'], EL.SEM_CANDIDATURA)
+        self.assertEqual(por_sq['9']['ano_antes'], 0)
+
+    def test_cpf_que_nao_casa_liga_pelo_nome_a_candidatura_sem_cpf(self):
+        ps, est = self.um([antes(cpf='11144477735', nome='MARIA DA SILVA')],
+                          [cand(cpf='', nome='MARIA DA SILVA', sit_turno='ELEITO', sq='9'),
+                           cand(cpf='22255588846', nome='OUTRA', sit_turno='ELEITO', sq='8')])
+        self.assertEqual(est['ligados_por_nome'], 1)
+        por_sq = {p['sq']: p for p in ps}
+        self.assertEqual(por_sq['9']['destino'], EL.MESMO_CARGO)
+
+    def test_cpf_exato_vence_ligacao_pelo_nome_em_qualquer_ordem(self):
+        pelo_nome = antes(cpf='', nome='MARIA DA SILVA', cargo='7')
+        exato = antes(cpf='11144477735', nome='MARIA S', nasc='1980-02-02')
+        c = cand(cpf='11144477735', nome='MARIA DA SILVA', sit_turno='ELEITO', sq='9')
+        for ordem in ([pelo_nome, exato], [exato, pelo_nome]):
+            ps, est = self.um(ordem, [c])
+            ligado = [p for p in ps if p['sq'] == '9']
+            self.assertEqual(len(ligado), 1)
+            self.assertEqual(ligado[0]['cargo_antes'], '6')
+            self.assertEqual(est['ligados_por_nome'], 0)
+
     def test_duas_pessoas_de_antes_nunca_ligam_a_mesma_candidatura(self):
         ps, est = self.um([antes(cpf='11144477735', nome='MARIA DA SILVA'),
                            antes(cpf='22255588846', nome='MARIA DA SILVA')],
@@ -379,6 +465,31 @@ class TestEscritaEValidacao(ComSal):
         self.assertEqual(d['fed'], {str(dics['partido'].idx['PT']): dics['fed'].idx['FED X']})
         self.assertEqual(V._checar_eleitos(d, len(dics['partido'].lista),
                                            len(dics['fed'].lista), False), [])
+
+    def test_sem_ficha_o_sq_fica_vazio(self):
+        ps, est = EL.cruzar([antes()],
+                            [cand(cpf='11144477735', sit_turno='ELEITO', sq='9'),
+                             cand(cpf='22255588846', sit_turno='ELEITO', sq='8',
+                                  nome='ANA', urna='ANA')], {})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp, com_ficha={'9'})
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertEqual(sorted(l[10] for l in d['c']), ['', '9'])
+        self.assertEqual(V._checar_eleitos(d, len(dics['partido'].lista),
+                                           len(dics['fed'].lista), False), [])
+
+    def test_absorvidos_vao_para_o_arquivo_e_o_validador_confere(self):
+        ps, est = EL.cruzar([antes(ano=2018, cargo='5', uf='SC'),
+                             antes(ano=2022, cargo='3', uf='SC')], [], {})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertEqual(d['absorvidos'], {'SC': 1})
+        n_p = len(dics['partido'].lista)
+        self.assertEqual(V._checar_eleitos(d, n_p, 0, False), [])
+        for ruim in ({'SCX': 1}, {'SC': 0}, {'SC': '1'}, {'SC': True}, ['SC']):
+            erros = V._checar_eleitos(dict(d, absorvidos=ruim), n_p, 0, False)
+            self.assertTrue(erros and 'absorvidos' in erros[0], (ruim, erros))
 
     def test_validador_reprova_forma(self):
         for ruim, trecho in ((linha_ok()[:12], '13'),
@@ -480,6 +591,51 @@ class TestRodadaComDesfecho(ComSal):
         texto = open(os.path.join(site, 'eleitos', 'BRASIL.json'), encoding='utf-8').read()
         for cpf in list(self._cpfs_2022())[:20]:
             self.assertNotIn(cpf, texto)
+        # todo sq escrito abre uma ficha que existe
+        sqs = [l[10] for l in d['c'] if l[10]]
+        self.assertTrue(sqs)
+        for sq in sqs:
+            self.assertTrue(os.path.exists(os.path.join(site, 'cand', sq + '.json')), sq)
+
+    def test_anteriores_corrompido_tira_a_aba_e_nao_a_rodada(self):
+        from pipeline import rodar
+        fonte, _ = self._fonte_com_desfecho()
+        est = os.path.join(self.tmp, 'estado')
+        os.makedirs(est)
+        with open(os.path.join(est, EL.ARQUIVO), 'w', encoding='utf-8') as f:
+            f.write('{"sal_marca": "abc", "linhas": [{"chave": "p1"')
+        site = os.path.join(self.tmp, 'site')
+        rodar.main(['--fonte-local', fonte, '--ufs', 'RR', '--sem-receita',
+                    '--site', site, '--estado', est,
+                    '--dados', os.path.join(self.tmp, 'sem-dados'),
+                    '--hoje', '2026-10-06'])
+        self.assertEqual(V.validar(site), [])
+        meta = json.load(open(os.path.join(site, 'meta.json'), encoding='utf-8'))
+        self.assertTrue(meta['tem_desfecho'])
+        self.assertFalse(meta.get('eleitos'))
+        self.assertFalse(os.path.exists(os.path.join(site, 'eleitos', 'BRASIL.json')))
+
+    def test_erro_no_cruzamento_tira_a_aba_e_nao_mostra_conteudo(self):
+        from unittest import mock
+        from ferramentas import anteriores
+        from pipeline import rodar
+        fonte, _ = self._fonte_com_desfecho()
+        est = os.path.join(self.tmp, 'estado')
+        anteriores.main(['--estado', est, '--fonte-local', FIX, '--uf', 'RR',
+                         '--destino', os.path.join(self.tmp, 'd')])
+        site = os.path.join(self.tmp, 'site')
+        saida = io.StringIO()
+        with mock.patch.object(EL, 'cruzar', side_effect=ValueError('MARIA DA SILVA')), \
+                mock.patch('sys.stdout', saida):
+            rodar.main(['--fonte-local', fonte, '--ufs', 'RR', '--sem-receita',
+                        '--site', site, '--estado', est,
+                        '--dados', os.path.join(self.tmp, 'sem-dados'),
+                        '--hoje', '2026-10-06'])
+        self.assertIn('ValueError', saida.getvalue())
+        self.assertNotIn('MARIA DA SILVA', saida.getvalue())
+        self.assertEqual(V.validar(site), [])
+        meta = json.load(open(os.path.join(site, 'meta.json'), encoding='utf-8'))
+        self.assertFalse(meta.get('eleitos'))
 
     def _cpfs_2022(self):
         z22 = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand_2022.zip'))
