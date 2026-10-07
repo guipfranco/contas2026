@@ -2923,9 +2923,13 @@ var SAIDA_ELEITOS = {x2:'eleitos em outro cargo ou UF',
                      x3:'2º turno, a decidir em 25/10',
                      x4:'concorreram a vice ou suplência',
                      x5:'concorreram e não se elegeram',
+                     x7:'sem resultado publicado',
                      x6:'sem candidatura em 2026'};
 var CURTO_ELEITOS = {x2:'outro cargo', x3:'2º turno', x4:'vice, suplência',
-                     x5:'não se elegeram', x6:'sem candidatura'};
+                     x5:'não se elegeram', x7:'sem resultado', x6:'sem candidatura'};
+/* A ordem dos nós de saída. O destino 7 (candidatura sem resultado publicado: renúncia,
+   indeferimento, sub judice) fica entre "não se elegeram" e "sem candidatura". */
+var ORDEM_SAIDA = ['x2', 'x3', 'x4', 'x5', 'x7', 'x6'];
 var FMT_PESSOAS = {curto:function(v){ return inteiro(v); },
                    cheio:function(v){ return inteiro(v) + (v === 1 ? ' pessoa' : ' pessoas'); },
                    coluna:'Pessoas'};
@@ -3030,7 +3034,7 @@ function fraseAbsorvidos(n, sozinha){
     : 'Outros ' + inteiro(n) + ' eleitos senadores em 2018 foram eleitos para outro cargo em 2022 e entram na comparação daquele cargo.';
 }
 function fraseEleitos(R, cargo, ano, uf){
-  var d = {mesmo:0, x2:0, x3:0, x4:0, x5:0, x6:0}, cEsq = 0, cDir = 0, novo = 0, outra = 0;
+  var d = {mesmo:0, x2:0, x3:0, x4:0, x5:0, x6:0, x7:0}, cEsq = 0, cDir = 0, novo = 0, outra = 0;
   var segundo = 0;
   R.pessoas.forEach(function(p){
     if(p.lado.naEsq){
@@ -3055,6 +3059,7 @@ function fraseEleitos(R, cargo, ano, uf){
     if(d.x3) partes.push(contaPt(d.x3, 'disputa o 2º turno em 25/10', 'disputam o 2º turno em 25/10'));
     if(d.x4) partes.push(contaPt(d.x4, 'concorreu a vice ou suplência', 'concorreram a vice ou suplência'));
     if(d.x5) partes.push(contaPt(d.x5, 'concorreu e não se elegeu', 'concorreram e não se elegeram'));
+    if(d.x7) partes.push(contaPt(d.x7, 'não tem resultado publicado', 'não têm resultado publicado'));
     if(d.x6) partes.push(contaPt(d.x6, 'não registrou candidatura', 'não registraram candidatura'));
     f = (cEsq === 1 ? 'Do único eleito' : 'Dos ' + inteiro(cEsq) + ' eleitos') + ' para ' + CARGO_FRASE[cargo] + onde + ' em ' + ano +
         ', ' + listaPt(partes) + '. ';
@@ -3125,8 +3130,10 @@ function linhaEleito(l){
   var partes = [];
   if(l[4]) partes.push((fem ? 'eleita' : 'eleito') + ' em ' + l[4] + ': ' +
                        cargoDaPessoa(l[2]) + ', ' + siglaDe(l[3]) + ', ' + l[1]);
+  /* desfecho 0 com candidatura: o TSE não publicou resultado (renúncia, indeferimento, sub
+     judice), e a linha diz isso, e não "não eleito" */
   if(l[7]) partes.push('em 2026: ' + cargoDaPessoa(l[7]) + ', ' + siglaDe(l[8]) + ', ' + l[6] +
-                       (l[9] ? ', ' + rotuloDesfecho(l[9], fem).toLowerCase() : ''));
+                       ', ' + (l[9] ? rotuloDesfecho(l[9], fem).toLowerCase() : 'sem resultado publicado'));
   else partes.push('sem candidatura registrada em 2026');
   if(l[12]) partes.push('mudou de partido');
   return nome + ' <span class="sub">' + esc(partes.join('; ')) + '</span>';
@@ -3214,7 +3221,7 @@ function viewEleitos(){
   var n = quantosNos();
   var esq = nosEleitos(R.cEsq, [['xoutra', 'já eleitos em outra disputa', 'outra disputa'],
                                 ['xnovo', 'não tinham sido eleitos em ' + ano, 'não eleitos']], n);
-  var dir = nosEleitos(R.cDir, ['x2', 'x3', 'x4', 'x5', 'x6'].map(function(k){
+  var dir = nosEleitos(R.cDir, ORDEM_SAIDA.map(function(k){
     return [k, SAIDA_ELEITOS[k], CURTO_ELEITOS[k]];
   }), n);
   var ie = indicePorChave(esq), id = indicePorChave(dir), soma = {};

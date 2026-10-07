@@ -294,10 +294,31 @@ class TestCruzamento(ComSal):
         ps, _ = self.um([antes()], [cand(cpf='11144477735', cargo='4', sit_turno='ELEITO')])
         self.assertEqual(ps[0]['destino'], EL.VICE)
 
-    def test_concorreu_e_nao_se_elegeu_inclui_suplente_e_sem_desfecho(self):
-        for sit in ('SUPLENTE', 'NÃO ELEITO', '#NULO'):
+    def test_concorreu_e_nao_se_elegeu_inclui_suplente(self):
+        for sit in ('SUPLENTE', 'NÃO ELEITO'):
             ps, _ = self.um([antes()], [cand(cpf='11144477735', sit_turno=sit)])
             self.assertEqual(ps[0]['destino'], EL.NAO_ELEITA, sit)
+
+    def test_sem_resultado_publicado_nao_e_nao_eleita(self):
+        # renuncia, indeferimento, sub judice ou totalizacao que ainda nao chegou:
+        # o dado nao diz que a pessoa concorreu e perdeu
+        for sit in ('#NULO', ''):
+            ps, _ = self.um([antes()], [cand(cpf='11144477735', sit_turno=sit)])
+            self.assertEqual(ps[0]['destino'], EL.SEM_RESULTADO, repr(sit))
+        self.assertEqual(EL.SEM_RESULTADO, 7)
+
+    def test_candidatura_com_resultado_vence_a_sem_resultado(self):
+        for ordem in (('', 'NÃO ELEITO'), ('NÃO ELEITO', '')):
+            ps, _ = self.um([antes()], [
+                cand(cpf='11144477735', sit_turno=ordem[0], sq='1'),
+                cand(cpf='11144477735', cargo='7', sit_turno=ordem[1], sq='2')])
+            self.assertEqual(len(ps), 1)
+            self.assertEqual(ps[0]['destino'], EL.NAO_ELEITA, ordem)
+            self.assertEqual(ps[0]['desfecho'], EL.D.NAO_ELEITA, ordem)
+
+    def test_vice_continua_vice_sem_resultado(self):
+        ps, _ = self.um([antes()], [cand(cpf='11144477735', cargo='4', sit_turno='')])
+        self.assertEqual(ps[0]['destino'], EL.VICE)
 
     def test_sem_candidatura(self):
         ps, _ = self.um([antes()], [])
@@ -519,13 +540,17 @@ class TestEscritaEValidacao(ComSal):
 
     def test_validador_reprova_forma(self):
         for ruim, trecho in ((linha_ok()[:12], '13'),
-                             (linha_ok(destino=7), 'destino'),
+                             (linha_ok(destino=8), 'destino'),
                              (linha_ok(ano_a=0), 'destino'),
                              (linha_ok(part_g=5), 'partido'),
                              (linha_ok(desf=5), 'desfecho'),
                              (linha_ok(cargo_a='9'), 'cargo')):
             erros = V._checar_eleitos({'c': [ruim]}, 1, 0, False)
             self.assertTrue(erros and trecho in erros[0], (ruim, erros))
+
+    def test_validador_aceita_sem_resultado(self):
+        linha = linha_ok(destino=7, desf=0)
+        self.assertEqual(V._checar_eleitos({'c': [linha]}, 1, 0, False), [])
 
     def test_validador_reprova_sq_repetido(self):
         erros = V._checar_eleitos({'c': [linha_ok(), linha_ok()]}, 1, 0, False)

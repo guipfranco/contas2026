@@ -479,7 +479,7 @@ def _checar_eleitos(d, n_part, n_fed, completo, mb=0.0):
         if not (-1 <= part_a < n_part) or not (-1 <= part_g < n_part):
             erros.append(f'{rel}: id de partido {part_a}/{part_g} fora do dicionario')
             break
-        if ano_a not in (0, 2018, 2022) or not (0 <= destino <= 6) \
+        if ano_a not in (0, 2018, 2022) or not (0 <= destino <= 7) \
                 or (ano_a == 0) != (destino == 0):
             erros.append(f'{rel}: destino {destino!r} com ano anterior {ano_a!r}')
             break

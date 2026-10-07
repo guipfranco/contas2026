@@ -120,6 +120,11 @@ def ler_anteriores(estado):
 
 
 MESMO_CARGO, OUTRO_CARGO, SEGUNDO_TURNO, VICE, NAO_ELEITA, SEM_CANDIDATURA = range(1, 7)
+# Candidatura de 2026 num cargo contado sem resultado publicado: renuncia,
+# indeferimento, sub judice ou totalizacao que ainda nao chegou. Em 05/10 eram
+# 1.095. Dizer "concorreu e nao se elegeu" de uma pessoa nomeada seria afirmar o
+# que o dado nao sustenta. O numero vem depois de 6 para nao mexer nos outros.
+SEM_RESULTADO = 7
 
 
 def carregar_sucessao(caminho):
@@ -150,7 +155,8 @@ def _prioridade(c):
         return 1
     if c.cargo in CARGOS_VICE:
         return 2
-    return 3
+    # uma candidatura com resultado decide antes de uma sem
+    return 3 if d else 4
 
 
 def _destino(a, c):
@@ -164,7 +170,8 @@ def _destino(a, c):
         return SEGUNDO_TURNO
     if c.cargo in CARGOS_VICE:
         return VICE
-    return NAO_ELEITA
+    # suplente (2) ou nao eleita (3); sem resultado (0) nao diz nada disso
+    return NAO_ELEITA if d else SEM_RESULTADO
 
 
 def _pessoa(a, c, suc):

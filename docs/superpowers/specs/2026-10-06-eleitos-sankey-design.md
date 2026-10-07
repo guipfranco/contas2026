@@ -38,21 +38,31 @@ não entram nos nós.
 deputada eleita em 2022 e eleita senadora em 2026 é continuidade, e não novata.
 
 Destino de cada pessoa eleita antes, visto de 2026, nesta ordem de precedência
-(a primeira que vale decide):
+(a primeira que vale decide; o número é o código gravado no arquivo):
 
-1. **reeleita no mesmo cargo**: eleita em 2026 para o mesmo cargo e a mesma UF;
-2. **eleita para outro cargo**: eleita em 2026 para outro cargo dos contados, ou
-   para o mesmo cargo em outra UF;
-3. **2º turno**: candidatura de 2026 com desfecho 4;
-4. **concorreu a vice ou suplência**: a candidatura de 2026 dela é a vice ou a
-   suplente de senador, qualquer que seja o desfecho;
-5. **concorreu e não se elegeu**: tem candidatura em 2026 nos cargos contados, com
-   desfecho 2 (suplente), 3 (não eleita) ou 0 (sem desfecho, o que inclui
-   candidatura indeferida, cassada ou renunciada);
-6. **sem candidatura registrada em 2026**.
+- **1, reeleita no mesmo cargo**: eleita em 2026 para o mesmo cargo e a mesma UF;
+- **2, eleita para outro cargo**: eleita em 2026 para outro cargo dos contados, ou
+  para o mesmo cargo em outra UF;
+- **3, 2º turno**: candidatura de 2026 com desfecho 4;
+- **4, concorreu a vice ou suplência**: a candidatura de 2026 dela é a vice ou a
+  suplente de senador, qualquer que seja o desfecho;
+- **5, concorreu e não se elegeu**: tem candidatura em 2026 nos cargos contados,
+  com desfecho 2 (suplente) ou 3 (não eleita);
+- **7, sem resultado publicado**: tem candidatura em 2026 nos cargos contados, com
+  desfecho 0 (o TSE não publicou resultado para ela: renúncia, candidatura
+  indeferida, sub judice, ou totalização que ainda não chegou);
+- **6, sem candidatura registrada em 2026**.
+
+O destino 7 existe porque "concorreu e não se elegeu" é uma afirmação sobre uma
+pessoa nomeada, e o desfecho 0 não a sustenta: em 05/10 eram 1.095 candidaturas
+nos cargos contados sem resultado, muitas delas renúncias e indeferimentos. Ele
+leva o número 7, e não entra entre o 5 e o 6, para os números que já existiam não
+mudarem de sentido; na tela, o nó dele fica entre "não se elegeram" e "sem
+candidatura".
 
 Quem tem mais de uma candidatura em 2026 (caso raro, em geral substituição) é
-lido pela de melhor desfecho, na ordem acima.
+lido pela de melhor desfecho, na ordem acima; uma candidatura com resultado
+publicado vence uma sem.
 
 Quem foi eleito em 2018 e de novo em 2022 (o senador de 2018 que se elegeu
 governador em 2022) é lido pelo registro de 2022: uma pessoa aparece uma vez só
@@ -143,7 +153,7 @@ Escreve `eleitos/BRASIL.json`:
   cargos contados. Cerca de 3.500 linhas no país.
 - Cargo e partido vão como índice dos dicionários de `meta.json`, como na linha do
   ranking; cargo de antes que não exista no dicionário de 2026 entra nele.
-- `destino` é um inteiro de 1 a 6, na ordem da seção "A continuidade"; 0 para
+- `destino` é um inteiro de 1 a 7, na ordem da seção "A continuidade"; 0 para
   quem não foi eleito antes. `ano_antes` é 2018, 2022 ou 0.
 - `mudou` é 1 quando o partido de agora não é o sucessor do partido de antes. O
   front não conhece a tabela de sucessão: quem decide é o pipeline.
@@ -157,7 +167,7 @@ Escreve `eleitos/BRASIL.json`:
 
 ### O validador
 
-- Forma da linha (13 campos, tipos, `destino` em 0..6 e 0 exatamente quando
+- Forma da linha (13 campos, tipos, `destino` em 0..7 e 0 exatamente quando
   `ano_antes` é 0, índices de partido em -1 ou dentro do dicionário), e nenhum
   `sq_2026` repetido. `absorvidos`, quando existe, liga UF de duas letras a
   inteiro positivo.
@@ -198,7 +208,8 @@ uma dimensão: não entra em `DIMS` como lista.
   Senado) e "não tinham sido eleitos em 2022" (ou "em 2018", no Senado).
 - **Coluna da direita**: os partidos de agora, e os destinos de quem saiu:
   "eleitos para outro cargo", "2º turno, a decidir em 25/10", "concorreram a vice
-  ou suplência", "concorreram e não se elegeram", "sem candidatura em 2026". Os
+  ou suplência", "concorreram e não se elegeram", "sem resultado publicado", "sem
+  candidatura em 2026". Os
   destinos ficam embaixo dos partidos, separados por um respiro.
 - Os 10 maiores partidos de cada lado e um nó "outros N partidos", de conta exata.
   Os destinos nunca entram no "outros".
@@ -270,18 +281,18 @@ desenho.**
   Roraima (eleitos e alguns não eleitos), congelada em `tests/fixtures/`, gerada
   por `ferramentas/investigar.py` no Actions. Como a fixture de 2026 é de antes da
   eleição, os desfechos de 2026 dos casos de teste são escritos no teste.
-- Um teste por destino (1 a 6), um para a mudança de partido por sucessão (não
+- Um teste por destino (1 a 7), um para a mudança de partido por sucessão (não
   conta) e sem sucessão (conta), um para a sucessão transitiva, um para a ligação
   pela `chave_nasc`, um para a candidatura dupla.
 - `anteriores` sem `CONTAS_SAL` para sem gravar; `sal_marca` diferente faz a
   rodada seguir sem o arquivo.
 - Rodada da fixture com `tem_desfecho` falso: `eleitos/` não existe e o validador
   passa.
-- Validador: linha com 9 campos, `destino` 7 e `sq` repetido reprovam; contagem
+- Validador: linha com 9 campos, `destino` 8 e `sq` repetido reprovam; contagem
   fora da margem reprova.
 - O front não tem teste de JS; a conferência é visual, com `python -m http.server`
   sobre a saída da fixture e um `eleitos/BRASIL.json` montado à mão com os seis
-  destinos.
+  sete destinos.
 
 ## Ordem de execução
 
