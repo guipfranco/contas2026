@@ -90,22 +90,33 @@ def main(argv=None):
             for l in EL.linhas_anteriores(C.candidaturas(z, uf, ano=ano), ano):
                 # a Presidencia pode aparecer em mais de um arquivo de UF
                 k = (l['chave'] or l['chave_nasc'] or l['nome_urna'], ano,
-                     l['cargo'], l['uf'])
+                     l['cargo'], l['uf'], l['suplementar'])
                 if k in vistas:
                     continue
                 vistas.add(k)
                 doano.append(l)
-                sem_cpf += not l['chave']
-        por_cargo = Counter(l['cargo'] for l in doano)
-        print(f'{ano}: {len(doano)} eleitos, {sem_cpf} sem CPF no arquivo do TSE')
-        for cargo, n in sorted(por_cargo.items()):
+                sem_cpf += not l['chave'] and not l['suplementar']
+        ordinaria = [l for l in doano if not l['suplementar']]
+        print(f'{ano}: {len(ordinaria)} eleitos, {sem_cpf} sem CPF no arquivo do TSE')
+        for cargo, n in sorted(Counter(l['cargo'] for l in ordinaria).items()):
             print(f'   cargo {cargo}: {n}')
+        # a suplementar fica guardada para a tela contar as cadeiras, e fora da
+        # conferencia de cadeiras e do "eleito antes"
+        sup = Counter(l['cargo'] for l in doano if l['suplementar'])
+        if sup:
+            print(f'{ano}: {sum(sup.values())} linhas de eleição suplementar '
+                  f'guardadas à parte')
+            for cargo, n in sorted(sup.items()):
+                print(f'   cargo {cargo}: {n} de suplementar')
         linhas.extend(doano)
-    # Sem --uf, a ferramenta leu o pais inteiro, e a contagem tem de bater com as
-    # cadeiras. Um arquivo errado na branch dados tiraria a aba de toda rodada.
+    # Sem --uf, a ferramenta leu o pais inteiro, e a contagem da eleicao ordinaria
+    # tem de bater com as cadeiras. Um arquivo errado na branch dados tiraria a
+    # aba de toda rodada.
     if not a.uf:
         contagem = {}
         for l in linhas:
+            if l['suplementar']:
+                continue
             doano = contagem.setdefault(str(l['ano']), {})
             doano[l['cargo']] = doano.get(l['cargo'], 0) + 1
         erros = confere_cadeiras(contagem)
@@ -115,7 +126,7 @@ def main(argv=None):
                 print(f'   {e}')
             return 1
     caminho = EL.gravar_anteriores(a.estado, linhas)
-    print(f'{len(linhas)} eleitos gravados em {caminho}')
+    print(f'{len(linhas)} linhas gravadas em {caminho}')
     return 0
 
 

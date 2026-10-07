@@ -84,6 +84,10 @@ def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None, suc=None):
     `absorvidos` conta, por UF, os senadores eleitos em 2018 que foram eleitos
     para outro cargo em 2022 e por isso entram na comparacao daquele cargo.
 
+    `suplementares` conta, por ano, cargo e UF, as cadeiras preenchidas em
+    eleicao suplementar, e so vai quando ha alguma. Quem as ocupa nao e "eleito
+    antes", e a nota da tela diz quantas sao.
+
     `sucessor` liga o id de cada partido de antes que tem sucessor na tabela
     (`suc`, transitiva) ao id do sucessor. O desenho mostra a sigla como era, mas
     a tabela e a frase do partido somam o lado de antes pelo sucessor: senao o
@@ -110,11 +114,17 @@ def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None, suc=None):
         novo = sucessor_de(sg, suc)
         if novo and novo != sg:
             sucessor[str(pid(sg))] = pid(novo)
-    return grava(os.path.join(destino, 'eleitos', 'BRASIL.json'), {
+    saida = {
         'anteriores': est['anteriores'],
         'ligados_por_nome': est['ligados_por_nome'],
         'absorvidos': dict(sorted(est['absorvidos'].items())),
-        'fed': fed, 'sucessor': sucessor, 'c': linhas})
+        'fed': fed, 'sucessor': sucessor, 'c': linhas}
+    sup = est.get('suplementares') or {}
+    if sup:
+        saida['suplementares'] = {ano: {cargo: dict(sorted(por_uf.items()))
+                                        for cargo, por_uf in sorted(cargos.items())}
+                                  for ano, cargos in sorted(sup.items())}
+    return grava(os.path.join(destino, 'eleitos', 'BRASIL.json'), saida)
 
 
 def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):

@@ -52,9 +52,10 @@ def cand(**kw):
     return C.Cand(**base)
 
 
-def zip_cand(caminho, ano, uf, linhas):
-    """Um consulta_cand de mentira, com o cabecalho de verdade daquele ano."""
-    cols = C.COLUNAS_CAND if ano >= 2022 else C.COLUNAS_CAND_2018
+def zip_cand(caminho, ano, uf, linhas, extra=()):
+    """Um consulta_cand de mentira, com o cabecalho de verdade daquele ano e as
+    colunas opcionais de `extra`."""
+    cols = (C.COLUNAS_CAND if ano >= 2022 else C.COLUNAS_CAND_2018) + list(extra)
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL, lineterminator='\n')
     w.writerow(cols)
@@ -129,12 +130,33 @@ class TestAnteriores(ComSal):
               cand(sit_turno='ELEITO', cargo='6', cpf='22255588846')]
         self.assertEqual([l['cargo'] for l in EL.linhas_anteriores(cs, 2018)], ['5'])
 
-    def test_eleicao_suplementar_nao_conta(self):
+    def test_eleicao_suplementar_vira_linha_marcada(self):
+        # a ordinaria (tipo 2, ou sem o campo) continua sendo o "eleito antes"; a
+        # suplementar vem marcada, para a tela dizer quantas cadeiras foram
+        # preenchidas assim
         cs = [cand(sit_turno='ELEITO', cargo='3', tipo_eleicao='1', cpf='11144477735'),
               cand(sit_turno='ELEITO', cargo='6', tipo_eleicao='2', cpf='22255588846'),
               cand(sit_turno='ELEITO', cargo='7', cpf='33366699957')]
         ls = EL.linhas_anteriores(cs, 2022)
-        self.assertEqual(sorted(l['cargo'] for l in ls), ['6', '7'])
+        self.assertEqual(sorted((l['cargo'], l['suplementar']) for l in ls),
+                         [('3', True), ('6', False), ('7', False)])
+
+    def test_suplementar_de_2018_so_no_senado(self):
+        cs = [cand(sit_turno='ELEITO', cargo='5', tipo_eleicao='1', cpf='11144477735'),
+              cand(sit_turno='ELEITO', cargo='3', tipo_eleicao='1', cpf='22255588846'),
+              cand(sit_turno='NÃO ELEITO', cargo='5', tipo_eleicao='1', cpf='33366699957')]
+        ls = EL.linhas_anteriores(cs, 2018)
+        self.assertEqual([(l['cargo'], l['suplementar']) for l in ls], [('5', True)])
+
+    def test_ler_anteriores_aceita_linha_com_e_sem_suplementar(self):
+        ls = EL.linhas_anteriores([
+            cand(sit_turno='ELEITO', cpf='11144477735'),
+            cand(sit_turno='ELEITO', cargo='3', tipo_eleicao='1', cpf='22255588846')], 2022)
+        # o arquivo feito antes do campo existir nao tem a chave em linha nenhuma
+        velha = {k: v for k, v in ls[0].items() if k != 'suplementar'}
+        EL.gravar_anteriores(self.tmp, ls + [velha])
+        lidas, motivo = EL.ler_anteriores(self.tmp)
+        self.assertEqual((len(lidas), motivo), (3, ''))
 
     def test_gravar_e_ler(self):
         ls = EL.linhas_anteriores([cand(sit_turno='ELEITO', cpf='11144477735')], 2022)
@@ -193,6 +215,56 @@ class TestFerramentaAnteriores(ComSal):
         self.assertEqual(motivo, '')
         self.assertEqual(sorted((l['ano'], l['cargo']) for l in linhas),
                          [(2018, '5'), (2022, '6')])
+
+    def test_relatorio_conta_suplementar_a_parte(self):
+        from unittest import mock
+        from ferramentas import anteriores
+        fontes = os.path.join(self.tmp, 'fontes')
+        os.makedirs(fontes)
+        sup = dict(linha_csv('3', '11144477735', 'ANA DE SOUZA', 'ANA', 'PSC', 'ELEITO'),
+                   CD_TIPO_ELEICAO='1')
+        ordi = dict(linha_csv('6', '22255588846', 'BIA', 'BIA', 'PT', 'ELEITO', sq='2'),
+                    CD_TIPO_ELEICAO='2')
+        zip_cand(os.path.join(fontes, 'consulta_cand_2022.zip'), 2022, 'RR', [sup, ordi],
+                 extra=['CD_TIPO_ELEICAO'])
+        zip_cand(os.path.join(fontes, 'consulta_cand_2018.zip'), 2018, 'RR', [])
+        est = os.path.join(self.tmp, 'estado')
+        saida = io.StringIO()
+        with mock.patch('sys.stdout', saida):
+            r = anteriores.main(['--estado', est, '--fonte-local', fontes, '--uf', 'RR',
+                                 '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(r, 0)
+        texto = saida.getvalue()
+        self.assertIn('2022: 1 eleitos, 0 sem CPF no arquivo do TSE', texto)
+        self.assertIn('2022: 1 linhas de eleição suplementar guardadas à parte', texto)
+        self.assertIn('   cargo 3: 1 de suplementar', texto)
+        linhas, _ = EL.ler_anteriores(est)
+        self.assertEqual(sorted((l['cargo'], l['suplementar']) for l in linhas),
+                         [('3', True), ('6', False)])
+
+    def test_conferencia_de_cadeiras_da_ferramenta_ignora_suplementar(self):
+        from unittest import mock
+        from ferramentas import anteriores
+        vistos = []
+
+        def confere(contagem):
+            vistos.append(contagem)
+            return []
+        fontes = os.path.join(self.tmp, 'fontes')
+        os.makedirs(fontes)
+        zip_cand(os.path.join(fontes, 'consulta_cand_2022.zip'), 2022, 'RR', [
+            dict(linha_csv('3', '11144477735', 'ANA', 'ANA', 'PSC', 'ELEITO'),
+                 CD_TIPO_ELEICAO='1'),
+            dict(linha_csv('6', '22255588846', 'BIA', 'BIA', 'PT', 'ELEITO', sq='2'),
+                 CD_TIPO_ELEICAO='2')], extra=['CD_TIPO_ELEICAO'])
+        zip_cand(os.path.join(fontes, 'consulta_cand_2018.zip'), 2018, 'RR', [])
+        with mock.patch.object(anteriores, 'confere_cadeiras', side_effect=confere), \
+                mock.patch('sys.stdout', io.StringIO()):
+            r = anteriores.main(['--estado', os.path.join(self.tmp, 'e'),
+                                 '--fonte-local', fontes,
+                                 '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(r, 0)
+        self.assertEqual(vistos, [{'2022': {'6': 1}}])
 
     def test_sem_sal_para_sem_gravar(self):
         from ferramentas import anteriores
@@ -621,6 +693,38 @@ class TestCruzamento(ComSal):
         _, est = self.um([antes(ano=2018, cargo='5')], [])
         self.assertEqual(est['absorvidos'], {})
 
+    def test_suplementar_nao_e_eleito_antes_e_vai_para_a_contagem_propria(self):
+        sup = dict(antes(cpf='22255588846', ano=2018, cargo='5', uf='MT', nome='ANA LIMA'),
+                   suplementar=True)
+        ordinaria = dict(antes(ano=2018, cargo='5', uf='MT'), suplementar=False)
+        ps, est = self.um([ordinaria, sup],
+                          [cand(cpf='22255588846', cargo='5', uf='MT', nome='ANA LIMA',
+                                sit_turno='ELEITO', sq='9')])
+        # a cadeira da suplementar nao entra na conferencia de cadeiras
+        self.assertEqual(est['anteriores'], {'2018': {'5': 1}})
+        self.assertEqual(est['suplementares'], {'2018': {'5': {'MT': 1}}})
+        # quem a ocupa e eleita agora entra como nao eleita em 2018
+        por_sq = {p['sq']: p for p in ps}
+        self.assertEqual((por_sq['9']['ano_antes'], por_sq['9']['destino']), (0, 0))
+        self.assertEqual(len(ps), 2)
+
+    def test_suplementar_nao_liga_pelo_nome(self):
+        sup = dict(antes(cpf='', ano=2022, cargo='3', nome='ANA LIMA'), suplementar=True)
+        ps, est = self.um([sup], [cand(cpf='', nome='ANA LIMA', cargo='3',
+                                       sit_turno='ELEITO', sq='9')])
+        self.assertEqual([(p['sq'], p['ano_antes']) for p in ps], [('9', 0)])
+        self.assertEqual(est['ligados_por_nome'], 0)
+        self.assertEqual(est['suplementares'], {'2022': {'3': {'RR': 1}}})
+
+    def test_sem_suplementar_da_dicionario_vazio_e_linha_velha_e_ordinaria(self):
+        # linha de um anteriores.json feito antes do campo existir
+        velha = antes()
+        self.assertNotIn('suplementar', velha)
+        ps, est = self.um([velha], [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')])
+        self.assertEqual(est['suplementares'], {})
+        self.assertEqual(est['anteriores'], {'2022': {'6': 1}})
+        self.assertEqual(ps[0]['destino'], EL.MESMO_CARGO)
+
     def test_absorvido_sem_cpf_pela_chave_de_nome(self):
         _, est = self.um([antes(ano=2018, cpf='', cargo='5', uf='SC'),
                           antes(ano=2022, cpf='11144477735', cargo='3', uf='SC')], [])
@@ -743,6 +847,30 @@ class TestEscritaEValidacao(ComSal):
         for ruim in ({'SCX': 1}, {'SC': 0}, {'SC': '1'}, {'SC': True}, ['SC']):
             erros = V._checar_eleitos(dict(d, absorvidos=ruim), n_p, 0, False)
             self.assertTrue(erros and 'absorvidos' in erros[0], (ruim, erros))
+
+    def test_suplementares_vao_para_o_arquivo_e_o_validador_confere(self):
+        sup = dict(antes(cpf='22255588846', ano=2018, cargo='5', uf='MT', nome='ANA LIMA'),
+                   suplementar=True)
+        ps, est = EL.cruzar([antes(ano=2018, cargo='5', uf='MT'), sup], [], {})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertEqual(d['suplementares'], {'2018': {'5': {'MT': 1}}})
+        n_p = len(dics['partido'].lista)
+        self.assertEqual(V._checar_eleitos(d, n_p, 0, False), [])
+        for ruim in ({'2020': {'5': {'MT': 1}}}, {'2018': {'2': {'MT': 1}}},
+                     {'2018': {'5': {'MTX': 1}}}, {'2018': {'5': {'MT': 0}}},
+                     {'2018': {'5': {'MT': '1'}}}, {'2018': {'5': {'MT': True}}},
+                     {'2018': {'5': ['MT']}}, {'2018': ['5']}, ['2018']):
+            erros = V._checar_eleitos(dict(d, suplementares=ruim), n_p, 0, False)
+            self.assertTrue(erros and 'suplementares' in erros[0], (ruim, erros))
+
+    def test_sem_suplementar_o_arquivo_nao_tem_a_chave(self):
+        ps, est = EL.cruzar([antes()], [], {})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertNotIn('suplementares', d)
 
     def test_validador_reprova_forma(self):
         for ruim, trecho in ((linha_ok()[:12], '13'),

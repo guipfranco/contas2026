@@ -32,6 +32,24 @@ O Senado de 2026 renova as 54 cadeiras eleitas em 2018. Quem se elegeu senador e
 cargos da tabela, mais quem foi eleito senador em 2018. Vice e suplente de senador
 não entram nos nós.
 
+**Só a eleição ordinária (`CD_TIPO_ELEICAO` 2) é "eleito antes".** O arquivo de um
+ano traz também as eleições suplementares com o mesmo `ANO_ELEICAO` (a do governo
+de Roraima em 2026 está no de 2022; uma do Senado, provavelmente Mato Grosso em
+2020, está no de 2018, e por isso o Senado de 2018 sai com 53 eleitos ordinários e
+não 54). Quem foi eleito numa suplementar não entra no lado de antes nem na
+conferência de cadeiras, mas a cadeira é contada à parte, por ano, cargo e UF, e a
+nota do pé da aba diz quantas cadeiras daquela comparação (no país ou na UF da
+tela) foram preenchidas assim:
+
+> 1 cadeira desta comparação foi preenchida em eleição suplementar depois de 2018;
+> quem a ocupa entra como não eleito em 2018.
+
+> 2 cadeiras desta comparação foram preenchidas em eleição suplementar depois de
+> 2018; quem as ocupa entra como não eleito em 2018.
+
+Sem essa frase, quem ocupa a cadeira e foi eleito de novo apareceria como "não tinha
+sido eleito em 2018" sem nenhuma explicação.
+
 ## A continuidade
 
 "Segue eleito" vale para **qualquer cargo** `[decidido, Guilherme 06/10/2026]`: a
@@ -106,8 +124,13 @@ Linha de `anteriores.json`:
 
 ```
 {"chave": "p…", "chave_nasc": "p…", "ano": 2022, "cargo": "DEPUTADO FEDERAL",
- "uf": "SP", "partido": "PSC", "nome_urna": "…", "genero": "F"}
+ "uf": "SP", "partido": "PSC", "nome_urna": "…", "genero": "F",
+ "suplementar": false}
 ```
+
+- `suplementar` é verdadeiro para quem foi eleito numa eleição suplementar com o
+  mesmo `ANO_ELEICAO`. O campo é opcional na leitura: o arquivo feito antes dele
+  existir não o tem, e lá toda linha conta como ordinária.
 
 - `chave` é `ident.ident(cpf)`: HMAC com a `CONTAS_SAL`. `chave_nasc` é o mesmo
   HMAC sobre `NOME NORMALIZADO|AAAA-MM-DD` (nome completo sem acento, caixa alta,
@@ -118,7 +141,9 @@ Linha de `anteriores.json`:
   ferramenta grava `sal_marca` (os 8 primeiros hex do HMAC da string fixa
   `"anteriores"`), e a rodada diária confere essa marca antes de usar o arquivo.
 - A ferramenta imprime, por ano e cargo, quantas pessoas guardou e quantas
-  ficaram com CPF vazio. É o primeiro número a ler.
+  ficaram com CPF vazio. É o primeiro número a ler. As linhas de eleição
+  suplementar saem numa contagem à parte, também por cargo, e a conferência de
+  cadeiras da ferramenta conta só a ordinária.
 - **`--congelar UF` grava a fixture já anonimizada**, por
   `ferramentas/anonimizar.py`: CPF falso com dígito verificador válido (o mesmo
   falso para o mesmo CPF, em qualquer campo), título de eleitor e e-mail como
@@ -148,6 +173,7 @@ Escreve `eleitos/BRASIL.json`:
 ```
 {"anteriores": {"2022": {"6": 513, …}, "2018": {"5": 54}},
  "ligados_por_nome": N, "absorvidos": {"SC": 1, …},
+ "suplementares": {"2018": {"5": {"MT": 1}}, …},
  "fed": {"<id do partido>": <id da federação>},
  "sucessor": {"<id do partido extinto>": <id do sucessor>},
  "c": [[nome_urna, uf_antes, cargo_antes, partido_antes, ano_antes, destino,
@@ -167,6 +193,9 @@ Escreve `eleitos/BRASIL.json`:
   outro cargo em 2022: a pessoa é lida pelo registro de 2022 e sai da conta do
   Senado. A frase da tela do Senado diz quantos são, senão o número de eleitos em
   2018 sairia menor que o real.
+- `suplementares` conta, por ano, cargo e UF, as cadeiras preenchidas em eleição
+  suplementar, e só vai no arquivo quando há alguma. Essas linhas não entram em
+  `anteriores` nem no lado de antes.
 - Entram: todo eleito de antes; toda candidatura de 2026 com desfecho 1 ou 4 nos
   cargos contados. Cerca de 3.500 linhas no país.
 - Cargo e partido vão como índice dos dicionários de `meta.json`, como na linha do
@@ -190,7 +219,8 @@ Escreve `eleitos/BRASIL.json`:
 - Forma da linha (13 campos, tipos, `destino` em 0..7 e 0 exatamente quando
   `ano_antes` é 0, índices de partido em -1 ou dentro do dicionário), e nenhum
   `sq_2026` repetido. `absorvidos`, quando existe, liga UF de duas letras a
-  inteiro positivo.
+  inteiro positivo. `suplementares`, quando existe, tem ano '2018' ou '2022',
+  cargo entre os contados, UF de duas letras e inteiro positivo.
 - Contagem por cargo dos eleitos de antes contra as cadeiras: 513 na Câmara, 27
   governadores, 1 Presidência, 54 senadores de 2018, 1.059 entre Assembleias e
   Câmara Legislativa. A contagem de 2026 não é conferida contra número fixo: o
