@@ -30,6 +30,12 @@ LIMITE_TIPOS_MB = 5.0
 # O fluxo longo tem quatro colunas de dez nomes por recorte, sem a celula: se ele
 # crescer ate aqui, o topo de alguma coluna parou de cortar.
 LIMITE_FLUXO_MB = 1.0
+# eleitos/BRASIL.json tem umas 3.500 linhas curtas no pais: uns 250 KB.
+LIMITE_ELEITOS_MB = 1.0
+# Cadeiras da eleicao anterior, para conferir a contagem bruta de anteriores.
+# Assembleias e Camara Legislativa somam 1.059 juntas.
+CADEIRAS = (('2022', ('1',), 1), ('2022', ('3',), 27), ('2022', ('5',), 27),
+            ('2022', ('6',), 513), ('2022', ('7', '8'), 1059), ('2018', ('5',), 54))
 CHAVES_RECORTE = ('uf', 'geral', 'geral_por_camp', 'partido', 'cargo',
                   'celula', 'fora')
 CHAVES_CRUZADO = ('uf', 'forn', 'tipo', 'fora', 'partido')
@@ -448,6 +454,60 @@ def _checar_forn_cruzado(rel, d, n_part, n_tipo, cargos, sem_pessoas,
     return erros
 
 
+def _checar_eleitos(d, n_part, n_fed, completo, mb=0.0):
+    """A forma das linhas de eleitos/BRASIL.json e, no pais inteiro, a contagem
+    dos eleitos de antes contra as cadeiras. Ate 2 % abaixo passa (cassacao,
+    eleicao anulada); mais que isso, ou acima, e a ligacao que quebrou."""
+    rel = 'eleitos/BRASIL.json'
+    erros = []
+    if mb > LIMITE_ELEITOS_MB:
+        erros.append(f'{rel} tem {mb:.1f} MB, acima de {LIMITE_ELEITOS_MB}')
+    cargos_antes = {'', '1', '3', '5', '6', '7', '8'}
+    cargos_agora = cargos_antes | {'2', '4', '9', '10'}
+    sqs = set()
+    for l in d.get('c', []):
+        if len(l) != 13:
+            erros.append(f'{rel}: linha com {len(l)} campos, esperado 13')
+            break
+        nome, _, cargo_a, part_a, ano_a, destino, _, cargo_g, part_g, desf, sq, gen, mudou = l
+        if not nome:
+            erros.append(f'{rel}: linha sem nome')
+            break
+        if cargo_a not in cargos_antes or cargo_g not in cargos_agora:
+            erros.append(f'{rel}: cargo {cargo_a!r}/{cargo_g!r} fora dos contados')
+            break
+        if not (-1 <= part_a < n_part) or not (-1 <= part_g < n_part):
+            erros.append(f'{rel}: id de partido {part_a}/{part_g} fora do dicionario')
+            break
+        if ano_a not in (0, 2018, 2022) or not (0 <= destino <= 6) \
+                or (ano_a == 0) != (destino == 0):
+            erros.append(f'{rel}: destino {destino!r} com ano anterior {ano_a!r}')
+            break
+        if not (0 <= desf <= 4):
+            erros.append(f'{rel}: desfecho {desf!r} fora de 0..4')
+            break
+        if gen not in ('', 'F', 'M') or mudou not in (0, 1):
+            erros.append(f'{rel}: genero {gen!r} ou mudou {mudou!r} invalido')
+            break
+        if sq:
+            if sq in sqs:
+                erros.append(f'{rel}: sq {sq} repetido')
+                break
+            sqs.add(sq)
+    for p, f in d.get('fed', {}).items():
+        if not (0 <= int(p) < n_part) or not (0 <= f < n_fed):
+            erros.append(f'{rel}: federacao {p}->{f} fora do dicionario')
+            break
+    if completo:
+        ant = d.get('anteriores', {})
+        for ano, cargos, cadeiras in CADEIRAS:
+            achado = sum(ant.get(ano, {}).get(c, 0) for c in cargos)
+            if achado > cadeiras or achado < cadeiras - cadeiras // 50:
+                erros.append(f'{rel}: {achado} eleitos em {ano} no cargo '
+                             f'{"+".join(cargos)}, esperado perto de {cadeiras}')
+    return erros
+
+
 def validar(pasta):
     erros = []
 
@@ -773,6 +833,15 @@ def validar(pasta):
                     if not f.get('pj') and doc and '*' not in doc:
                         erros.append(f'forn/{nome}: documento sem mascara')
                         break
+
+    if meta.get('eleitos'):
+        rel = os.path.join('eleitos', 'BRASIL.json')
+        if not falta(rel):
+            caminho = os.path.join(pasta, rel)
+            # a contagem de cadeiras so vale quando a rodada leu o pais inteiro
+            completo = len([u for u in meta.get('ufs', {}) if u != 'BR']) >= 27
+            erros.extend(_checar_eleitos(_le(caminho), n_part, n_fed, completo,
+                                         os.path.getsize(caminho) / 1e6))
 
     # amostra de fichas: existe o arquivo de quem tem movimento?
     faltando = 0

@@ -20,6 +20,7 @@ from datetime import date, timedelta
 from . import agregar as A
 from . import carregar as C
 from . import desfecho as D
+from . import eleitos as EL
 from . import escrever as E
 from . import historico as H
 from .alarmes import (CATALOGO, GRAVIDADE, Contexto, avaliar,
@@ -301,11 +302,37 @@ def main(argv=None):
     desfecho = {'tem': tem_desfecho,
                 'em': H.desfecho_em(a.estado, hoje, tem_desfecho),
                 'desconhecidos': desconhecidos}
+    # Quem foi eleito antes e quem e eleito agora. So existe depois do desfecho
+    # e com anteriores.json valido no estado; sem ele a rodada segue, porque
+    # nada mais do site depende disso.
+    eleitos_meta = None
+    if tem_desfecho:
+        anteriores, motivo = EL.ler_anteriores(a.estado)
+        if motivo == 'falta':
+            print('::warning::   aviso: anteriores.json nao esta no estado; rode o '
+                  'workflow "eleitos de antes". A aba de eleitos fica de fora.')
+        elif motivo == 'sal':
+            print('::warning::   aviso: anteriores.json foi feito com outra CONTAS_SAL; '
+                  'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
+        else:
+            suc = EL.carregar_sucessao(os.path.join(a.dados, 'sucessao-partidos.csv'))
+            pessoas, est = EL.cruzar(anteriores, cands, suc, ufs=ufs_pedidas or None)
+            b_ele = E.escrever_eleitos(pessoas, est, dics, a.site)
+            n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
+            if est['siglas_sem_par']:
+                print('::warning::   aviso: partidos de antes sem par em 2026 nem na '
+                      'tabela de sucessao: ' + ', '.join(est['siglas_sem_par']))
+            if n_ant and est['ligados_por_nome'] > 0.05 * n_ant:
+                print(f'::warning::   aviso: {est["ligados_por_nome"]} de {n_ant} '
+                      'eleitos de antes ligados pelo nome, sem CPF')
+            eleitos_meta = {'n': len(pessoas),
+                            'ligados_por_nome': est['ligados_por_nome']}
+            passo(t0, f'eleitos: {len(pessoas):,} pessoas, {b_ele / 1e3:.0f} KB')
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},
                     a.site, catalogo=CATALOGO, gravidades=GRAVIDADE,
-                    desfecho=desfecho,
+                    desfecho=desfecho, eleitos=eleitos_meta,
                     forn={'blocos': fichas_forn['blocos'],
                           'n': fichas_forn['fornecedores'],
                           'pessoas_fora': fichas_forn['pessoas_fora'],

@@ -67,6 +67,30 @@ def grava(caminho, obj):
     return len(texto.encode('utf-8'))
 
 
+def escrever_eleitos(pessoas, est, dics, destino):
+    """eleitos/BRASIL.json: uma linha de 13 campos por pessoa.
+
+    Partido vai como indice do dicionario do meta, como na linha do ranking, e
+    -1 quando o lado nao existe. A sigla de 2022 que sumiu em 2026 entra no
+    dicionario do mesmo jeito. Nenhum documento, nem mascarado.
+    """
+    def pid(sigla):
+        return dics['partido'].id(sigla) if sigla else -1
+
+    linhas = []
+    for p in sorted(pessoas, key=lambda p: (p['nome'], p['sq'], p['uf_antes'])):
+        linhas.append([p['nome'], p['uf_antes'], p['cargo_antes'],
+                       pid(p['partido_antes']), p['ano_antes'], p['destino'],
+                       p['uf_agora'], p['cargo_agora'], pid(p['partido_agora']),
+                       p['desfecho'], p['sq'], p['genero'], p['mudou']])
+    fed = {str(dics['partido'].id(sg)): dics['fed'].id(nome)
+           for sg, nome in sorted(est['fed'].items())}
+    return grava(os.path.join(destino, 'eleitos', 'BRASIL.json'), {
+        'anteriores': est['anteriores'],
+        'ligados_por_nome': est['ligados_por_nome'],
+        'fed': fed, 'c': linhas})
+
+
 def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
     """Uma linha por candidato da UF, para o ranking.
 
@@ -822,7 +846,7 @@ def escrever_fluxo(unidade, recortes, nac, aggs, dics, destino, com_chave=None):
 
 
 def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
-                  catalogo=None, gravidades=None, forn=None, desfecho=None):
+                  catalogo=None, gravidades=None, forn=None, desfecho=None, eleitos=None):
     """O meta carrega os dicionarios e o catalogo de sinais.
 
     O catalogo sai indexado PELO CODIGO, nao por posicao numa lista. A versao
@@ -863,6 +887,9 @@ def escrever_meta(dics, contagens, ufs, cargos, gerado, tse, destino,
         # derrubar a rodada: o site de hoje com um desfecho a menos vale mais que o
         # de ontem no ar.
         'tem_desfecho': bool((desfecho or {}).get('tem')),
+        # A aba de eleitos existe so quando a rodada gravou eleitos/BRASIL.json:
+        # depois do desfecho e com anteriores.json valido no estado.
+        'eleitos': eleitos,
         'desfecho_em': (desfecho or {}).get('em') or None,
         'desfecho_desconhecidos': (desfecho or {}).get('desconhecidos', []),
         'indice': {

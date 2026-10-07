@@ -1678,6 +1678,9 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIs(meta['tem_desfecho'], False)
             self.assertIsNone(meta['desfecho_em'])
             self.assertEqual(meta['desfecho_desconhecidos'], [])
+            # sem desfecho nao ha eleitos: nem o arquivo nem a aba
+            self.assertIsNone(meta['eleitos'])
+            self.assertFalse(os.path.exists(os.path.join(site, 'eleitos')))
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
             self.assertTrue(all(len(l) == 17 for l in uf['c']))

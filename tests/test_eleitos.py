@@ -19,6 +19,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipeline import carregar as C   # noqa: E402
 from pipeline import eleitos as EL   # noqa: E402
+from pipeline import escrever as E   # noqa: E402
+from pipeline import validar as V    # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(AQUI, 'fixtures', 'tse-rr')
@@ -343,6 +345,123 @@ class TestCruzamento(ComSal):
         sqs = [p['sq'] for p in ps]
         self.assertEqual(sqs.count('9'), 1)
         self.assertEqual(est['ligados_por_nome'], 1)
+
+
+def linha_ok(**kw):
+    base = dict(nome='MARIA', uf_a='RR', cargo_a='6', part_a=0, ano_a=2022, destino=1,
+                uf_g='RR', cargo_g='6', part_g=0, desf=1, sq='9', gen='F', mudou=0)
+    base.update(kw)
+    return [base[k] for k in ('nome', 'uf_a', 'cargo_a', 'part_a', 'ano_a', 'destino',
+                              'uf_g', 'cargo_g', 'part_g', 'desf', 'sq', 'gen', 'mudou')]
+
+
+class TestEscritaEValidacao(ComSal):
+    def test_escreve_linhas_de_13_campos_com_indice_de_partido(self):
+        ps, est = EL.cruzar([antes(partido='PSC')],
+                            [cand(cpf='11144477735', partido='PODE', sit_turno='ELEITO', sq='9'),
+                             cand(cpf='22255588846', partido='PT', fed='FED X', sit_turno='ELEITO', sq='8')],
+                            {'PSC': 'PODE'})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertTrue(all(len(l) == 13 for l in d['c']))
+        por_sq = {l[10]: l for l in d['c']}
+        self.assertEqual(dics['partido'].lista[por_sq['9'][3]], 'PSC')
+        self.assertEqual(dics['partido'].lista[por_sq['9'][8]], 'PODE')
+        self.assertEqual(por_sq['8'][3], -1)
+        self.assertEqual(d['fed'], {str(dics['partido'].idx['PT']): dics['fed'].idx['FED X']})
+        self.assertEqual(V._checar_eleitos(d, len(dics['partido'].lista),
+                                           len(dics['fed'].lista), False), [])
+
+    def test_validador_reprova_forma(self):
+        for ruim, trecho in ((linha_ok()[:12], '13'),
+                             (linha_ok(destino=7), 'destino'),
+                             (linha_ok(ano_a=0), 'destino'),
+                             (linha_ok(part_g=5), 'partido'),
+                             (linha_ok(desf=5), 'desfecho'),
+                             (linha_ok(cargo_a='9'), 'cargo')):
+            erros = V._checar_eleitos({'c': [ruim]}, 1, 0, False)
+            self.assertTrue(erros and trecho in erros[0], (ruim, erros))
+
+    def test_validador_reprova_sq_repetido(self):
+        erros = V._checar_eleitos({'c': [linha_ok(), linha_ok()]}, 1, 0, False)
+        self.assertTrue(any('repetido' in e for e in erros))
+
+    def test_cadeiras_so_no_pais_inteiro(self):
+        cheio = {'2022': {'1': 1, '3': 27, '5': 27, '6': 513, '7': 1035, '8': 24},
+                 '2018': {'5': 54}}
+        self.assertEqual(V._checar_eleitos({'c': [], 'anteriores': cheio}, 1, 0, True), [])
+        pouco = dict(cheio, **{'2022': dict(cheio['2022'], **{'6': 400})})
+        self.assertTrue(V._checar_eleitos({'c': [], 'anteriores': pouco}, 1, 0, True))
+        self.assertEqual(V._checar_eleitos({'c': [], 'anteriores': pouco}, 1, 0, False), [])
+        demais = dict(cheio, **{'2018': {'5': 55}})
+        self.assertTrue(V._checar_eleitos({'c': [], 'anteriores': demais}, 1, 0, True))
+
+
+# A guarda sai na Tarefa 2, quando a fixture real de 2018 e 2022 for congelada.
+@unittest.skipUnless(os.path.exists(os.path.join(FIX, 'consulta_cand_2022.zip')),
+                     'fixture real de 2018 e 2022 ainda nao congelada: sai na Tarefa 2')
+class TestRodadaComDesfecho(ComSal):
+    """A rodada da fixture com um desfecho escrito a mao no consulta_cand de 2026:
+    reelege quem foi eleito deputado federal em 2022 e concorre de novo."""
+
+    def _fonte_com_desfecho(self):
+        fonte = os.path.join(self.tmp, 'fonte')
+        shutil.copytree(FIX, fonte)
+        # os CPF dos deputados federais eleitos em RR em 2022
+        z22 = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand_2022.zip'))
+        eleitos22 = {c.cpf for c in C.candidaturas(z22, 'RR', ano=2022)
+                     if c.cargo == '6' and EL.D.codigo(c.sit_turno) == 1 and c.cpf}
+        caminho = os.path.join(fonte, 'consulta_cand.zip')
+        z = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand.zip'))
+        membro = C.membro_uf(z, 'consulta_cand_2026', 'RR')
+        texto = z.read(membro).decode('latin-1')
+        leitor = list(csv.reader(io.StringIO(texto), delimiter=';'))
+        cab = [c.lstrip('﻿').strip('"').strip() for c in leitor[0]]
+        i_cpf, i_sit, i_cargo = (cab.index(k) for k in
+                                 ('NR_CPF_CANDIDATO', 'DS_SIT_TOT_TURNO', 'CD_CARGO'))
+        reeleitos = 0
+        for l in leitor[1:]:
+            if len(l) == len(cab) and l[i_cargo] == '6' and C.documento(l[i_cpf]) in eleitos22:
+                l[i_sit] = 'ELEITO'
+                reeleitos += 1
+        buf = io.StringIO()
+        csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL,
+                   lineterminator='\n').writerows(leitor)
+        os.remove(caminho)
+        with zipfile.ZipFile(caminho, 'w') as out:
+            out.writestr(membro, buf.getvalue().encode('latin-1'))
+        return fonte, reeleitos
+
+    def test_rodada_escreve_eleitos_e_o_validador_aprova(self):
+        from ferramentas import anteriores
+        from pipeline import rodar
+        fonte, reeleitos = self._fonte_com_desfecho()
+        self.assertGreater(reeleitos, 0, 'nenhum deputado de 2022 concorre de novo '
+                           'na fixture, ou o CPF nao veio em um dos anos')
+        est = os.path.join(self.tmp, 'estado')
+        anteriores.main(['--estado', est, '--fonte-local', FIX, '--uf', 'RR',
+                         '--destino', os.path.join(self.tmp, 'd')])
+        site = os.path.join(self.tmp, 'site')
+        rodar.main(['--fonte-local', fonte, '--ufs', 'RR', '--sem-receita',
+                    '--site', site, '--estado', est,
+                    '--dados', os.path.join(self.tmp, 'sem-dados'),
+                    '--hoje', '2026-10-06'])
+        self.assertEqual(V.validar(site), [])
+        meta = json.load(open(os.path.join(site, 'meta.json'), encoding='utf-8'))
+        self.assertTrue(meta['tem_desfecho'])
+        self.assertTrue(meta['eleitos'])
+        d = json.load(open(os.path.join(site, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        destinos = [l[5] for l in d['c'] if l[2] == '6']
+        self.assertEqual(destinos.count(EL.MESMO_CARGO), reeleitos)
+        self.assertEqual(len(destinos), 8)
+        texto = open(os.path.join(site, 'eleitos', 'BRASIL.json'), encoding='utf-8').read()
+        for cpf in list(self._cpfs_2022())[:20]:
+            self.assertNotIn(cpf, texto)
+
+    def _cpfs_2022(self):
+        z22 = zipfile.ZipFile(os.path.join(FIX, 'consulta_cand_2022.zip'))
+        return {c.cpf for c in C.candidaturas(z22, 'RR', ano=2022) if c.cpf}
 
 
 if __name__ == '__main__':
