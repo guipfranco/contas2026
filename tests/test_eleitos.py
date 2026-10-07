@@ -469,6 +469,117 @@ def antes(cpf='11144477735', ano=2022, cargo='6', uf='RR', partido='PAB',
             'nome_urna': nome.split()[0], 'genero': 'F'}
 
 
+class TestAnonimizarPrestacao(unittest.TestCase):
+    """O candidatos.zip da fixture: so o CPF muda, e nenhum outro byte."""
+    CAB_D = ['SQ_CANDIDATO', 'NR_CPF_CANDIDATO', 'NR_CPF_CNPJ_FORNECEDOR', 'NM_FORNECEDOR',
+             'NR_DOCUMENTO', 'DS_DESPESA']
+    CAB_R = ['SQ_CANDIDATO', 'NR_CPF_CNPJ_DOADOR', 'NM_DOADOR', 'NR_DOCUMENTO_DOACAO']
+
+    def _texto(self, cab, linhas):
+        buf = io.StringIO()
+        w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL, lineterminator='\r\n')
+        w.writerow(cab)
+        w.writerows(linhas)
+        return buf.getvalue()
+
+    def _linhas(self, texto):
+        return list(csv.reader(io.StringIO(texto, newline=''), delimiter=';'))
+
+    def setUp(self):
+        # 11144477735, 22255588846 e 52998224725 fecham o digito; 11144477736 e
+        # 44477700068 nao. Nenhum e de ninguem.
+        self.textos = {
+            'despesas_contratadas_candidatos_2026_RR.csv': self._texto(self.CAB_D, [
+                ['1', '-1', '11144477735', 'JOSÉ DA SILVA', '123', 'Serviço'],
+                ['1', '-1', '11144477736', 'ANA LIMA', '00000000000', '#NULO'],
+                ['2', '-1', '12345678000195', 'JOSÉ DA SILVA 52998224725', '44477700068',
+                 'Nota 11144477736'],
+                ['2', '-1', '00000000000', 'BIA 111.444.777-35', '#NULO', '#NULO'],
+                ['3', '-1', '1114447773', 'CIDA', '#NULO', '#NULO'],
+            ]),
+            'receitas_candidatos_2026_RR.csv': self._texto(self.CAB_R, [
+                ['1', '11144477735', 'JOSÉ DA SILVA 11144477735', '11144477735'],
+                ['2', '22255588846', 'DORA', '#NULO'],
+            ]),
+        }
+
+    def _roda(self, chave=b'k' * 32):
+        from ferramentas.anonimizar import anonimizar_prestacao
+        return anonimizar_prestacao(self.textos, chave)
+
+    def test_nenhum_cpf_original_sobra_em_campo_nenhum(self):
+        saida = self._roda()
+        for texto in saida.values():
+            for cpf in ('11144477735', '111.444.777-35', '11144477736', '22255588846',
+                        '52998224725'):
+                self.assertNotIn(cpf, texto)
+
+    def test_mesmo_cpf_mesmo_falso_em_todo_membro_e_todo_campo(self):
+        saida = self._roda()
+        d = self._linhas(saida['despesas_contratadas_candidatos_2026_RR.csv'])
+        r = self._linhas(saida['receitas_candidatos_2026_RR.csv'])
+        falso = d[1][2]
+        self.assertEqual(r[1][1], falso)
+        self.assertEqual(r[1][2], 'JOSÉ DA SILVA ' + falso)
+        self.assertEqual(r[1][3], falso)
+        # a forma pontuada vira o mesmo falso, pontuado
+        self.assertEqual(d[4][3], f'BIA {falso[:3]}.{falso[3:6]}.{falso[6:9]}-{falso[9:]}')
+        # o inválido da coluna de documento vira o mesmo falso colado na descrição
+        self.assertEqual(d[3][5], 'Nota ' + d[2][2])
+        # dois CPF diferentes nunca viram o mesmo falso
+        falsos = {d[1][2], d[2][2], r[2][1], d[3][3].rsplit(' ', 1)[1]}
+        self.assertEqual(len(falsos), 4)
+
+    def test_validade_do_digito_preservada(self):
+        saida = self._roda()
+        d = self._linhas(saida['despesas_contratadas_candidatos_2026_RR.csv'])
+        r = self._linhas(saida['receitas_candidatos_2026_RR.csv'])
+        self.assertTrue(C.cpf_valido(d[1][2]))
+        self.assertTrue(C.cpf_valido(r[2][1]))
+        # o CPF colado no nome, fora de coluna de documento, e com digito que fecha
+        colado = d[3][3].rsplit(' ', 1)[1]
+        self.assertNotEqual(colado, '52998224725')
+        self.assertTrue(C.cpf_valido(colado))
+        # o inválido continua inválido, com onze dígitos, e não é sequência
+        invalido = d[2][2]
+        self.assertEqual(len(invalido), 11)
+        self.assertNotEqual(invalido, '11144477736')
+        self.assertFalse(C.cpf_valido(invalido))
+        self.assertNotEqual(invalido, invalido[0] * 11)
+
+    def test_o_que_nao_e_cpf_fica_como_esta(self):
+        saida = self._roda()
+        d = self._linhas(saida['despesas_contratadas_candidatos_2026_RR.csv'])
+        # CNPJ, sequência de um dígito só, valor de dez dígitos, marcador de vazio
+        self.assertEqual(d[3][2], '12345678000195')
+        self.assertEqual(d[4][2], '00000000000')
+        self.assertEqual(d[2][4], '00000000000')
+        self.assertEqual(d[5][2], '1114447773')
+        self.assertEqual(d[1][1], '-1')
+        # onze dígitos inválidos fora da coluna de documento, que não estão nela
+        self.assertEqual(d[3][4], '44477700068')
+
+    def test_nenhum_outro_byte_muda(self):
+        from ferramentas.anonimizar import CPF_NO_TEXTO
+        textos = dict(self.textos)
+        textos['receitas_candidatos_2026_RR.csv'] = '﻿' + textos[
+            'receitas_candidatos_2026_RR.csv']
+        self.textos = textos
+        saida = self._roda()
+        self.assertEqual(list(saida), list(textos))
+        for nome, texto in textos.items():
+            self.assertEqual(len(saida[nome]), len(texto), nome)
+            self.assertEqual(CPF_NO_TEXTO.sub('X', saida[nome]),
+                             CPF_NO_TEXTO.sub('X', texto), nome)
+
+    def test_a_chave_decide_o_falso(self):
+        a = self._roda(b'k' * 32)
+        b = self._roda(b'k' * 32)
+        c = self._roda(b'z' * 32)
+        self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+
+
 class TestSucessao(unittest.TestCase):
     def test_transitiva_e_sem_laco(self):
         t = {'A': 'B', 'B': 'C', 'X': 'Y', 'Y': 'X'}

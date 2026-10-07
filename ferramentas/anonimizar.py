@@ -145,3 +145,73 @@ def anonimizar_csv(texto, chave):
     buf = io.StringIO()
     csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL, lineterminator=fim).writerows(saida)
     return (BOM if bom else '') + buf.getvalue()
+
+
+def _cpf_valido(doc):
+    return doc != doc[0] * 11 and _digitos(doc[:9]) == doc
+
+
+def cpf_falso_igual(cpf, chave, evitar):
+    """Um CPF falso com a mesma validade do verdadeiro: digito que fecha vira
+    digito que fecha, digito que nao fecha vira digito que nao fecha. Ha sinal
+    que olha isso (A7), e limpar_nome so tira do nome o CPF que fecha. Nunca
+    devolve sequencia de um digito so nem nada que esteja em `evitar`."""
+    valido = _cpf_valido(cpf)
+    volta = 0
+    while True:
+        h = _numero(chave, 'cpf-igual|' + cpf, volta)
+        falso = _digitos(f'{h % 10 ** 9:09d}')
+        if not valido:
+            # troca o ultimo digito por qualquer outro: o verificador deixa de fechar
+            falso = falso[:10] + str((int(falso[10]) + 1 + (h // 10 ** 9) % 9) % 10)
+        if falso != falso[0] * 11 and falso not in evitar:
+            return falso
+        volta += 1
+
+
+def anonimizar_prestacao(textos, chave):
+    """{membro: texto} da prestacao de contas -> o mesmo, com o CPF trocado.
+
+    So o CPF muda, e nenhum outro byte: o texto nao e reescrito pelo csv, a
+    troca e feita no lugar, no mesmo formato (so digitos ou pontuado). Um mapa so
+    para todos os membros, e por isso o mesmo CPF vira o mesmo falso em todo
+    arquivo e em todo campo, inclusive colado em nome.
+
+    E CPF: o valor de onze digitos de uma coluna NR_CPF_* (com ou sem
+    pontuacao, fechando o digito ou nao), e os onze digitos que fecham o digito
+    em qualquer outro campo, como o CPF colado na razao social de MEI. CNPJ,
+    valor de outro tamanho e sequencia de um digito so ficam como estao.
+    """
+    reais = set()
+    corridas = set()
+    for texto in textos.values():
+        linhas = csv.reader(io.StringIO(texto.lstrip(BOM), newline=''), delimiter=';')
+        cab = next(linhas, [])
+        i_doc = [i for i, c in enumerate(cab) if c.startswith('NR_CPF')]
+        for l in linhas:
+            for i in i_doc:
+                if i < len(l):
+                    d = re.sub(r'\D', '', l[i])
+                    if len(d) == 11 and d != d[0] * 11:
+                        reais.add(d)
+        for m in CPF_NO_TEXTO.finditer(texto):
+            d = re.sub(r'\D', '', m.group(0))
+            corridas.add(d)
+            if _cpf_valido(d):
+                reais.add(d)
+    # o falso nao pode ser um CPF verdadeiro, nem outro numero que ja estava no
+    # texto, nem o falso de outra pessoa
+    evitar = set(corridas)
+    mapa = {}
+    for cpf in sorted(reais):
+        mapa[cpf] = cpf_falso_igual(cpf, chave, evitar)
+        evitar.add(mapa[cpf])
+
+    def troca(m):
+        achado = m.group(0)
+        falso = mapa.get(re.sub(r'\D', '', achado))
+        if not falso:
+            return achado
+        return _pontuado(falso) if '.' in achado else falso
+
+    return {nome: CPF_NO_TEXTO.sub(troca, texto) for nome, texto in textos.items()}
