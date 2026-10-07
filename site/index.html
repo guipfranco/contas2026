@@ -2963,15 +2963,31 @@ function ladoEleitos(l, cargo, uf){
           dir: naDir ? (l[9] === 4 ? 'x3' : 'p' + l[8]) : saida,
           naEsq: naEsq, naDir: naDir && l[9] === 1};
 }
-function destacaEleitos(chave){
-  if(chave.charAt(0) !== 'p') return false;
-  var i = +chave.slice(1);
+/* O partido de antes que foi extinto por fusão ou incorporação aponta para o sucessor
+   (PSC para PODE, PTB e Patriota para PRD). Quem decide é o pipeline, que conhece a
+   tabela; o partido sem sucessor aponta para ele mesmo. */
+function sucessorDe(i){
+  var s = ELE && ELE.sucessor ? ELE.sucessor[String(i)] : undefined;
+  return typeof s === 'number' ? s : i;
+}
+function casaPartido(i){
   if(S.partido) return siglaDe(i) === S.partido;
   if(S.fed){
     var f = META.dic.fed.indexOf(S.fed);
     return f >= 0 && !!ELE.fed && ELE.fed[String(i)] === f;
   }
   return false;
+}
+function destacaEleitos(chave){
+  if(chave.charAt(0) !== 'p') return false;
+  return casaPartido(+chave.slice(1));
+}
+/* Do lado de antes, o nó do partido extinto casa com o filtro pelo sucessor também:
+   escolher PODE acende o PSC de 2022. O nó continua com a sigla como era. */
+function destacaAntes(chave){
+  if(chave.charAt(0) !== 'p') return false;
+  var i = +chave.slice(1);
+  return casaPartido(i) || casaPartido(sucessorDe(i));
 }
 function montaEleitos(cargo, uf){
   var pessoas = [], cEsq = {}, cDir = {};
@@ -3077,7 +3093,7 @@ function fraseDoPartido(R, ano){
   var rot = S.partido || fedCurta(S.fed);
   var antes = 0, agora = 0, mesmo = 0, mudou = 0, novo = 0;
   R.pessoas.forEach(function(p){
-    if(p.lado.naEsq && destacaEleitos(p.lado.esq)) antes++;
+    if(p.lado.naEsq && destacaAntes(p.lado.esq)) antes++;
     if(p.lado.naDir && destacaEleitos(p.lado.dir)){
       agora++;
       if(p.lado.esq === 'xnovo') novo++;
@@ -3100,8 +3116,10 @@ function fraseDoPartido(R, ano){
 function tabelaEleitos(R, ano){
   var t = {};
   function lin(sg){ return t[sg] || (t[sg] = {sg:sg, antes:0, agora:0, re:0}); }
+  /* o lado de antes soma pelo sucessor: sem isso o PRD apareceria com "+N" e o PTB e o
+     Patriota com negativo, só pela fusão */
   R.pessoas.forEach(function(p){
-    if(p.lado.naEsq) lin(siglaDe(p.l[3])).antes++;
+    if(p.lado.naEsq) lin(siglaDe(sucessorDe(p.l[3]))).antes++;
     if(p.lado.naDir){
       var x = lin(siglaDe(p.l[8]));
       x.agora++;
@@ -3149,18 +3167,27 @@ function listaDaFaixa(a, b, R){
     quem.map(function(p){ return '<li>' + linhaEleito(p.l) + '</li>'; }).join('') + '</ul>';
   el.scrollIntoView({block:'nearest'});
 }
-function ligarEleitos(host, esq, dir, R){
+/* `ligs` são as ligações como o desenho as deixou: fluxoDuasColunas pode mandar nó fino
+   para o "outros" e renumerar os índices no próprio array, e por isso a contagem de
+   cada faixa sai dele, num mapa montado uma vez, e não refiltrando a lista de pessoas
+   para cada faixa. */
+function ligarEleitos(host, esq, dir, R, ligs, ano){
   var svg = host && host.querySelector('svg.fluxo');
   if(!svg) return;
+  var soma = {};
+  ligs.forEach(function(l){ soma[l[0] + ':' + l[1]] = l[2]; });
+  /* role="img" esconde os filhos do leitor de tela, e aqui cada faixa é um botão */
+  svg.setAttribute('role', 'group');
+  svg.setAttribute('aria-label', 'Fluxo de eleitos de ' + ano +
+                   ' para 2026, por partido; cada faixa abre a lista de pessoas');
   var marcar = !!(S.partido || S.fed);
   if(marcar) svg.classList.add('fixo');
   var ps = svg.querySelectorAll('path');
   for(var i = 0; i < ps.length; i++){
-    var a = esq[+ps[i].getAttribute('data-e')], b = dir[+ps[i].getAttribute('data-d')];
-    if(marcar) ps[i].classList.toggle('sel', a.chaves.some(destacaEleitos) || b.chaves.some(destacaEleitos));
-    var qtd = R.pessoas.filter(function(p){
-      return a.chaves.indexOf(p.lado.esq) >= 0 && b.chaves.indexOf(p.lado.dir) >= 0;
-    }).length;
+    var ie = ps[i].getAttribute('data-e'), id = ps[i].getAttribute('data-d');
+    var a = esq[+ie], b = dir[+id];
+    if(marcar) ps[i].classList.toggle('sel', a.chaves.some(destacaAntes) || b.chaves.some(destacaEleitos));
+    var qtd = soma[(+ie) + ':' + (+id)] || 0;
     ps[i].setAttribute('tabindex', '0');
     ps[i].setAttribute('role', 'button');
     ps[i].setAttribute('aria-label', a.nome + ' para ' + b.nome + ': ' + FMT_PESSOAS.cheio(qtd));
@@ -3184,6 +3211,7 @@ function notaEleitos(cargo, ano){
     '"Eleito em ' + ano + '" é o resultado daquela eleição, e não quem exerce o mandato ' +
     'hoje: houve suplente que assumiu, cassação e morte. Mudança de partido conta só ' +
     'quando o partido novo não é o sucessor do antigo por fusão ou incorporação.' +
+    (ELE.sucessor && Object.keys(ELE.sucessor).length ? ' Na tabela, o partido extinto entra somado ao sucessor.' : '') +
     (cargo === '5' ? ' No Senado, as cadeiras em disputa em 2026 são as eleitas em 2018.' : '') +
     (n ? ' ' + contaPt(n, 'pessoa eleita antes não tem', 'pessoas eleitas antes não têm') +
          ' CPF no arquivo do TSE e ' + (n === 1 ? 'foi ligada' : 'foram ligadas') +
@@ -3234,7 +3262,7 @@ function viewEleitos(){
     return [+ab[0], +ab[1], soma[ch]];
   });
   fluxoDuasColunas(esq, dir, ligs, 'fxele', FMT_PESSOAS);
-  ligarEleitos(document.getElementById('fxele'), esq, dir, R);
+  ligarEleitos(document.getElementById('fxele'), esq, dir, R, ligs, ano);
 }
 
 /* Fluxo 1, do partido para as maiores candidaturas. Ele sai só das linhas do ranking, e
