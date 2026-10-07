@@ -19,6 +19,7 @@ from pipeline import carregar as C
 from pipeline import eleitos as EL
 from pipeline.baixar import baixar_fontes
 from pipeline.ident import tem_sal_de_verdade
+from pipeline.validar import confere_cadeiras
 
 ANOS = (2018, 2022)
 
@@ -82,6 +83,19 @@ def main(argv=None):
         for cargo, n in sorted(por_cargo.items()):
             print(f'   cargo {cargo}: {n}')
         linhas.extend(doano)
+    # Sem --uf, a ferramenta leu o pais inteiro, e a contagem tem de bater com as
+    # cadeiras. Um arquivo errado na branch dados tiraria a aba de toda rodada.
+    if not a.uf:
+        contagem = {}
+        for l in linhas:
+            doano = contagem.setdefault(str(l['ano']), {})
+            doano[l['cargo']] = doano.get(l['cargo'], 0) + 1
+        erros = confere_cadeiras(contagem)
+        if erros:
+            print('A contagem nao bate com as cadeiras. Nada foi gravado.')
+            for e in erros:
+                print(f'   {e}')
+            return 1
     caminho = EL.gravar_anteriores(a.estado, linhas)
     print(f'{len(linhas)} eleitos gravados em {caminho}')
     return 0

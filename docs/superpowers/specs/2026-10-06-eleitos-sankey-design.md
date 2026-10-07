@@ -177,6 +177,10 @@ Escreve `eleitos/BRASIL.json`:
   tamanho da Câmara a partir de 2027 é o que o TSE publicar. Até 2 % abaixo passa (cassação, eleição anulada);
   mais que isso, ou acima do número de cadeiras, é erro: a ligação ou o filtro de
   cargo quebrou. A conferência só vale na rodada do país inteiro.
+- A mesma conta (`validar.confere_cadeiras`) roda antes, em dois lugares, para um
+  `anteriores.json` errado nunca congelar o site: a ferramenta, sem `--uf`, não
+  grava o arquivo e sai com erro; a rodada do país não grava `eleitos/BRASIL.json`,
+  avisa, e segue sem a aba.
 - `ligados_por_nome` acima de 5 % dos eleitos de antes é aviso da rodada (o
   validador não tem aviso, só erro).
 

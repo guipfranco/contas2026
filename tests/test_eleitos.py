@@ -203,6 +203,20 @@ class TestFerramentaAnteriores(ComSal):
         self.assertEqual(r, 1)
         self.assertFalse(os.path.exists(os.path.join(est, EL.ARQUIVO)))
 
+    def test_pais_inteiro_com_contagem_fora_da_margem_nao_grava(self):
+        # sem --uf a ferramenta le o pais inteiro, e a contagem tem de bater com as
+        # cadeiras: um arquivo errado na branch dados congelaria a aba de toda rodada
+        from ferramentas import anteriores
+        est = os.path.join(self.tmp, 'estado')
+        saida = io.StringIO()
+        from unittest import mock
+        with mock.patch('sys.stdout', saida):
+            r = anteriores.main(['--estado', est, '--fonte-local', self._fontes(),
+                                 '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(r, 1)
+        self.assertFalse(os.path.exists(os.path.join(est, EL.ARQUIVO)))
+        self.assertIn('esperado perto de 513', saida.getvalue())
+
     def test_congela_a_fatia_da_uf(self):
         from ferramentas import anteriores
         saida = os.path.join(self.tmp, 'fixture')
@@ -555,6 +569,42 @@ class TestEscritaEValidacao(ComSal):
     def test_validador_reprova_sq_repetido(self):
         erros = V._checar_eleitos({'c': [linha_ok(), linha_ok()]}, 1, 0, False)
         self.assertTrue(any('repetido' in e for e in erros))
+
+    def test_confere_cadeiras_aceita_a_contagem_real_e_reprova_400_deputados(self):
+        cheio = {'2022': {'1': 1, '3': 27, '5': 27, '6': 513, '7': 1035, '8': 24},
+                 '2018': {'5': 54}}
+        self.assertEqual(V.confere_cadeiras(cheio), [])
+        # ate 2 % abaixo passa: cassacao, eleicao anulada
+        self.assertEqual(V.confere_cadeiras(dict(cheio, **{'2022': dict(cheio['2022'], **{'6': 503})})), [])
+        erros = V.confere_cadeiras(dict(cheio, **{'2022': dict(cheio['2022'], **{'6': 400})}))
+        self.assertEqual(len(erros), 1)
+        self.assertIn('400', erros[0])
+        self.assertIn('513', erros[0])
+
+    def test_rodada_do_pais_com_cadeiras_erradas_nao_grava_eleitos(self):
+        from unittest import mock
+        from pipeline import rodar
+        import argparse
+        import time
+        est = os.path.join(self.tmp, 'estado')
+        EL.gravar_anteriores(est, [antes()])
+        a = argparse.Namespace(estado=est, dados=os.path.join(self.tmp, 'sem-dados'),
+                               site=os.path.join(self.tmp, 'site'))
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        saida = io.StringIO()
+        with mock.patch('sys.stdout', saida):
+            r = rodar._eleitos(a, [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')],
+                               dics, [], None, time.time(), completo=True)
+        self.assertIsNone(r)
+        self.assertFalse(os.path.exists(os.path.join(a.site, 'eleitos', 'BRASIL.json')))
+        self.assertIn('::warning::', saida.getvalue())
+        self.assertIn('esperado perto de 513', saida.getvalue())
+        # a mesma rodada numa UF so nao confere cadeiras, e grava
+        with mock.patch('sys.stdout', io.StringIO()):
+            r = rodar._eleitos(a, [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')],
+                               dics, ['RR'], None, time.time(), completo=False)
+        self.assertIsNotNone(r)
+        self.assertTrue(os.path.exists(os.path.join(a.site, 'eleitos', 'BRASIL.json')))
 
     def test_cadeiras_so_no_pais_inteiro(self):
         cheio = {'2022': {'1': 1, '3': 27, '5': 27, '6': 513, '7': 1035, '8': 24},

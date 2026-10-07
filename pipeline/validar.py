@@ -505,12 +505,28 @@ def _checar_eleitos(d, n_part, n_fed, completo, mb=0.0):
             for uf, n in absorvidos.items()):
         erros.append(f'{rel}: absorvidos fora da forma UF -> inteiro positivo')
     if completo:
-        ant = d.get('anteriores', {})
-        for ano, cargos, cadeiras in CADEIRAS:
-            achado = sum(ant.get(ano, {}).get(c, 0) for c in cargos)
-            if achado > cadeiras or achado < cadeiras - cadeiras // 50:
-                erros.append(f'{rel}: {achado} eleitos em {ano} no cargo '
-                             f'{"+".join(cargos)}, esperado perto de {cadeiras}')
+        erros.extend(f'{rel}: {e}' for e in confere_cadeiras(d.get('anteriores', {})))
+    return erros
+
+
+def pais_inteiro(ufs):
+    """A rodada leu o pais inteiro? `ufs` sao as chaves de meta.ufs. A unidade
+    BR e a Presidencia, e nao conta como estado."""
+    return len([u for u in ufs if u != 'BR']) >= 27
+
+
+def confere_cadeiras(anteriores):
+    """A contagem bruta dos eleitos de antes, {ano: {cargo: n}}, contra as
+    cadeiras. Ate 2 % abaixo passa (cassacao, eleicao anulada); mais que isso,
+    ou acima, e a ligacao ou o filtro de cargo que quebrou. So vale para o pais
+    inteiro. A mesma conta serve ao validador, a ferramenta que grava
+    anteriores.json e a rodada, para um arquivo errado nunca chegar ao ar."""
+    erros = []
+    for ano, cargos, cadeiras in CADEIRAS:
+        achado = sum((anteriores.get(ano) or {}).get(c, 0) for c in cargos)
+        if achado > cadeiras or achado < cadeiras - cadeiras // 50:
+            erros.append(f'{achado} eleitos em {ano} no cargo '
+                         f'{"+".join(cargos)}, esperado perto de {cadeiras}')
     return erros
 
 
@@ -845,7 +861,7 @@ def validar(pasta):
         if not falta(rel):
             caminho = os.path.join(pasta, rel)
             # a contagem de cadeiras so vale quando a rodada leu o pais inteiro
-            completo = len([u for u in meta.get('ufs', {}) if u != 'BR']) >= 27
+            completo = pais_inteiro(meta.get('ufs', {}))
             erros.extend(_checar_eleitos(_le(caminho), n_part, n_fed, completo,
                                          os.path.getsize(caminho) / 1e6))
 

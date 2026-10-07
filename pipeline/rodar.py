@@ -23,6 +23,7 @@ from . import desfecho as D
 from . import eleitos as EL
 from . import escrever as E
 from . import historico as H
+from . import validar as V
 from .alarmes import (CATALOGO, GRAVIDADE, Contexto, avaliar,
                       confere_redacao)
 from .alarmes import doador as al_doador
@@ -84,9 +85,14 @@ def carregar_cnae_nome(caminho):
     return nomes
 
 
-def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0):
+def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0, completo=False):
     """Grava eleitos/BRASIL.json e devolve o pedaco do meta, ou None quando
-    anteriores.json nao serve."""
+    anteriores.json nao serve.
+
+    `completo` e a rodada do pais inteiro, pela mesma regra do validador. Nela a
+    contagem dos eleitos de antes tem de bater com as cadeiras antes de o arquivo
+    ser gravado: senao o validador reprovaria a rodada inteira, e o site ficaria
+    parado no de ontem por causa de uma aba so."""
     anteriores, motivo = EL.ler_anteriores(a.estado)
     if motivo == 'falta':
         print('::warning::   aviso: anteriores.json nao esta no estado; rode o '
@@ -102,6 +108,13 @@ def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0):
         return None
     suc = EL.carregar_sucessao(os.path.join(a.dados, 'sucessao-partidos.csv'))
     pessoas, est = EL.cruzar(anteriores, cands, suc, ufs=ufs_pedidas or None)
+    if completo:
+        erros = V.confere_cadeiras(est['anteriores'])
+        if erros:
+            print('::warning::   aviso: a contagem de anteriores.json nao bate com as '
+                  'cadeiras (' + '; '.join(erros) + '). Rode o workflow "eleitos de '
+                  'antes" de novo. A aba de eleitos fica de fora.')
+            return None
     b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha)
     n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
     if est['siglas_sem_par']:
@@ -342,7 +355,8 @@ def main(argv=None):
     eleitos_meta = None
     if tem_desfecho:
         try:
-            eleitos_meta = _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0)
+            eleitos_meta = _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0,
+                                    completo=V.pais_inteiro(ufs_saida))
         except Exception as e:  # noqa: BLE001
             # so o tipo do erro: a mensagem pode trazer uma linha com nome de pessoa
             print(f'::warning::   aviso: a aba de eleitos falhou ({type(e).__name__}) '
