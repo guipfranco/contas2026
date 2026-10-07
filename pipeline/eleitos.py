@@ -70,13 +70,16 @@ def genero(ds):
 
 
 def linhas_anteriores(cands, ano):
-    """Os eleitos de um ano anterior nos cargos contados. Em 2018, so o Senado."""
+    """Os eleitos de um ano anterior nos cargos contados. Em 2018, so o Senado.
+
+    "Eleito antes" e so a eleicao ordinaria (CD_TIPO_ELEICAO 2). Quem foi eleito
+    numa suplementar com o mesmo ANO_ELEICAO vem marcado com `suplementar`, e
+    nao entra na comparacao: a tela so diz quantas cadeiras foram preenchidas
+    assim, senao quem ocupa uma delas apareceria como nao eleito sem explicacao.
+    """
     out = []
     for c in cands:
         if D.codigo(c.sit_turno) != D.ELEITA or c.cargo not in CARGOS_CONTADOS:
-            continue
-        # so a eleicao ordinaria (tipo 2) conta; a suplementar tem outro tipo
-        if c.tipo_eleicao and c.tipo_eleicao != '2':
             continue
         if ano == 2018 and c.cargo != SENADO:
             continue
@@ -84,7 +87,8 @@ def linhas_anteriores(cands, ano):
                     'chave_nasc': chave_nasc(c.nome, c.nascimento),
                     'ano': ano, 'cargo': c.cargo, 'uf': c.uf,
                     'partido': c.partido, 'nome_urna': c.urna,
-                    'genero': genero(c.genero)})
+                    'genero': genero(c.genero),
+                    'suplementar': bool(c.tipo_eleicao and c.tipo_eleicao != '2')})
     return out
 
 
@@ -111,8 +115,10 @@ def ler_anteriores(estado):
         marca, linhas = d['sal_marca'], d['linhas']
     except (ValueError, OSError, KeyError, TypeError):
         return [], 'corrompido'
+    # `suplementar` e opcional: o arquivo feito antes dele existir nao o tem
     if not isinstance(linhas, list) or any(
-            not isinstance(l, dict) or not CAMPOS_ANTERIORES <= l.keys() for l in linhas):
+            not isinstance(l, dict) or not CAMPOS_ANTERIORES <= l.keys()
+            or not isinstance(l.get('suplementar', False), bool) for l in linhas):
         return [], 'corrompido'
     if marca != sal_marca():
         return [], 'sal'
@@ -197,7 +203,7 @@ def cruzar(anteriores, cands, suc, ufs=None):
     """Uma linha por pessoa: todo eleito de antes, e toda candidatura de 2026
     eleita ou no 2o turno nos cargos contados. Devolve (pessoas, estatisticas)."""
     ufs = set(ufs or ())
-    brutas, antes, nasc_para_chave, absorvidos = {}, {}, {}, {}
+    brutas, antes, nasc_para_chave, absorvidos, suplementares = {}, {}, {}, {}, {}
 
     def guarda(k, a):
         # quem foi eleito em 2018 e de novo em 2022 e lido pelo registro de 2022
@@ -212,7 +218,18 @@ def cruzar(anteriores, cands, suc, ufs=None):
                 and antes[k]['ano'] == 2022:
             absorvidos[perdeu['uf']] = absorvidos.get(perdeu['uf'], 0) + 1
 
-    selecionados = [a for a in anteriores if not ufs or a['uf'] in ufs]
+    selecionados = []
+    for a in anteriores:
+        if ufs and a['uf'] not in ufs:
+            continue
+        # A cadeira preenchida em eleicao suplementar so e contada: quem a ocupa
+        # nao e "eleito antes", e ela fica fora da conferencia de cadeiras. O
+        # arquivo feito antes deste campo existir nao o tem, e la tudo e ordinaria.
+        if a.get('suplementar'):
+            porcargo = suplementares.setdefault(str(a['ano']), {}).setdefault(a['cargo'], {})
+            porcargo[a['uf']] = porcargo.get(a['uf'], 0) + 1
+            continue
+        selecionados.append(a)
     for a in selecionados:
         doano = brutas.setdefault(str(a['ano']), {})
         doano[a['cargo']] = doano.get(a['cargo'], 0) + 1
@@ -288,4 +305,4 @@ def cruzar(anteriores, cands, suc, ufs=None):
                       and a['partido'] not in suc})
     return pessoas, {'anteriores': brutas, 'ligados_por_nome': por_nome,
                      'siglas_sem_par': sem_par, 'fed': fed,
-                     'absorvidos': absorvidos}
+                     'absorvidos': absorvidos, 'suplementares': suplementares}

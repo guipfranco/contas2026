@@ -50,10 +50,11 @@ def _cpf_no_texto(texto):
     """O primeiro CPF de verdade dentro de um texto, ou vazio.
 
     So campo de texto passa por aqui, nunca o arquivo cru: um valor de R$ 100
-    milhoes em centavos tem onze digitos e seria lido como CPF.
+    milhoes em centavos tem onze digitos e seria lido como CPF. Acha o CPF so
+    com digitos e o pontuado, a mesma forma que limpar_nome tira.
     """
-    from .carregar import cpf_valido
-    for corrida in re.findall(r'(?<!\d)\d{11}(?!\d)', texto or ''):
+    from .carregar import CPF_EM_TEXTO, cpf_valido
+    for corrida in CPF_EM_TEXTO.findall(texto or ''):
         if cpf_valido(corrida):
             return corrida
     return ''
@@ -511,9 +512,28 @@ def _checar_eleitos(d, n_part, n_fed, completo, mb=0.0):
             not re.fullmatch(r'[A-Z]{2}', uf) or type(n) is not int or n <= 0
             for uf, n in absorvidos.items()):
         erros.append(f'{rel}: absorvidos fora da forma UF -> inteiro positivo')
+    # cadeiras preenchidas em eleicao suplementar: ano -> cargo -> UF -> n > 0
+    if not _suplementares_ok(d.get('suplementares', {}), cargos_antes - {''}):
+        erros.append(f'{rel}: suplementares fora da forma ano -> cargo -> UF -> '
+                     f'inteiro positivo')
     if completo:
         erros.extend(f'{rel}: {e}' for e in confere_cadeiras(d.get('anteriores', {})))
     return erros
+
+
+def _suplementares_ok(sup, cargos):
+    if not isinstance(sup, dict):
+        return False
+    for ano, porcargo in sup.items():
+        if ano not in ('2018', '2022') or not isinstance(porcargo, dict):
+            return False
+        for cargo, poruf in porcargo.items():
+            if cargo not in cargos or not isinstance(poruf, dict):
+                return False
+            if any(not isinstance(uf, str) or not re.fullmatch(r'[A-Z]{2}', uf)
+                   or type(n) is not int or n <= 0 for uf, n in poruf.items()):
+                return False
+    return True
 
 
 def pais_inteiro(ufs):

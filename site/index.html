@@ -3214,8 +3214,25 @@ function ligarEleitos(host, esq, dir, R, ligs, ano){
     listaDaFaixa(esq[+p.getAttribute('data-e')], dir[+p.getAttribute('data-d')], R);
   });
 }
-function notaEleitos(cargo, ano){
+/* Cadeiras desta comparação preenchidas em eleição suplementar com o mesmo ano: quem as
+   ocupa não é "eleito antes" (só a ordinária conta), e sem esta conta a pessoa, se eleita
+   agora, apareceria como não eleita naquele ano sem explicação. */
+function suplementaresEleitos(cargo, ano, uf){
+  var a = (((ELE && ELE.suplementares) || {})[ano] || {})[cargo] || {};
+  if(uf) return a[uf] || 0;
+  return Object.keys(a).reduce(function(s, k){ return s + a[k]; }, 0);
+}
+function fraseSuplementares(n, ano){
+  if(!n) return '';
+  return n === 1
+    ? '1 cadeira desta comparação foi preenchida em eleição suplementar depois de ' + ano +
+      '; quem a ocupa entra como não eleito em ' + ano + '.'
+    : inteiro(n) + ' cadeiras desta comparação foram preenchidas em eleição suplementar depois de ' +
+      ano + '; quem as ocupa entra como não eleito em ' + ano + '.';
+}
+function notaEleitos(cargo, ano, uf){
   var n = ELE.ligados_por_nome || 0;
+  var sup = fraseSuplementares(suplementaresEleitos(cargo, ano, uf), ano);
   return '<p class="notafx nota-ele">' + esc(
     'Contagem de pessoas, pela situação que o TSE publica depois da totalização. ' +
     '"Eleito em ' + ano + '" é o resultado daquela eleição, e não quem exerce o mandato ' +
@@ -3226,6 +3243,7 @@ function notaEleitos(cargo, ano){
     (n ? ' ' + contaPt(n, 'pessoa eleita antes não tem', 'pessoas eleitas antes não têm') +
          ' CPF no arquivo do TSE e ' + (n === 1 ? 'foi ligada' : 'foram ligadas') +
          ' pelo nome completo e pela data de nascimento.' : '') +
+    (sup ? ' ' + sup : '') +
     ' Toque numa faixa para ver quem está nela.') + '</p>';
 }
 function viewEleitos(){
@@ -3245,8 +3263,12 @@ function viewEleitos(){
   if(!R.pessoas.length){
     // no Senado, quem foi eleito em 2018 pode estar todo na comparação de outro cargo
     var fa = cargo === '5' ? fraseAbsorvidos(absorvidosSenado(uf), true) : '';
+    // a cadeira preenchida em eleição suplementar não é "eleito antes", e a tela vazia
+    // precisa dizer que ela existe
+    var fs = fraseSuplementares(suplementaresEleitos(cargo, ano, uf), ano);
     m.innerHTML = h + '<p class="frase-ele">' +
-      esc(fa || 'Nenhuma pessoa eleita para este cargo neste recorte.') + '</p></div>';
+      esc(fa || 'Nenhuma pessoa eleita para este cargo neste recorte.') + '</p>' +
+      (fs ? '<p class="notafx nota-ele">' + esc(fs) + '</p>' : '') + '</div>';
     return;
   }
   h += '<p class="frase-ele">' + esc(fraseEleitos(R, cargo, ano, uf)) + '</p>';
@@ -3254,7 +3276,7 @@ function viewEleitos(){
   h += '<div class="eletab">' + tabelaEleitos(R, ano) + '</div>' +
        '<div class="cab-ele"><span>Eleitos em ' + ano + '</span><span>2026</span></div>' +
        '<div id="fxele"></div><div id="elelista" aria-live="polite"></div>' +
-       notaEleitos(cargo, ano) + '</div>';
+       notaEleitos(cargo, ano, uf) + '</div>';
   m.innerHTML = h;
   var n = quantosNos();
   var esq = nosEleitos(R.cEsq, [['xoutra', 'já eleitos em outra disputa', 'outra disputa'],
