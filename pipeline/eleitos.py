@@ -102,3 +102,128 @@ def ler_anteriores(estado):
     if d.get('sal_marca') != sal_marca():
         return [], 'sal'
     return d.get('linhas', []), ''
+
+
+MESMO_CARGO, OUTRO_CARGO, SEGUNDO_TURNO, VICE, NAO_ELEITA, SEM_CANDIDATURA = range(1, 7)
+
+
+def carregar_sucessao(caminho):
+    """Partido antigo -> sucessor, de dados/sucessao-partidos.csv. Sem o
+    arquivo, ninguem tem sucessor, e a rodada avisa as siglas sem par."""
+    if not os.path.exists(caminho):
+        return {}
+    with open(caminho, encoding='utf-8', newline='') as f:
+        return {r['antigo'].strip(): r['sucessor'].strip()
+                for r in csv.DictReader(f) if (r.get('antigo') or '').strip()}
+
+
+def sucessor(sigla, tabela):
+    """Transitivo: se A virou B e B virou C, A vira C."""
+    vistos = set()
+    while sigla in tabela and sigla not in vistos:
+        vistos.add(sigla)
+        sigla = tabela[sigla]
+    return sigla
+
+
+def _prioridade(c):
+    """Qual das candidaturas de 2026 de uma pessoa decide o destino dela."""
+    d = D.codigo(c.sit_turno)
+    if c.cargo in CARGOS_CONTADOS and d == D.ELEITA:
+        return 0
+    if c.cargo in CARGOS_CONTADOS and d == D.SEGUNDO_TURNO:
+        return 1
+    if c.cargo in CARGOS_VICE:
+        return 2
+    return 3
+
+
+def _destino(a, c):
+    if c is None:
+        return SEM_CANDIDATURA
+    d = D.codigo(c.sit_turno)
+    if c.cargo in CARGOS_CONTADOS and d == D.ELEITA:
+        mesmo = c.cargo == a['cargo'] and c.uf == a['uf']
+        return MESMO_CARGO if mesmo else OUTRO_CARGO
+    if c.cargo in CARGOS_CONTADOS and d == D.SEGUNDO_TURNO:
+        return SEGUNDO_TURNO
+    if c.cargo in CARGOS_VICE:
+        return VICE
+    return NAO_ELEITA
+
+
+def _pessoa(a, c, suc):
+    return {
+        'nome': (c.urna if c else '') or (a or {}).get('nome_urna', ''),
+        'uf_antes': a['uf'] if a else '',
+        'cargo_antes': a['cargo'] if a else '',
+        'partido_antes': a['partido'] if a else '',
+        'ano_antes': a['ano'] if a else 0,
+        'destino': _destino(a, c) if a else 0,
+        'uf_agora': c.uf if c else '',
+        'cargo_agora': c.cargo if c else '',
+        'partido_agora': c.partido if c else '',
+        'desfecho': D.codigo(c.sit_turno) if c else 0,
+        'sq': c.sq if c else '',
+        'genero': genero(c.genero) if c else (a or {}).get('genero', ''),
+        'mudou': int(bool(a and c and c.partido
+                          and sucessor(a['partido'], suc) != c.partido)),
+    }
+
+
+def cruzar(anteriores, cands, suc, ufs=None):
+    """Uma linha por pessoa: todo eleito de antes, e toda candidatura de 2026
+    eleita ou no 2o turno nos cargos contados. Devolve (pessoas, estatisticas)."""
+    ufs = set(ufs or ())
+    brutas = {}
+    antes = {}
+    for a in anteriores:
+        if ufs and a['uf'] not in ufs:
+            continue
+        doano = brutas.setdefault(str(a['ano']), {})
+        doano[a['cargo']] = doano.get(a['cargo'], 0) + 1
+        k = a['chave'] or a['chave_nasc'] or 'sem:' + a['nome_urna'] + a['uf']
+        # quem foi eleito em 2018 e de novo em 2022 e lido pelo registro de 2022
+        if k not in antes or a['ano'] > antes[k]['ano']:
+            antes[k] = a
+
+    agora, fed = {}, {}
+    for c in cands:
+        if ufs and c.uf not in ufs:
+            continue
+        if c.cargo not in CARGOS_CONTADOS and c.cargo not in CARGOS_VICE:
+            continue
+        if c.partido and c.fed:
+            fed[c.partido] = c.fed
+        k = chave_cpf(c.cpf) or chave_nasc(c.nome, c.nascimento) or 'sq:' + c.sq
+        if k not in agora or _prioridade(c) < _prioridade(agora[k]):
+            agora[k] = c
+    por_nasc = {}
+    for k, c in agora.items():
+        kn = chave_nasc(c.nome, c.nascimento)
+        if kn:
+            por_nasc.setdefault(kn, k)
+
+    pessoas, usados, por_nome = [], set(), 0
+    for a in antes.values():
+        ka = None
+        if a['chave'] and a['chave'] in agora:
+            ka = a['chave']
+        elif not a['chave'] and a['chave_nasc'] in por_nasc:
+            ka = por_nasc[a['chave_nasc']]
+            por_nome += 1
+        if ka:
+            usados.add(ka)
+        pessoas.append(_pessoa(a, agora.get(ka) if ka else None, suc))
+    for k, c in agora.items():
+        if k in usados or c.cargo not in CARGOS_CONTADOS:
+            continue
+        if D.codigo(c.sit_turno) in (D.ELEITA, D.SEGUNDO_TURNO):
+            pessoas.append(_pessoa(None, c, suc))
+
+    siglas_agora = {c.partido for c in cands if c.partido}
+    sem_par = sorted({a['partido'] for a in antes.values()
+                      if a['partido'] and a['partido'] not in siglas_agora
+                      and a['partido'] not in suc})
+    return pessoas, {'anteriores': brutas, 'ligados_por_nome': por_nome,
+                     'siglas_sem_par': sem_par, 'fed': fed}

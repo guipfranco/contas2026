@@ -192,5 +192,120 @@ class TestFerramentaAnteriores(ComSal):
             self.assertEqual(z.namelist(), [f'consulta_cand_{ano}_RR.csv'])
 
 
+def antes(cpf='11144477735', ano=2022, cargo='6', uf='RR', partido='PAB',
+          nome='MARIA DA SILVA', nasc='1970-01-01'):
+    return {'chave': EL.chave_cpf(cpf), 'chave_nasc': EL.chave_nasc(nome, nasc),
+            'ano': ano, 'cargo': cargo, 'uf': uf, 'partido': partido,
+            'nome_urna': nome.split()[0], 'genero': 'F'}
+
+
+class TestSucessao(unittest.TestCase):
+    def test_transitiva_e_sem_laco(self):
+        t = {'A': 'B', 'B': 'C', 'X': 'Y', 'Y': 'X'}
+        self.assertEqual(EL.sucessor('A', t), 'C')
+        self.assertEqual(EL.sucessor('Z', t), 'Z')
+        self.assertIn(EL.sucessor('X', t), ('X', 'Y'))
+
+    def test_le_o_csv(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            p = os.path.join(tmp, 's.csv')
+            with open(p, 'w', encoding='utf-8') as f:
+                f.write('antigo,sucessor,data,ato\nPSC,PODE,2023-06-13,ato\n')
+            self.assertEqual(EL.carregar_sucessao(p), {'PSC': 'PODE'})
+            self.assertEqual(EL.carregar_sucessao(os.path.join(tmp, 'nao')), {})
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestCruzamento(ComSal):
+    def um(self, anteriores, cands, suc=None):
+        pessoas, est = EL.cruzar(anteriores, cands, suc or {})
+        return pessoas, est
+
+    def test_reeleita_no_mesmo_cargo(self):
+        ps, _ = self.um([antes()], [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')])
+        self.assertEqual(len(ps), 1)
+        p = ps[0]
+        self.assertEqual((p['destino'], p['ano_antes'], p['sq'], p['mudou']),
+                         (EL.MESMO_CARGO, 2022, '9', 0))
+
+    def test_mesmo_cargo_em_outra_uf_e_outro_destino(self):
+        ps, _ = self.um([antes(uf='AM')], [cand(cpf='11144477735', sit_turno='ELEITO')])
+        self.assertEqual(ps[0]['destino'], EL.OUTRO_CARGO)
+
+    def test_eleita_para_outro_cargo(self):
+        ps, _ = self.um([antes()], [cand(cpf='11144477735', cargo='5', sit_turno='ELEITO')])
+        self.assertEqual((ps[0]['destino'], ps[0]['cargo_agora']), (EL.OUTRO_CARGO, '5'))
+
+    def test_segundo_turno(self):
+        ps, _ = self.um([antes()], [cand(cpf='11144477735', cargo='3', sit_turno='2º TURNO')])
+        self.assertEqual(ps[0]['destino'], EL.SEGUNDO_TURNO)
+
+    def test_vice(self):
+        ps, _ = self.um([antes()], [cand(cpf='11144477735', cargo='4', sit_turno='ELEITO')])
+        self.assertEqual(ps[0]['destino'], EL.VICE)
+
+    def test_concorreu_e_nao_se_elegeu_inclui_suplente_e_sem_desfecho(self):
+        for sit in ('SUPLENTE', 'NÃO ELEITO', '#NULO'):
+            ps, _ = self.um([antes()], [cand(cpf='11144477735', sit_turno=sit)])
+            self.assertEqual(ps[0]['destino'], EL.NAO_ELEITA, sit)
+
+    def test_sem_candidatura(self):
+        ps, _ = self.um([antes()], [])
+        p = ps[0]
+        self.assertEqual((p['destino'], p['sq'], p['cargo_agora']), (EL.SEM_CANDIDATURA, '', ''))
+
+    def test_novata_eleita_entra_e_nao_eleita_nao(self):
+        ps, _ = self.um([], [cand(cpf='22255588846', sit_turno='ELEITO', sq='1'),
+                             cand(cpf='33366699957', sit_turno='NÃO ELEITO', sq='2')])
+        self.assertEqual([(p['sq'], p['destino'], p['ano_antes']) for p in ps], [('1', 0, 0)])
+
+    def test_mudanca_por_sucessao_nao_conta(self):
+        ps, _ = self.um([antes(partido='PSC')],
+                        [cand(cpf='11144477735', partido='PODE', sit_turno='ELEITO')],
+                        {'PSC': 'PODE'})
+        self.assertEqual(ps[0]['mudou'], 0)
+
+    def test_mudanca_sem_sucessao_conta(self):
+        ps, _ = self.um([antes(partido='PSC')],
+                        [cand(cpf='11144477735', partido='PT', sit_turno='ELEITO')],
+                        {'PSC': 'PODE'})
+        self.assertEqual(ps[0]['mudou'], 1)
+
+    def test_liga_pelo_nome_e_nascimento_quando_falta_cpf(self):
+        ps, est = self.um([antes(cpf='', nome='José da Silva')],
+                          [cand(cpf='11144477735', nome='JOSE DA SILVA', sit_turno='ELEITO')])
+        self.assertEqual(len(ps), 1)
+        self.assertEqual(ps[0]['destino'], EL.MESMO_CARGO)
+        self.assertEqual(est['ligados_por_nome'], 1)
+
+    def test_candidatura_dupla_vira_uma_linha(self):
+        ps, _ = self.um([antes()], [
+            cand(cpf='11144477735', sit_turno='NÃO ELEITO', sq='1'),
+            cand(cpf='11144477735', cargo='5', sit_turno='ELEITO', sq='2')])
+        self.assertEqual([(p['sq'], p['destino']) for p in ps], [('2', EL.OUTRO_CARGO)])
+
+    def test_2022_vence_2018_para_a_mesma_pessoa(self):
+        ps, est = self.um([antes(ano=2018, cargo='5'), antes(ano=2022, cargo='3')], [])
+        self.assertEqual([(p['ano_antes'], p['cargo_antes']) for p in ps], [(2022, '3')])
+        # a contagem bruta continua com as duas eleicoes
+        self.assertEqual(est['anteriores'], {'2018': {'5': 1}, '2022': {'3': 1}})
+
+    def test_sigla_sem_par_e_avisada(self):
+        _, est = self.um([antes(partido='PSC'), antes(cpf='22255588846', partido='PTB')],
+                         [cand(cpf='33366699957', partido='PODE', sit_turno='ELEITO')],
+                         {'PSC': 'PODE'})
+        self.assertEqual(est['siglas_sem_par'], ['PTB'])
+
+    def test_filtro_de_uf(self):
+        ps, _ = EL.cruzar([antes(uf='AM'), antes(cpf='22255588846')], [], {}, ufs=['RR'])
+        self.assertEqual([p['uf_antes'] for p in ps], ['RR'])
+
+    def test_federacao_de_2026(self):
+        _, est = self.um([], [cand(cpf='22255588846', partido='PT', fed='FEDERAÇÃO BRASIL DA ESPERANÇA', sit_turno='ELEITO')])
+        self.assertEqual(est['fed'], {'PT': 'FEDERAÇÃO BRASIL DA ESPERANÇA'})
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
