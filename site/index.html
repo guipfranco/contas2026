@@ -670,6 +670,22 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .tabfx summary{min-height:44px;padding:12px 32px 10px var(--gut);border-bottom:0}
 .tabfx[open] summary{border-bottom:1px solid var(--b)}
 .tabfx summary::after{top:20px}
+.fluxo.fixo:not(.hl) path{opacity:.07}
+.fluxo.fixo:not(.hl) path.sel{opacity:.55}
+.ele{display:flex;flex-direction:column}
+.ele .tit-ele,.ele .frase-ele{order:0}
+.ele #fxele{order:1}
+.ele #elelista{order:2}
+.ele .eletab{order:3}
+.ele .nota-ele{order:4}
+@media(max-width:559px){.ele .eletab{order:0}}
+.tit-ele{margin:14px var(--gut) 4px;font-size:17px}
+.frase-ele{margin:6px var(--gut);line-height:1.5}
+.tit-faixa{margin:14px var(--gut) 6px;font-size:15px}
+.lista-ele{list-style:none;margin:0;padding:0 var(--gut) 10px}
+.lista-ele li{padding:7px 0;border-bottom:1px solid var(--b);line-height:1.45}
+.lista-ele .sub{display:block;color:var(--mut);font-size:13px}
+.ele .fluxo path{cursor:pointer}
 .tabfx table{width:100%;border-collapse:collapse;font-size:13px}
 .tabfx th,.tabfx td{text-align:left;padding:6px var(--gut);border-top:1px solid var(--b);
   color:var(--ink)}
@@ -948,6 +964,7 @@ footer{background:var(--pap);border-top:1px solid var(--b);margin-top:8px;
     <button id="ab-cargo" data-act="aba" data-v="cargo">Cargo</button>
     <button id="ab-fornecedor" data-act="aba" data-v="fornecedor">Fornecedor</button>
     <button id="ab-doador" data-act="aba" data-v="doador">Doador</button>
+    <button id="ab-eleitos" data-act="aba" data-v="eleitos" hidden>Eleitos</button>
   </nav>
 </div>
 
@@ -1052,9 +1069,10 @@ var S = {
 /* A visão geral não é uma dimensão: é o cruzamento das outras. Ela abre a pergunta,
    e as dimensões respondem em lista, com os mesmos filtros. Doador entrou em 05/10, a
    sexta: quem deu dinheiro às campanhas, do mesmo jeito que Fornecedor é quem recebeu. */
-var DIMS = {geral:1, candidato:1, partido:1, estado:1, cargo:1, fornecedor:1, doador:1};
+var DIMS = {geral:1, candidato:1, partido:1, estado:1, cargo:1, fornecedor:1, doador:1, eleitos:1};
 var ROT_DIM = {geral:'visão geral', candidato:'candidato', partido:'partido',
-               estado:'estado', cargo:'cargo', fornecedor:'fornecedor', doador:'doador'};
+               estado:'estado', cargo:'cargo', fornecedor:'fornecedor', doador:'doador',
+               eleitos:'eleitos'};
 /* O tipo de quem doou, o mesmo vocabulário do pipeline. `dt` é filtro só da dimensão
    Doador, e vai no endereço como os outros. */
 /* 'coletivo' é a plataforma de financiamento coletivo, que repassa o que pessoas doaram:
@@ -1194,7 +1212,7 @@ function nomeDe(cod){
 }
 
 /* um erro por fonte: sucesso numa dimensao nao pode apagar a falha de outra */
-var erros = {uf:null, indice:null, frc:null, drc:null, fcr:null, flx:null, forn:null, cand:null};
+var erros = {ele:null, uf:null,indice:null, frc:null, drc:null, fcr:null, flx:null, forn:null, cand:null};
 var pendente = false, ultimaChave = '', primeiroRender = true, avisoDic = '';
 var tiposAberto = null, ufEmVoo = '', frcEmVoo = '', drcEmVoo = '', fcrEmVoo = '', flxEmVoo = '';
 
@@ -1603,6 +1621,9 @@ function codigosDaLinha(r){
    barra, desligado, com o valor guardado à vista. Sinal também ficaria fora por outro
    motivo, e ele vale mais: aqui não há sinal nem índice em lugar nenhum. */
 function foraDaDimensao(){
+  /* na aba de eleitos a medida é gente, e a linha não carrega sinal, tipo nem
+     desfecho de candidatura: os três chips ficam desligados */
+  if(S.v === 'eleitos') return 'sinal,tipo,desf';
   /* o recorte de doador é somado como o de fornecedor, por partido e por cargo; o
      desfecho fica de fora nos três pelo mesmo motivo: forn-recorte, doador-recorte e
      forn-cruzado são somados no pipeline e não sabem honrá-lo */
@@ -1695,8 +1716,10 @@ function renderChips(){
     h += chip('f-uf','UF', nomeUnidade(ufDaTela()), ufDaTela() !== 'BRASIL', S.v === 'estado');
     /* na disputa presidencial há um cargo só, e um filtro de um item não é filtro */
     if(ufDaTela() !== 'BR'){
-      h += chip('f-cargo','Cargo', S.cargo ? cargoCurto(META.cargos[S.cargo] || S.cargo) : '',
-                !!S.cargo, false);
+      /* na aba de eleitos o cargo nunca fica vazio: sem escolha, vale a Câmara */
+      var cgv = S.v === 'eleitos' ? cargoEleitos() : S.cargo;
+      h += chip('f-cargo','Cargo', cgv ? cargoCurto(META.cargos[cgv] || cgv) : '',
+                !!cgv, false);
     }
     /* Federação é uma seção dentro do menu de Partido, porque ela é um pacote de dois ou
        três partidos que já estão lá. O agregado de fornecedor guarda partido, e não
@@ -1728,6 +1751,7 @@ function renderChips(){
     /* sem o arquivo do país não existe uma linha por estado: a dimensão fica à vista e
        desabilitada, em vez de levar a uma tela vazia sem explicação */
     b.disabled = (v === 'estado' && !temBrasil());
+    if(v === 'eleitos') b.hidden = !temEleitos();
     /* aria-current e o que a navegacao realmente entrega; role=tab prometia painel que nao existe */
     if(v === S.v) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
@@ -2683,7 +2707,9 @@ function cartaoAnel(lista){
    o valor por extenso, e a tabela irmã, embaixo, traz as mesmas linhas para quem lê por
    leitor de tela ou prefere número a desenho. */
 var TETO_OUTROS = 0.32, MIN_NO_FX = 13, ALTURA_MAX_FX = 520;
-function fluxoDuasColunas(esq, dir, ligs, id){
+function fluxoDuasColunas(esq, dir, ligs, id, fmt){
+  /* A medida é dinheiro em todo fluxo, menos no de eleitos, que conta pessoas. */
+  fmt = fmt || {curto:moeda, cheio:moedaCheia, coluna:'Valor'};
   var host = document.getElementById(id);
   if(!host) return;
   var W = Math.max(280, host.clientWidth || 640);
@@ -2726,13 +2752,16 @@ function fluxoDuasColunas(esq, dir, ligs, id){
     var k = (H - gap * (nos.length - 1)) / tot;
     var some = [];
     for(i = 0; i < nos.length; i++){
-      if(i !== io && !nos[i].outros && medida(nos[i]) * k < 9) some.push(i);
+      /* o nó fixo é um destino (perdeu, não concorreu), e não um partido: ele nunca
+         desce para o "outros partidos", senão o nome do nó mentiria */
+      if(i !== io && !nos[i].outros && !nos[i].fixo && medida(nos[i]) * k < 9) some.push(i);
     }
     if(!some.length || nos.length - some.length < 2) return false;
     var novos = [], mapa = {}, n = 0;
     for(i = 0; i < nos.length; i++){
       if(some.indexOf(i) >= 0){
         nos[io].valor += nos[i].valor;
+        if(nos[io].chaves && nos[i].chaves) nos[io].chaves = nos[io].chaves.concat(nos[i].chaves);
         if(nos[io].rot){ nos[io].n = (nos[io].n || 0) + 1; nos[io].nome = nos[io].rot(nos[io].n); }
         mapa[i] = -1;
       } else { mapa[i] = n++; novos.push(nos[i]); }
@@ -2795,7 +2824,7 @@ function fluxoDuasColunas(esq, dir, ligs, id){
       xm + ',' + (y0 + t0).toFixed(1) + ' ' + (xl + nw) + ',' + (y0 + t0).toFixed(1) + ' Z';
     svg += '<path d="' + d + '" data-e="' + l[0] + '" data-d="' + l[1] + '"' +
       ((a.outros || b.outros) ? ' class="outros"' : '') + '><title>' + esc(a.nome) +
-      ' para ' + esc(b.nome) + ': ' + esc(moedaCheia(l[2])) + '</title></path>';
+      ' para ' + esc(b.nome) + ': ' + esc(fmt.cheio(l[2])) + '</title></path>';
   });
   function desenhaNos(nos, lado){
     nos.forEach(function(n, i){
@@ -2814,13 +2843,13 @@ function fluxoDuasColunas(esq, dir, ligs, id){
            cartão. A ressalva ganha linha própria, e o nó "outros" sempre a comporta,
            porque ele é o mais alto do desenho por construção. */
         (n.h >= 22 ? '<text class="val" x="' + tx + '" y="' + (cy + 18).toFixed(1) + '"' + anc +
-          '>' + esc(moeda(n.valor)) + '</text>' : '') +
+          '>' + esc(fmt.curto(n.valor)) + '</text>' : '') +
         (n.outros && n.compr < 1 && n.h >= 36
           ? '<text class="val" x="' + tx + '" y="' + (cy + 32).toFixed(1) + '"' + anc +
             '>fora de escala</text>' : '');
-      var titulo = '<title>' + esc(n.nome + ': ' + moedaCheia(n.valor) +
+      var titulo = '<title>' + esc(n.nome + ': ' + fmt.cheio(n.valor) +
         (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '') +
-        (n.outros ? '. Este nó não abre nada' : (n.href ? '' : '. Sem ficha própria'))) + '</title>';
+        (n.outros ? '. Este nó não abre nada' : (n.href || n.fixo ? '' : '. Sem ficha própria'))) + '</title>';
       svg += n.href
         ? '<a class="fno" href="#' + esc(n.href) + '" data-no="' + i + '" data-lado="' + lado + '">' + titulo + corpo + '</a>'
         : '<g class="fno" data-no="' + i + '" data-lado="' + lado + '" tabindex="0">' + titulo + corpo + '</g>';
@@ -2831,10 +2860,10 @@ function fluxoDuasColunas(esq, dir, ligs, id){
   svg += '</svg>';
   var tab = '<details class="tabfx"><summary><b>Ver como tabela</b></summary>' +
     '<table><thead><tr><th scope="col">De</th><th scope="col">Para</th>' +
-    '<th scope="col">Valor</th></tr></thead><tbody>' +
+    '<th scope="col">' + esc(fmt.coluna) + '</th></tr></thead><tbody>' +
     ordenadas.map(function(l){
       return '<tr><td>' + esc(esq[l[0]].nome) + '</td><td>' + esc(dir[l[1]].nome) +
-             '</td><td class="num">' + esc(moedaCheia(l[2])) + '</td></tr>';
+             '</td><td class="num">' + esc(fmt.cheio(l[2])) + '</td></tr>';
     }).join('') + '</tbody></table></details>';
   var temCompr = esq.concat(dir).some(function(n){ return n.compr < 1; });
   var aviso = '<p class="notafx">' +
@@ -2873,6 +2902,276 @@ function ligarFluxo(el){
 /* Quantos nós cabem de cada lado. No celular a coluna dupla continua, com menos nós: o
    formato cabe em 360 px, a lista de dez nomes não. */
 function quantosNos(){ return window.innerWidth < 560 ? 6 : 10; }
+
+/* ---------- eleitos: quem foi eleito antes e quem é eleito agora ---------- */
+/* Uma linha por pessoa, 13 campos: nome, uf, cargo, partido e ano de antes, destino,
+   uf, cargo e partido de agora, desfecho, sq, gênero, mudou. Quem decide se a pessoa
+   mudou de partido é o pipeline, que conhece a tabela de sucessão. */
+var ELE = null, eleEmVoo = false;
+var CARGOS_ELEITOS = ['6', '5', '3', '7', '8', '1'];
+var CARGO_FRASE = {'1':'a Presidência', '3':'o governo', '5':'o Senado',
+                   '6':'a Câmara dos Deputados', '7':'as Assembleias Legislativas',
+                   '8':'a Câmara Legislativa do DF'};
+var SAIDA_ELEITOS = {x2:'eleitos para outro cargo ou estado',
+                     x3:'2º turno, a decidir em 25/10',
+                     x4:'concorreram a vice ou suplência',
+                     x5:'concorreram e não se elegeram',
+                     x6:'sem candidatura em 2026'};
+var FMT_PESSOAS = {curto:function(v){ return inteiro(v); },
+                   cheio:function(v){ return inteiro(v) + (v === 1 ? ' pessoa' : ' pessoas'); },
+                   coluna:'Pessoas'};
+function temEleitos(){ return !!(META && META.eleitos); }
+function carregarEleitos(){
+  if(ELE || eleEmVoo || !temEleitos()) return;
+  eleEmVoo = true; erros.ele = null;
+  get('eleitos/BRASIL.json').then(function(d){
+    eleEmVoo = false; ELE = d; if(META) render();
+  })['catch'](function(e){
+    eleEmVoo = false; erros.ele = {s:(e && e.status === 404) ? 404 : 0}; render();
+  });
+}
+function cargoEleitos(){
+  if(ufDaTela() === 'BR') return '1';
+  var c = String(S.cargo || '');
+  return CARGOS_ELEITOS.indexOf(c) >= 0 ? c : '6';
+}
+/* O Senado de 2026 renova as cadeiras eleitas em 2018 */
+function anoAntes(cargo){ return cargo === '5' ? 2018 : 2022; }
+function siglaDe(i){ return i >= 0 ? (META.dic.partido[i] || '?') : 'sem partido'; }
+function ladoEleitos(l, cargo, uf){
+  var naEsq = l[2] === cargo && l[4] === anoAntes(cargo) && (!uf || l[1] === uf);
+  var naDir = l[7] === cargo && (l[9] === 1 || l[9] === 4) && (!uf || l[6] === uf);
+  if(!naEsq && !naDir) return null;
+  var saida = 'x' + (l[5] === 1 ? 2 : l[5]);
+  return {esq: naEsq ? 'p' + l[3] : (l[4] ? 'xoutra' : 'xnovo'),
+          dir: naDir ? (l[9] === 4 ? 'x3' : 'p' + l[8]) : saida,
+          naEsq: naEsq, naDir: naDir && l[9] === 1};
+}
+function destacaEleitos(chave){
+  if(chave.charAt(0) !== 'p') return false;
+  var i = +chave.slice(1);
+  if(S.partido) return siglaDe(i) === S.partido;
+  if(S.fed){
+    var f = META.dic.fed.indexOf(S.fed);
+    return f >= 0 && !!ELE.fed && ELE.fed[String(i)] === f;
+  }
+  return false;
+}
+function montaEleitos(cargo, uf){
+  var pessoas = [], cEsq = {}, cDir = {};
+  ELE.c.forEach(function(l){
+    var lado = ladoEleitos(l, cargo, uf);
+    if(!lado) return;
+    pessoas.push({l:l, lado:lado});
+    cEsq[lado.esq] = (cEsq[lado.esq] || 0) + 1;
+    cDir[lado.dir] = (cDir[lado.dir] || 0) + 1;
+  });
+  return {pessoas:pessoas, cEsq:cEsq, cDir:cDir};
+}
+function nosEleitos(cont, saidas, n){
+  var partidos = Object.keys(cont).filter(function(k){ return k.charAt(0) === 'p'; })
+    .sort(function(a, b){
+      return cont[b] - cont[a] || siglaDe(+a.slice(1)).localeCompare(siglaDe(+b.slice(1)));
+    });
+  var top = partidos.slice(0, n), resto = partidos.slice(n);
+  var rot = function(k){ return 'outros ' + inteiro(k) + ' partidos'; };
+  var nos = top.map(function(k){
+    var sg = siglaDe(+k.slice(1));
+    return {nome:sg, valor:cont[k], chaves:[k],
+            href:hashCom({partido:(S.partido === sg ? '' : sg), fed:'', cand:'', q:'', forn:''})};
+  });
+  if(resto.length){
+    nos.push({n:resto.length, rot:rot, nome:rot(resto.length), outros:1, chaves:resto,
+              valor:resto.reduce(function(s, k){ return s + cont[k]; }, 0)});
+  }
+  saidas.forEach(function(s){
+    if(cont[s[0]]) nos.push({nome:s[1], valor:cont[s[0]], chaves:[s[0]], fixo:1});
+  });
+  return nos;
+}
+function indicePorChave(nos){
+  var ix = {};
+  nos.forEach(function(n, i){ n.chaves.forEach(function(k){ ix[k] = i; }); });
+  return ix;
+}
+function listaPt(xs){
+  return xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' e ' + xs[xs.length - 1];
+}
+function contaPt(n, um, varios){ return inteiro(n) + ' ' + (n === 1 ? um : varios); }
+function fraseEleitos(R, cargo, ano, uf){
+  var d = {mesmo:0, x2:0, x3:0, x4:0, x5:0, x6:0}, cEsq = 0, cDir = 0, novo = 0, outra = 0;
+  R.pessoas.forEach(function(p){
+    if(p.lado.naEsq){
+      cEsq++;
+      d[p.lado.dir.charAt(0) === 'p' ? 'mesmo' : p.lado.dir]++;
+    }
+    if(p.lado.naDir){
+      cDir++;
+      if(p.lado.esq === 'xnovo') novo++;
+      else if(p.lado.esq === 'xoutra') outra++;
+    }
+  });
+  var onde = uf ? ' ' + ondeUF(uf) : '';
+  var f = '';
+  if(cEsq){
+    var partes = [];
+    if(d.mesmo) partes.push(contaPt(d.mesmo, 'foi eleito de novo para o mesmo cargo', 'foram eleitos de novo para o mesmo cargo'));
+    if(d.x2) partes.push(contaPt(d.x2, 'foi eleito para outro cargo ou estado', 'foram eleitos para outro cargo ou estado'));
+    if(d.x3) partes.push(contaPt(d.x3, 'disputa o 2º turno em 25/10', 'disputam o 2º turno em 25/10'));
+    if(d.x4) partes.push(contaPt(d.x4, 'concorreu a vice ou suplência', 'concorreram a vice ou suplência'));
+    if(d.x5) partes.push(contaPt(d.x5, 'concorreu e não se elegeu', 'concorreram e não se elegeram'));
+    if(d.x6) partes.push(contaPt(d.x6, 'não registrou candidatura', 'não registraram candidatura'));
+    f = 'Dos ' + inteiro(cEsq) + ' eleitos para ' + CARGO_FRASE[cargo] + onde + ' em ' + ano +
+        ', ' + listaPt(partes) + '. ';
+  }
+  var p2 = [];
+  if(novo) p2.push(contaPt(novo, 'não tinha sido eleito em ' + ano, 'não tinham sido eleitos em ' + ano));
+  if(outra) p2.push(contaPt(outra, 'tinha sido eleito em outra disputa', 'tinham sido eleitos em outra disputa'));
+  if(cDir) f += 'Dos ' + inteiro(cDir) + ' eleitos agora' + (p2.length ? ', ' + listaPt(p2) : '') + '.';
+  return f.trim();
+}
+function fraseDoPartido(R, ano){
+  var rot = S.partido || fedCurta(S.fed);
+  var antes = 0, agora = 0, mesmo = 0, mudou = 0, novo = 0;
+  R.pessoas.forEach(function(p){
+    if(p.lado.naEsq && destacaEleitos(p.lado.esq)) antes++;
+    if(p.lado.naDir && destacaEleitos(p.lado.dir)){
+      agora++;
+      if(p.lado.esq === 'xnovo') novo++;
+      else if(p.l[12]) mudou++;
+      else mesmo++;
+    }
+  });
+  var f = rot + ': ' + contaPt(antes, 'eleito', 'eleitos') + ' em ' + ano + ' e ' +
+          inteiro(agora) + ' agora.';
+  if(agora){
+    f += ' Dos eleitos agora, ' + listaPt([
+      inteiro(mesmo) + ' já tinham sido eleitos pelo mesmo partido ou pelo sucessor',
+      inteiro(mudou) + ' por outro partido',
+      inteiro(novo) + ' não tinham sido eleitos']) + '.';
+  }
+  return f;
+}
+function tabelaEleitos(R, ano){
+  var t = {};
+  function lin(sg){ return t[sg] || (t[sg] = {sg:sg, antes:0, agora:0, re:0}); }
+  R.pessoas.forEach(function(p){
+    if(p.lado.naEsq) lin(siglaDe(p.l[3])).antes++;
+    if(p.lado.naDir){
+      var x = lin(siglaDe(p.l[8]));
+      x.agora++;
+      if(p.l[4] && !p.l[12]) x.re++;
+    }
+  });
+  var ls = Object.keys(t).map(function(k){ return t[k]; }).sort(function(a, b){
+    return b.agora - a.agora || b.antes - a.antes || a.sg.localeCompare(b.sg);
+  });
+  return '<details class="tabfx" open><summary><b>Por partido</b></summary><table><thead><tr>' +
+    '<th scope="col">Partido</th><th scope="col" class="num">Eleitos em ' + ano + '</th>' +
+    '<th scope="col" class="num">Eleitos agora</th><th scope="col" class="num">Diferença</th>' +
+    '<th scope="col" class="num">Já eleitos antes, sem mudar de partido</th></tr></thead><tbody>' +
+    ls.map(function(x){
+      var df = x.agora - x.antes;
+      return '<tr><td>' + esc(x.sg) + '</td><td class="num">' + inteiro(x.antes) +
+        '</td><td class="num">' + inteiro(x.agora) + '</td><td class="num">' +
+        (df > 0 ? '+' : '') + inteiro(df) + '</td><td class="num">' + inteiro(x.re) + '</td></tr>';
+    }).join('') + '</tbody></table></details>';
+}
+function cargoDaPessoa(c){ return META.cargos[c] ? cargoCurto(META.cargos[c]) : 'vice ou suplência'; }
+function linhaEleito(l){
+  var fem = l[11] === 'F';
+  var nome = l[10] ? '<a href="#' + esc(hashCom({cand:l[10], q:'', forn:''})) + '">' + esc(l[0]) + '</a>'
+                   : esc(l[0]);
+  var partes = [];
+  if(l[4]) partes.push((fem ? 'eleita' : 'eleito') + ' em ' + l[4] + ': ' +
+                       cargoDaPessoa(l[2]) + ', ' + siglaDe(l[3]) + ', ' + l[1]);
+  if(l[7]) partes.push('em 2026: ' + cargoDaPessoa(l[7]) + ', ' + siglaDe(l[8]) + ', ' + l[6] +
+                       (l[9] ? ', ' + rotuloDesfecho(l[9], fem).toLowerCase() : ''));
+  else partes.push('sem candidatura registrada em 2026');
+  if(l[12]) partes.push('mudou de partido');
+  return nome + ' <span class="sub">' + esc(partes.join('; ')) + '</span>';
+}
+function listaDaFaixa(a, b, R){
+  var quem = R.pessoas.filter(function(p){
+    return a.chaves.indexOf(p.lado.esq) >= 0 && b.chaves.indexOf(p.lado.dir) >= 0;
+  }).sort(function(x, y){ return x.l[0].localeCompare(y.l[0], 'pt-BR'); });
+  var el = document.getElementById('elelista');
+  if(!el) return;
+  el.innerHTML = '<h3 class="tit-faixa">' + esc(a.nome + ' para ' + b.nome + ': ' +
+    FMT_PESSOAS.cheio(quem.length)) + '</h3><ul class="lista-ele">' +
+    quem.map(function(p){ return '<li>' + linhaEleito(p.l) + '</li>'; }).join('') + '</ul>';
+  el.scrollIntoView({block:'nearest'});
+}
+function ligarEleitos(host, esq, dir, R){
+  var svg = host && host.querySelector('svg.fluxo');
+  if(!svg) return;
+  if(S.partido || S.fed){
+    svg.classList.add('fixo');
+    var ps = svg.querySelectorAll('path');
+    for(var i = 0; i < ps.length; i++){
+      var a = esq[+ps[i].getAttribute('data-e')], b = dir[+ps[i].getAttribute('data-d')];
+      ps[i].classList.toggle('sel', a.chaves.some(destacaEleitos) || b.chaves.some(destacaEleitos));
+    }
+  }
+  svg.addEventListener('click', function(e){
+    var p = e.target.closest('path');
+    if(p) listaDaFaixa(esq[+p.getAttribute('data-e')], dir[+p.getAttribute('data-d')], R);
+  });
+}
+function notaEleitos(cargo, ano){
+  var n = ELE.ligados_por_nome || 0;
+  return '<p class="notafx nota-ele">' + esc(
+    'Contagem de pessoas, pela situação que o TSE publica depois da totalização. ' +
+    '"Eleito em ' + ano + '" é o resultado daquela eleição, e não quem exerce o mandato ' +
+    'hoje: houve suplente que assumiu, cassação e morte. Mudança de partido conta só ' +
+    'quando o partido novo não é o sucessor do antigo por fusão ou incorporação.' +
+    (cargo === '5' ? ' No Senado, as cadeiras em disputa em 2026 são as eleitas em 2018.' : '') +
+    (n ? ' ' + contaPt(n, 'pessoa eleita antes não tem', 'pessoas eleitas antes não têm') +
+         ' CPF no arquivo do TSE e foram ligadas pelo nome completo e pela data de nascimento.' : '') +
+    ' Toque numa faixa para ver quem está nela.') + '</p>';
+}
+function viewEleitos(){
+  var m = document.getElementById('conteudo');
+  if(erros.ele){
+    m.innerHTML = painelErro('Não foi possível carregar a lista de eleitos. Verifique a conexão.',
+                             'retryele');
+    return;
+  }
+  if(!ELE){ carregarEleitos(); m.innerHTML = '<div class="cartao">' + skCartao() + '</div>'; return; }
+  var cargo = cargoEleitos(), uf = ufDaTela() === 'BRASIL' ? '' : ufDaTela();
+  var ano = anoAntes(cargo);
+  var R = montaEleitos(cargo, uf);
+  var h = '<div class="cartao ele"><h2 class="tit-ele">' +
+    esc('Eleitos para ' + CARGO_FRASE[cargo] + ', ' + ano + ' e 2026' + (uf ? ' ' + ondeUF(uf) : '')) + '</h2>';
+  if(!R.pessoas.length){
+    m.innerHTML = h + '<p class="frase-ele">' +
+      esc('Nenhuma pessoa eleita para este cargo neste recorte.') + '</p></div>';
+    return;
+  }
+  h += '<p class="frase-ele">' + esc(fraseEleitos(R, cargo, ano, uf)) + '</p>';
+  if(S.partido || S.fed) h += '<p class="frase-ele">' + esc(fraseDoPartido(R, ano)) + '</p>';
+  h += '<div class="eletab">' + tabelaEleitos(R, ano) + '</div>' +
+       '<div id="fxele"></div><div id="elelista" aria-live="polite"></div>' +
+       notaEleitos(cargo, ano) + '</div>';
+  m.innerHTML = h;
+  var n = quantosNos();
+  var esq = nosEleitos(R.cEsq, [['xoutra', 'já eleitos em outra disputa'],
+                                ['xnovo', 'não tinham sido eleitos em ' + ano]], n);
+  var dir = nosEleitos(R.cDir, ['x2', 'x3', 'x4', 'x5', 'x6'].map(function(k){
+    return [k, SAIDA_ELEITOS[k]];
+  }), n);
+  var ie = indicePorChave(esq), id = indicePorChave(dir), soma = {};
+  R.pessoas.forEach(function(p){
+    var ch = ie[p.lado.esq] + ':' + id[p.lado.dir];
+    soma[ch] = (soma[ch] || 0) + 1;
+  });
+  var ligs = Object.keys(soma).map(function(ch){
+    var ab = ch.split(':');
+    return [+ab[0], +ab[1], soma[ch]];
+  });
+  fluxoDuasColunas(esq, dir, ligs, 'fxele', FMT_PESSOAS);
+  ligarEleitos(document.getElementById('fxele'), esq, dir, R);
+}
 
 /* Fluxo 1, do partido para as maiores candidaturas. Ele sai só das linhas do ranking, e
    por isso é exato sob qualquer filtro. */
@@ -4557,6 +4856,8 @@ function devolverFoco(g){
 function render(){
   if(!META) return;
   if(!temDesfecho()) S.desf = '';
+  /* a aba de eleitos só existe depois do desfecho e com o arquivo publicado */
+  if(S.v === 'eleitos' && !temEleitos()) S.v = 'geral';
   var foco = guardarFoco();
   recorteTela = '';
   renderChips();
@@ -4578,6 +4879,7 @@ function render(){
   else if(S.view === 'forn') viewForn();
   else if(S.view === 'busca') viewBusca();
   else if(S.v === 'geral') viewGeral();
+  else if(S.v === 'eleitos') viewEleitos();
   else if(S.v === 'fornecedor') viewFornRecorte();
   else if(S.v === 'doador') viewDoadorRecorte();
   else if(S.v === 'candidato') viewRanking();
@@ -4615,6 +4917,7 @@ document.addEventListener('click', function(e){
   if(a === 'retryforn'){ erros.forn = null; carregarFornBloco(); render(); return; }
   if(a === 'retryfrc'){ erros.frc = null; carregarFornRecorte(); render(); return; }
   if(a === 'retrydrc'){ erros.drc = null; carregarDoadorRecorte(); render(); return; }
+  if(a === 'retryele'){ erros.ele = null; carregarEleitos(); render(); return; }
   if(a === 'retryflx'){ erros.flx = null; carregarFluxo(); render(); return; }
   /* o tipo de quem doou: tocar no que está em vigor volta para todos */
   if(a === 'dt'){
