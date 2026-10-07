@@ -1580,6 +1580,20 @@ class TestDesfecho(unittest.TestCase):
         A.juntar_candidaturas([cand], aggs)
         self.assertEqual(aggs['999000001'].sit_turno, 'ELEITO POR QP')
 
+    def test_juntar_candidaturas_fica_com_o_turno_mais_alto(self):
+        # uma linha por turno para quem foi ao 2o turno, e a ordem nao e garantida
+        t1 = C.Cand(uf='RR', ue='RR', cargo='3', ds_cargo='GOVERNADOR',
+                    sq='999000003', nr='10', nome='EXEMPLO', urna='EXEMPLO',
+                    cpf='', situacao='APTO', nr_partido='10', partido='PAB',
+                    nm_partido='', nr_fed='', fed='', comp_fed='', genero='FEMININO',
+                    cor_raca='', ocupacao='', nascimento='', sit_turno='2º TURNO',
+                    turno='1')
+        t2 = t1._replace(sit_turno='NÃO ELEITO', turno='2')
+        for ordem in ([t1, t2], [t2, t1]):
+            aggs = {}
+            A.juntar_candidaturas(ordem, aggs)
+            self.assertEqual(aggs['999000003'].sit_turno, 'NÃO ELEITO', ordem)
+
     def test_a_linha_enxuta_tambem_carrega_o_desfecho(self):
         a = A.Agg('999000002')
         a.uf, a.cargo, a.nome, a.partido = 'RR', '7', 'EXEMPLO', 'PAB'
@@ -1678,6 +1692,9 @@ class TestPontaAPonta(unittest.TestCase):
             self.assertIs(meta['tem_desfecho'], False)
             self.assertIsNone(meta['desfecho_em'])
             self.assertEqual(meta['desfecho_desconhecidos'], [])
+            # sem desfecho nao ha eleitos: nem o arquivo nem a aba
+            self.assertIsNone(meta['eleitos'])
+            self.assertFalse(os.path.exists(os.path.join(site, 'eleitos')))
             uf = json.load(open(os.path.join(site, 'uf', 'RR.json'), encoding='utf-8'))
             self.assertEqual(sum(l[6] for l in uf['c']), 6909092605)
             self.assertTrue(all(len(l) == 17 for l in uf['c']))

@@ -43,6 +43,27 @@ def codigo(texto):
     return TABELA.get(normaliza(texto), 0)
 
 
+def numero_turno(t):
+    """NR_TURNO como inteiro; vazio ou fora do formato vale 0."""
+    t = (t or '').strip()
+    return int(t) if t.isdigit() else 0
+
+
+def vence_turno(turno_novo, sit_novo, turno_atual, sit_atual):
+    """A linha nova substitui a atual da mesma candidatura?
+
+    Quem foi ao 2o turno tem uma linha por turno, em qualquer ordem. Vale a do
+    turno mais alto que tem resultado; no empate, a ultima lida. Uma linha sem
+    resultado nunca apaga uma com resultado, senao quem perdeu no dia 25/10
+    ficaria em "2o turno" para sempre. Entre duas sem resultado, vale o turno
+    mais alto. A mesma regra serve a agregar.juntar_candidaturas e a
+    eleitos.cruzar, e mora aqui para as duas telas nunca discordarem.
+    """
+    if not sit_novo:
+        return not sit_atual and turno_novo > turno_atual
+    return not sit_atual or turno_novo >= turno_atual
+
+
 def desconhecido(texto):
     """Texto nao vazio que a tabela nao reconhece."""
     n = normaliza(texto)

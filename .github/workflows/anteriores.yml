@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       congelar:
-        description: UF cujos arquivos de 2018 e 2022 viram fixture (vazio = nenhuma)
+        description: UF cujos arquivos de 2018, 2022 e 2026 viram fixture anonimizada (vazio = nenhuma)
         default: ''
       gravar:
         description: gravar anteriores.json na branch dados
@@ -44,16 +44,29 @@ jobs:
       - name: ler 2018 e 2022
         env:
           CONTAS_SAL: ${{ secrets.CONTAS_SAL }}
+          # o valor digitado entra pelo ambiente, e nunca colado no script
+          CONGELAR: ${{ inputs.congelar }}
         run: |
           mkdir -p estado
-          python -m ferramentas.anteriores --estado estado --destino "$RUNNER_TEMP/tse" \
-            ${{ inputs.congelar != '' && format('--congelar {0} --saida-fixture fixture', inputs.congelar) || '' }}
+          extra=()
+          if [ -n "$CONGELAR" ]; then
+            if ! [[ "$CONGELAR" =~ ^[A-Z]{2}$ ]]; then
+              echo "::error::congelar aceita so a sigla de uma UF, em duas letras maiusculas"
+              exit 1
+            fi
+            extra=(--congelar "$CONGELAR" --saida-fixture fixture)
+          fi
+          python -m ferramentas.anteriores --estado estado --destino "$RUNNER_TEMP/tse" "${extra[@]}"
 
+      # Os CSV da fixture (2018, 2022 e o 2026 da mesma UF) saem anonimizados por
+      # ferramentas/anonimizar.py: CPF falso, sem titulo, sem e-mail, nascimento
+      # falso. Mesmo assim, num repositorio publico, o artefato vive um dia.
       - uses: actions/upload-artifact@v4
         if: inputs.congelar != ''
         with:
           name: fixture-anteriores
           path: fixture
+          retention-days: 1
 
       - name: gravar na branch dados
         if: inputs.gravar

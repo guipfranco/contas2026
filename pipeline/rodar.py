@@ -20,8 +20,10 @@ from datetime import date, timedelta
 from . import agregar as A
 from . import carregar as C
 from . import desfecho as D
+from . import eleitos as EL
 from . import escrever as E
 from . import historico as H
+from . import validar as V
 from .alarmes import (CATALOGO, GRAVIDADE, Contexto, avaliar,
                       confere_redacao)
 from .alarmes import doador as al_doador
@@ -81,6 +83,58 @@ def carregar_cnae_nome(caminho):
         if cod and nome:
             nomes[cod] = nome
     return nomes
+
+
+def _apagar_eleitos(site):
+    """Quando a aba sai do ar, nenhum eleitos/BRASIL.json de rodada anterior fica
+    no site. Vale para o erro no bloco e para a contagem que nao bate."""
+    try:
+        os.remove(os.path.join(site, 'eleitos', 'BRASIL.json'))
+    except OSError:
+        pass
+
+
+def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0, completo=False):
+    """Grava eleitos/BRASIL.json e devolve o pedaco do meta, ou None quando
+    anteriores.json nao serve.
+
+    `completo` e a rodada do pais inteiro, pela mesma regra do validador. Nela a
+    contagem dos eleitos de antes tem de bater com as cadeiras antes de o arquivo
+    ser gravado: senao o validador reprovaria a rodada inteira, e o site ficaria
+    parado no de ontem por causa de uma aba so."""
+    anteriores, motivo = EL.ler_anteriores(a.estado)
+    if motivo == 'falta':
+        print('::warning::   aviso: anteriores.json nao esta no estado; rode o '
+              'workflow "eleitos de antes". A aba de eleitos fica de fora.')
+        return None
+    if motivo == 'sal':
+        print('::warning::   aviso: anteriores.json foi feito com outra CONTAS_SAL; '
+              'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
+        return None
+    if motivo == 'corrompido':
+        print('::warning::   aviso: anteriores.json esta truncado ou fora da forma; '
+              'rode o workflow "eleitos de antes" de novo. A aba fica de fora.')
+        return None
+    suc = EL.carregar_sucessao(os.path.join(a.dados, 'sucessao-partidos.csv'))
+    pessoas, est = EL.cruzar(anteriores, cands, suc, ufs=ufs_pedidas or None)
+    if completo:
+        erros = V.confere_cadeiras(est['anteriores'])
+        if erros:
+            print('::warning::   aviso: a contagem de anteriores.json nao bate com as '
+                  'cadeiras (' + '; '.join(erros) + '). Rode o workflow "eleitos de '
+                  'antes" de novo. A aba de eleitos fica de fora.')
+            _apagar_eleitos(a.site)
+            return None
+    b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha, suc=suc)
+    n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
+    if est['siglas_sem_par']:
+        print('::warning::   aviso: partidos de antes sem par em 2026 nem na '
+              'tabela de sucessao: ' + ', '.join(est['siglas_sem_par']))
+    if n_ant and est['ligados_por_nome'] > 0.05 * n_ant:
+        print(f'::warning::   aviso: {est["ligados_por_nome"]} de {n_ant} '
+              'eleitos de antes ligados pelo nome, sem CPF')
+    passo(t0, f'eleitos: {len(pessoas):,} pessoas, {b_ele / 1e3:.0f} KB')
+    return {'n': len(pessoas), 'ligados_por_nome': est['ligados_por_nome']}
 
 
 def main(argv=None):
@@ -225,12 +279,15 @@ def main(argv=None):
     passo(t0, f'{len(ufs_saida)} UFs, {bytes_uf / 1e6:.1f} MB')
 
     n_ficha = bytes_ficha = 0
+    # quem ganhou cand/<sq>.json: a aba de eleitos so poe link para eles
+    com_ficha = set()
     for ag in aggs.values():
         if not ag.movimento and ag.sq not in por_sq:
             continue
         bytes_ficha += E.escrever_ficha(ag, por_sq.get(ag.sq, []), dics,
                                         ctx.cnae_nome, a.site,
                                         pares=A.posicao(ag, refs), nac=nac)
+        com_ficha.add(ag.sq)
         n_ficha += 1
     passo(t0, f'{n_ficha:,} fichas, {bytes_ficha / 1e6:.1f} MB')
 
@@ -301,11 +358,26 @@ def main(argv=None):
     desfecho = {'tem': tem_desfecho,
                 'em': H.desfecho_em(a.estado, hoje, tem_desfecho),
                 'desconhecidos': desconhecidos}
+    # Quem foi eleito antes e quem e eleito agora. So existe depois do desfecho
+    # e com anteriores.json valido no estado; sem ele a rodada segue, porque
+    # nada mais do site depende disso. Qualquer erro aqui tira a aba do ar, e
+    # nao a rodada.
+    eleitos_meta = None
+    if tem_desfecho:
+        try:
+            eleitos_meta = _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0,
+                                    completo=V.pais_inteiro(ufs_saida))
+        except Exception as e:  # noqa: BLE001
+            # so o tipo do erro: a mensagem pode trazer uma linha com nome de pessoa
+            print(f'::warning::   aviso: a aba de eleitos falhou ({type(e).__name__}) '
+                  'e fica de fora desta rodada.')
+            eleitos_meta = None
+            _apagar_eleitos(a.site)
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},
                     a.site, catalogo=CATALOGO, gravidades=GRAVIDADE,
-                    desfecho=desfecho,
+                    desfecho=desfecho, eleitos=eleitos_meta,
                     forn={'blocos': fichas_forn['blocos'],
                           'n': fichas_forn['fornecedores'],
                           'pessoas_fora': fichas_forn['pessoas_fora'],
