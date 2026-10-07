@@ -141,19 +141,6 @@ def sucessor(sigla, tabela):
     return sigla
 
 
-def _turno(c):
-    t = (c.turno or '').strip()
-    return int(t) if t.isdigit() else 0
-
-
-def _vence_turno(c, atual):
-    """A linha c substitui a atual da mesma candidatura? A do turno mais alto
-    vence, desde que tenha desfecho; uma linha vazia nunca apaga um desfecho."""
-    if not c.sit_turno:
-        return not atual.sit_turno and _turno(c) > _turno(atual)
-    return not atual.sit_turno or _turno(c) > _turno(atual)
-
-
 def _prioridade(c):
     """Qual das candidaturas de 2026 de uma pessoa decide o destino dela."""
     d = D.codigo(c.sit_turno)
@@ -234,12 +221,12 @@ def cruzar(anteriores, cands, suc, ufs=None):
                or 'sem:' + a['nome_urna'] + a['uf'], a)
 
     # Quem foi ao 2o turno tem uma linha por turno, e a do turno 2 as vezes vem
-    # antes. Vale a do turno mais alto que ja tem desfecho, senao quem perdeu no
-    # dia 25/10 ficaria em "2o turno" para sempre.
+    # antes. A regra de qual vence e a mesma de agregar.juntar_candidaturas.
     por_sq = {}
     for c in cands:
         atual = por_sq.get(c.sq)
-        if atual is None or _vence_turno(c, atual):
+        if atual is None or D.vence_turno(D.numero_turno(c.turno), c.sit_turno,
+                                          D.numero_turno(atual.turno), atual.sit_turno):
             por_sq[c.sq] = c
 
     agora, fed = {}, {}

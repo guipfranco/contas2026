@@ -240,6 +240,32 @@ class TestSucessao(unittest.TestCase):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+class TestVenceTurno(unittest.TestCase):
+    """Uma regra so de qual linha de turno vence, em desfecho.py, usada por
+    agregar.juntar_candidaturas e por eleitos.cruzar."""
+
+    def test_turno_mais_alto_com_resultado_vence(self):
+        self.assertTrue(EL.D.vence_turno(2, 'NÃO ELEITO', 1, '2º TURNO'))
+        self.assertFalse(EL.D.vence_turno(1, '2º TURNO', 2, 'NÃO ELEITO'))
+
+    def test_empate_a_ultima_linha_com_resultado_vence(self):
+        self.assertTrue(EL.D.vence_turno(1, 'ELEITO', 1, 'SUPLENTE'))
+
+    def test_linha_sem_resultado_nunca_apaga_uma_com_resultado(self):
+        self.assertFalse(EL.D.vence_turno(2, '', 1, 'ELEITO'))
+        self.assertTrue(EL.D.vence_turno(1, 'ELEITO', 2, ''))
+
+    def test_entre_duas_sem_resultado_vale_o_turno_mais_alto(self):
+        self.assertTrue(EL.D.vence_turno(2, '', 1, ''))
+        self.assertFalse(EL.D.vence_turno(1, '', 2, ''))
+
+    def test_agregar_e_eleitos_usam_a_mesma_regra(self):
+        from pipeline import agregar as A
+        self.assertFalse(hasattr(EL, '_vence_turno'))
+        self.assertFalse(hasattr(EL, '_turno'))
+        self.assertIs(A.numero_turno, EL.D.numero_turno)
+
+
 class TestCruzamento(ComSal):
     def um(self, anteriores, cands, suc=None):
         pessoas, est = EL.cruzar(anteriores, cands, suc or {})

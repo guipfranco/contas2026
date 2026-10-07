@@ -12,6 +12,7 @@ import collections
 import heapq
 
 from .carregar import limpar_nome
+from .desfecho import numero_turno, vence_turno
 
 # Cargo por codigo, do proprio TSE. So estes entram no painel: suplente de
 # senador nao tem prestacao propria e vice concorre na chapa.
@@ -396,12 +397,6 @@ def agregar_receitas(fluxo, aggs, nac):
         nac.total_receita += r.valor
 
 
-def numero_turno(t):
-    """NR_TURNO como inteiro; vazio ou fora do formato vale 0."""
-    t = (t or '').strip()
-    return int(t) if t.isdigit() else 0
-
-
 def juntar_candidaturas(cands, aggs):
     """Casa a lista mestra de candidaturas com quem tem movimento.
 
@@ -433,8 +428,9 @@ def juntar_candidaturas(cands, aggs):
         # codigo e pipeline/desfecho.py, na hora de escrever. Quem foi ao 2o
         # turno tem uma linha por turno, em qualquer ordem: vale a do turno mais
         # alto, senao quem perdeu no dia 25/10 ficaria em "2o turno" para sempre.
+        # A regra e uma so, em desfecho.vence_turno, e eleitos.cruzar usa a mesma.
         t = numero_turno(c.turno)
-        if c.sit_turno and (not a.sit_turno or t >= a.turno):
+        if c.sit_turno and vence_turno(t, c.sit_turno, a.turno, a.sit_turno):
             a.sit_turno, a.turno = c.sit_turno, t
         a.fed = c.fed or a.fed
     ficha = {c.sq for c in cands}
