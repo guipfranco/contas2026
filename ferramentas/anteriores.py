@@ -50,6 +50,10 @@ def congelar(z, ano, uf, saida, chave):
     print(f'   fixture: {alvo}, {os.path.getsize(alvo) / 1e6:.2f} MB')
 
 
+def _conta(n, um, varios):
+    return f'{n} {um if n == 1 else varios}'
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--estado', default='estado')
@@ -97,15 +101,17 @@ def main(argv=None):
                 doano.append(l)
                 sem_cpf += not l['chave'] and not l['suplementar']
         ordinaria = [l for l in doano if not l['suplementar']]
-        print(f'{ano}: {len(ordinaria)} eleitos, {sem_cpf} sem CPF no arquivo do TSE')
+        print(f'{ano}: {_conta(len(ordinaria), "eleito", "eleitos")}, '
+              f'{sem_cpf} sem CPF no arquivo do TSE')
         for cargo, n in sorted(Counter(l['cargo'] for l in ordinaria).items()):
             print(f'   cargo {cargo}: {n}')
         # a suplementar fica guardada para a tela contar as cadeiras, e fora da
         # conferencia de cadeiras e do "eleito antes"
         sup = Counter(l['cargo'] for l in doano if l['suplementar'])
         if sup:
-            print(f'{ano}: {sum(sup.values())} linhas de eleição suplementar '
-                  f'guardadas à parte')
+            print(f'{ano}: ' + _conta(sum(sup.values()),
+                                      'linha de eleição suplementar guardada à parte',
+                                      'linhas de eleição suplementar guardadas à parte'))
             for cargo, n in sorted(sup.items()):
                 print(f'   cargo {cargo}: {n} de suplementar')
         linhas.extend(doano)
@@ -126,7 +132,7 @@ def main(argv=None):
                 print(f'   {e}')
             return 1
     caminho = EL.gravar_anteriores(a.estado, linhas)
-    print(f'{len(linhas)} linhas gravadas em {caminho}')
+    print(f'{_conta(len(linhas), "linha gravada", "linhas gravadas")} em {caminho}')
     return 0
 
 

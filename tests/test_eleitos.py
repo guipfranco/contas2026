@@ -235,8 +235,10 @@ class TestFerramentaAnteriores(ComSal):
                                  '--destino', os.path.join(self.tmp, 'd')])
         self.assertEqual(r, 0)
         texto = saida.getvalue()
-        self.assertIn('2022: 1 eleitos, 0 sem CPF no arquivo do TSE', texto)
-        self.assertIn('2022: 1 linhas de eleição suplementar guardadas à parte', texto)
+        self.assertIn('2022: 1 eleito, 0 sem CPF no arquivo do TSE', texto)
+        self.assertIn('2018: 0 eleitos, 0 sem CPF no arquivo do TSE', texto)
+        self.assertIn('2022: 1 linha de eleição suplementar guardada à parte', texto)
+        self.assertIn('2 linhas gravadas em', texto)
         self.assertIn('   cargo 3: 1 de suplementar', texto)
         linhas, _ = EL.ler_anteriores(est)
         self.assertEqual(sorted((l['cargo'], l['suplementar']) for l in linhas),

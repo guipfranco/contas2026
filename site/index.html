@@ -3263,8 +3263,12 @@ function viewEleitos(){
   if(!R.pessoas.length){
     // no Senado, quem foi eleito em 2018 pode estar todo na comparação de outro cargo
     var fa = cargo === '5' ? fraseAbsorvidos(absorvidosSenado(uf), true) : '';
+    // a cadeira preenchida em eleição suplementar não é "eleito antes", e a tela vazia
+    // precisa dizer que ela existe
+    var fs = fraseSuplementares(suplementaresEleitos(cargo, ano, uf), ano);
     m.innerHTML = h + '<p class="frase-ele">' +
-      esc(fa || 'Nenhuma pessoa eleita para este cargo neste recorte.') + '</p></div>';
+      esc(fa || 'Nenhuma pessoa eleita para este cargo neste recorte.') + '</p>' +
+      (fs ? '<p class="notafx nota-ele">' + esc(fs) + '</p>' : '') + '</div>';
     return;
   }
   h += '<p class="frase-ele">' + esc(fraseEleitos(R, cargo, ano, uf)) + '</p>';
