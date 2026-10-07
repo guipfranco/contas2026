@@ -54,6 +54,11 @@ Destino de cada pessoa eleita antes, visto de 2026, nesta ordem de precedência
 Quem tem mais de uma candidatura em 2026 (caso raro, em geral substituição) é
 lido pela de melhor desfecho, na ordem acima.
 
+Quem foi eleito em 2018 e de novo em 2022 (o senador de 2018 que se elegeu
+governador em 2022) é lido pelo registro de 2022: uma pessoa aparece uma vez só
+em cada lado. A contagem de cadeiras do validador usa o arquivo bruto, sem essa
+junção, e por isso bate com o número de cadeiras.
+
 ## Partido sucessor
 
 Tabela à mão, `dados/sucessao-partidos.csv`, com colunas `antigo`, `sucessor`,
@@ -107,9 +112,11 @@ não tem CPF, pela `chave_nasc`. `carregar` passa a ler também `DT_NASCIMENTO` 
 Escreve `eleitos/BRASIL.json`:
 
 ```
-{"anteriores": {"2022": N, "2018": N}, "ligados_por_nome": N,
- "linhas": [[nome_urna, uf, cargo_antes, partido_antes, destino,
-             cargo_agora, partido_agora, desfecho_agora, sq_2026, genero], …]}
+{"anteriores": {"2022": {"6": 513, …}, "2018": {"5": 54}},
+ "ligados_por_nome": N, "fed": {"<id do partido>": <id da federação>},
+ "c": [[nome_urna, uf_antes, cargo_antes, partido_antes, ano_antes, destino,
+        uf_agora, cargo_agora, partido_agora, desfecho_agora, sq_2026, genero,
+        mudou], …]}
 ```
 
 - Uma linha por pessoa. Quem não foi eleito antes tem `cargo_antes`,
@@ -119,27 +126,36 @@ Escreve `eleitos/BRASIL.json`:
   cargos contados. Cerca de 3.500 linhas no país.
 - Cargo e partido vão como índice dos dicionários de `meta.json`, como na linha do
   ranking; cargo de antes que não exista no dicionário de 2026 entra nele.
-- `destino` é um inteiro de 1 a 6, na ordem da seção "A continuidade".
+- `destino` é um inteiro de 1 a 6, na ordem da seção "A continuidade"; 0 para
+  quem não foi eleito antes. `ano_antes` é 2018, 2022 ou 0.
+- `mudou` é 1 quando o partido de agora não é o sucessor do partido de antes. O
+  front não conhece a tabela de sucessão: quem decide é o pipeline.
+- `fed` liga cada partido de 2026 à sua federação, para o chip de federação.
+- A UF vai dos dois lados, porque a pessoa pode ter mudado de UF.
 - **Enquanto `tem_desfecho` for falso, o arquivo não é gravado** e a aba não
   aparece. Se `anteriores.json` faltar ou tiver `sal_marca` diferente, a rodada
   avisa e segue sem o arquivo: o resto do site não depende dele.
 
 ### O validador
 
-- Forma da linha (10 campos, tipos, `destino` em 1..6 ou vazio, índices dentro dos
-  dicionários), e nenhum `sq_2026` repetido.
+- Forma da linha (13 campos, tipos, `destino` em 0..6 e 0 exatamente quando
+  `ano_antes` é 0, índices de partido em -1 ou dentro do dicionário), e nenhum
+  `sq_2026` repetido.
 - Contagem por cargo dos eleitos de antes contra as cadeiras: 513 na Câmara, 27
   governadores, 1 Presidência, 54 senadores de 2018, 1.059 entre Assembleias e
   Câmara Legislativa. A contagem de 2026 não é conferida contra número fixo: o
-  tamanho da Câmara a partir de 2027 é o que o TSE publicar. Diferença de até 2 % é aviso; acima disso, erro (a
-  ligação ou o filtro de cargo quebrou).
-- `ligados_por_nome` acima de 5 % dos eleitos de antes é aviso.
+  tamanho da Câmara a partir de 2027 é o que o TSE publicar. Até 2 % abaixo passa (cassação, eleição anulada);
+  mais que isso, ou acima do número de cadeiras, é erro: a ligação ou o filtro de
+  cargo quebrou. A conferência só vale na rodada do país inteiro.
+- `ligados_por_nome` acima de 5 % dos eleitos de antes é aviso da rodada (o
+  validador não tem aviso, só erro).
 
 ## A tela
 
 ### Lugar e filtros
 
-Botão **Eleitos** na barra, depois de **Visão geral**. Ele é um cruzamento, não
+Botão **Eleitos** no fim da barra (no fim, e não depois de Visão geral, para o
+botão escondido não desalinhar a grade de quatro colunas do celular). Ele é um cruzamento, não
 uma dimensão: não entra em `DIMS` como lista.
 
 - **Cargo**: um por vez, e a aba abre na Câmara dos Deputados. Misturar cargos
@@ -150,14 +166,16 @@ uma dimensão: não entra em `DIMS` como lista.
   front: é pequeno, e a pessoa que mudou de UF precisa aparecer.
 - **Partido**: **destaca** as faixas que tocam o partido, nos dois lados, e não
   esconde as outras. A frase de números passa a falar do partido.
-- **Federação**: agrupa os partidos de cada federação de 2026 nos dois lados.
+- **Federação**: destaca as faixas dos partidos da federação, como o partido.
+  É o mesmo sentido do chip no resto do site, que escolhe uma federação.
 - Sinal, tipo de despesa, desfecho e os demais: desligados, mostrando o valor
   guardado. Entra em `foraDaDimensao()`.
 
 ### O desenho
 
-- **Coluna da esquerda**: os partidos de antes, e um nó "não tinham sido eleitos
-  em 2022" (ou "em 2018", no Senado).
+- **Coluna da esquerda**: os partidos de antes, e dois nós: "já eleitos em outra
+  disputa" (a deputada de 2022 que agora é eleita senadora, com o filtro do
+  Senado) e "não tinham sido eleitos em 2022" (ou "em 2018", no Senado).
 - **Coluna da direita**: os partidos de agora, e os destinos de quem saiu:
   "eleitos para outro cargo", "2º turno, a decidir em 25/10", "concorreram a vice
   ou suplência", "concorreram e não se elegeram", "sem candidatura em 2026". Os
@@ -190,8 +208,9 @@ ligadas pelo nome completo e pela data de nascimento."
 ### A tabela irmã
 
 Embaixo do desenho, uma linha por partido: eleitos antes, eleitos agora,
-diferença, reeleitos (destinos 1 e 2 que ficaram no mesmo partido ou no
-sucessor). Ordenável, como as outras tabelas. **No celular a tabela vem antes do
+diferença, e "já eleitos antes, sem mudar de partido" (quem está do lado de agora
+naquele partido, foi eleito antes e tem `mudou` 0). Ordenada pelos eleitos de
+agora. **No celular a tabela vem antes do
 desenho.**
 
 ## Redação
