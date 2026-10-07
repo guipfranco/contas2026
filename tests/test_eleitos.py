@@ -129,6 +129,13 @@ class TestAnteriores(ComSal):
               cand(sit_turno='ELEITO', cargo='6', cpf='22255588846')]
         self.assertEqual([l['cargo'] for l in EL.linhas_anteriores(cs, 2018)], ['5'])
 
+    def test_eleicao_suplementar_nao_conta(self):
+        cs = [cand(sit_turno='ELEITO', cargo='3', tipo_eleicao='1', cpf='11144477735'),
+              cand(sit_turno='ELEITO', cargo='6', tipo_eleicao='2', cpf='22255588846'),
+              cand(sit_turno='ELEITO', cargo='7', cpf='33366699957')]
+        ls = EL.linhas_anteriores(cs, 2022)
+        self.assertEqual(sorted(l['cargo'] for l in ls), ['6', '7'])
+
     def test_gravar_e_ler(self):
         ls = EL.linhas_anteriores([cand(sit_turno='ELEITO', cpf='11144477735')], 2022)
         EL.gravar_anteriores(self.tmp, ls)
@@ -398,9 +405,24 @@ class TestEscritaEValidacao(ComSal):
         self.assertTrue(V._checar_eleitos({'c': [], 'anteriores': demais}, 1, 0, True))
 
 
-# A guarda sai na Tarefa 2, quando a fixture real de 2018 e 2022 for congelada.
-@unittest.skipUnless(os.path.exists(os.path.join(FIX, 'consulta_cand_2022.zip')),
-                     'fixture real de 2018 e 2022 ainda nao congelada: sai na Tarefa 2')
+class TestAnterioresReais(ComSal):
+    """A fatia real de Roraima. As contagens sao fato: RR tem 8 cadeiras na
+    Camara, 24 na Assembleia, 3 no Senado (1 eleita em 2022, 2 em 2018)."""
+
+    def test_contagem_de_roraima(self):
+        from ferramentas import anteriores
+        est = os.path.join(self.tmp, 'estado')
+        r = anteriores.main(['--estado', est, '--fonte-local', FIX, '--uf', 'RR',
+                             '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(r, 0)
+        linhas, _ = EL.ler_anteriores(est)
+        por = {}
+        for l in linhas:
+            por[(l['ano'], l['cargo'])] = por.get((l['ano'], l['cargo']), 0) + 1
+        self.assertEqual(por, {(2022, '6'): 8, (2022, '7'): 24, (2022, '3'): 1,
+                               (2022, '5'): 1, (2018, '5'): 2})
+
+
 class TestRodadaComDesfecho(ComSal):
     """A rodada da fixture com um desfecho escrito a mao no consulta_cand de 2026:
     reelege quem foi eleito deputado federal em 2022 e concorre de novo."""

@@ -72,6 +72,9 @@ def linhas_anteriores(cands, ano):
     for c in cands:
         if D.codigo(c.sit_turno) != D.ELEITA or c.cargo not in CARGOS_CONTADOS:
             continue
+        # so a eleicao ordinaria (tipo 2) conta; a suplementar tem outro tipo
+        if c.tipo_eleicao and c.tipo_eleicao != '2':
+            continue
         if ano == 2018 and c.cargo != SENADO:
             continue
         out.append({'chave': chave_cpf(c.cpf),
