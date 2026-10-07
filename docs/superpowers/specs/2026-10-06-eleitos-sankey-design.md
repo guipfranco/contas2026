@@ -119,6 +119,14 @@ Linha de `anteriores.json`:
   `"anteriores"`), e a rodada diária confere essa marca antes de usar o arquivo.
 - A ferramenta imprime, por ano e cargo, quantas pessoas guardou e quantas
   ficaram com CPF vazio. É o primeiro número a ler.
+- **`--congelar UF` grava a fixture já anonimizada**, por
+  `ferramentas/anonimizar.py`: CPF falso com dígito verificador válido (o mesmo
+  falso para o mesmo CPF, em qualquer campo), título de eleitor e e-mail como
+  `#NULO`, nascimento com o ano verdadeiro e dia e mês falsos; marcador de vazio
+  fica como está. A chave é aleatória e vive só na memória daquela execução. Com
+  `--congelar`, a ferramenta baixa também o `consulta_cand` de 2026 e congela a
+  mesma UF com a mesma chave, para a ligação entre os três anos continuar de pé
+  na fixture; sem ele, não baixa o 2026. O artefato do workflow vive um dia.
 
 ### A rodada diária: `pipeline/eleitos.py`
 

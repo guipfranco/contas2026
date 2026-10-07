@@ -220,12 +220,126 @@ class TestFerramentaAnteriores(ComSal):
     def test_congela_a_fatia_da_uf(self):
         from ferramentas import anteriores
         saida = os.path.join(self.tmp, 'fixture')
-        anteriores.main(['--estado', os.path.join(self.tmp, 'e'), '--fonte-local',
-                         self._fontes(), '--uf', 'RR', '--congelar', 'RR',
-                         '--saida-fixture', saida, '--destino', os.path.join(self.tmp, 'd')])
-        for ano in (2018, 2022):
-            z = zipfile.ZipFile(os.path.join(saida, f'consulta_cand_{ano}.zip'))
-            self.assertEqual(z.namelist(), [f'consulta_cand_{ano}_RR.csv'])
+        fontes = self._fontes()
+        zip_cand(os.path.join(fontes, 'consulta_cand.zip'), 2026, 'RR', [
+            linha_csv('5', '11144477735', 'ANA DE SOUZA', 'ANA', 'PODE', '#NULO', sq='7'),
+        ])
+        r = anteriores.main(['--estado', os.path.join(self.tmp, 'e'), '--fonte-local',
+                             fontes, '--uf', 'RR', '--congelar', 'RR',
+                             '--saida-fixture', saida, '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(r, 0)
+        cpf_por_ano = {}
+        for nome, membro in (('consulta_cand_2018.zip', 'consulta_cand_2018_RR.csv'),
+                             ('consulta_cand_2022.zip', 'consulta_cand_2022_RR.csv'),
+                             ('consulta_cand.zip', 'consulta_cand_2026_RR.csv')):
+            z = zipfile.ZipFile(os.path.join(saida, nome))
+            self.assertEqual(z.namelist(), [membro])
+            texto = z.read(membro).decode('latin-1')
+            for cpf in ('11144477735', '22255588846', '33366699957', '44477700068'):
+                self.assertNotIn(cpf, texto, nome)
+            self.assertNotIn('01/01/1970', texto)
+            ano = 2018 if '2018' in nome else 2022 if '2022' in nome else 2026
+            cs = list(C.candidaturas(z, 'RR', ano=ano))
+            self.assertTrue(cs and all(C.cpf_valido(c.cpf) for c in cs), nome)
+            cpf_por_ano[ano] = {c.urna: c.cpf for c in cs}
+        # a mesma pessoa tem o mesmo CPF falso em 2022 e em 2026: a ligacao continua
+        self.assertEqual(cpf_por_ano[2022]['ANA'], cpf_por_ano[2026]['ANA'])
+
+    def test_rodada_do_pais_nao_baixa_o_2026(self):
+        from unittest import mock
+        from ferramentas import anteriores
+        pedidos = []
+
+        def falso(destino, fonte_local=None, quais=None):
+            pedidos.extend(quais)
+            raise RuntimeError('parou aqui')
+        with mock.patch.object(anteriores, 'baixar_fontes', side_effect=falso), \
+                self.assertRaises(RuntimeError):
+            anteriores.main(['--estado', os.path.join(self.tmp, 'e'),
+                             '--destino', os.path.join(self.tmp, 'd')])
+        self.assertEqual(sorted(pedidos), ['consulta_cand_2018', 'consulta_cand_2022'])
+
+
+class TestAnonimizar(unittest.TestCase):
+    CAB = ['DT_GERACAO', 'SG_UF', 'NM_CANDIDATO', 'NM_SOCIAL_CANDIDATO', 'NR_CPF_CANDIDATO',
+           'DS_EMAIL', 'NR_TITULO_ELEITORAL_CANDIDATO', 'DT_NASCIMENTO', 'DS_SIT_TOT_TURNO']
+
+    def _texto(self, linhas):
+        buf = io.StringIO()
+        w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL, lineterminator='\r\n')
+        w.writerow(self.CAB)
+        w.writerows(linhas)
+        return buf.getvalue()
+
+    def _linhas(self, texto):
+        return list(csv.reader(io.StringIO(texto, newline=''), delimiter=';'))
+
+    def setUp(self):
+        self.t1 = self._texto([
+            ['06/10/2026', 'RR', 'ANA DE SOUZA', 'ANA 11144477735', '11144477735',
+             'ana@exemplo.com', '012345678901', '17/03/1970', 'ELEITO'],
+            ['06/10/2026', 'RR', 'BIA LIMA', '#NULO', '#NULO', 'NÃO DIVULGÁVEL', '#NULO',
+             '#NULO', '#NULO'],
+        ])
+        self.t2 = self._texto([
+            ['06/10/2026', 'RR', 'ANA DE SOUZA', '#NULO', '11144477735', '#NULO',
+             '012345678901', '17/03/1970', 'SUPLENTE'],
+        ])
+
+    def test_nenhum_cpf_original_sobra_em_nenhum_campo(self):
+        from ferramentas.anonimizar import anonimizar_csv
+        saida = anonimizar_csv(self.t1, b'k' * 32)
+        self.assertNotIn('11144477735', saida)
+        self.assertNotIn('012345678901', saida)
+        self.assertNotIn('ana@exemplo.com', saida)
+
+    def test_mesmo_cpf_mesmo_falso_com_a_mesma_chave_e_digito_valido(self):
+        from ferramentas.anonimizar import anonimizar_csv
+        a = self._linhas(anonimizar_csv(self.t1, b'k' * 32))
+        b = self._linhas(anonimizar_csv(self.t2, b'k' * 32))
+        i = self.CAB.index('NR_CPF_CANDIDATO')
+        self.assertEqual(a[1][i], b[1][i])
+        self.assertTrue(C.cpf_valido(a[1][i]))
+        self.assertNotEqual(a[1][i], '11144477735')
+        # o CPF colado no nome social vira o mesmo falso
+        self.assertEqual(a[1][self.CAB.index('NM_SOCIAL_CANDIDATO')], 'ANA ' + a[1][i])
+        outra = self._linhas(anonimizar_csv(self.t1, b'z' * 32))
+        self.assertNotEqual(outra[1][i], a[1][i])
+
+    def test_titulo_email_e_nascimento(self):
+        from ferramentas.anonimizar import anonimizar_csv
+        a = self._linhas(anonimizar_csv(self.t1, b'k' * 32))
+        b = self._linhas(anonimizar_csv(self.t2, b'k' * 32))
+        cab = self.CAB
+        self.assertEqual(a[1][cab.index('NR_TITULO_ELEITORAL_CANDIDATO')], '#NULO')
+        self.assertEqual(a[1][cab.index('DS_EMAIL')], '#NULO')
+        self.assertEqual(a[2][cab.index('DS_EMAIL')], '#NULO')
+        nasc = a[1][cab.index('DT_NASCIMENTO')]
+        dia, mes, ano = nasc.split('/')
+        self.assertEqual(ano, '1970')
+        self.assertTrue(1 <= int(dia) <= 28 and 1 <= int(mes) <= 12, nasc)
+        self.assertNotEqual(nasc, '17/03/1970')
+        # a mesma pessoa tem a mesma data falsa nos dois arquivos
+        self.assertEqual(nasc, b[1][cab.index('DT_NASCIMENTO')])
+
+    def test_marcador_de_vazio_e_o_resto_ficam_como_estao(self):
+        from ferramentas.anonimizar import anonimizar_csv
+        saida = anonimizar_csv(self.t1, b'k' * 32)
+        a = self._linhas(saida)
+        self.assertEqual(a[0], self.CAB)
+        self.assertEqual(a[2][self.CAB.index('NR_CPF_CANDIDATO')], '#NULO')
+        self.assertEqual(a[2][self.CAB.index('DT_NASCIMENTO')], '#NULO')
+        for col in ('DT_GERACAO', 'SG_UF', 'NM_CANDIDATO', 'DS_SIT_TOT_TURNO'):
+            self.assertEqual(a[1][self.CAB.index(col)], self._linhas(self.t1)[1][self.CAB.index(col)])
+        # mesma forma do TSE: tudo entre aspas, ponto e virgula, fim de linha CRLF
+        self.assertTrue(saida.startswith('"DT_GERACAO";"SG_UF";'))
+        self.assertEqual(saida.count('\r\n'), 3)
+
+    def test_bom_no_cabecalho_fica(self):
+        from ferramentas.anonimizar import anonimizar_csv
+        saida = anonimizar_csv('﻿' + self.t1, b'k' * 32)
+        self.assertTrue(saida.startswith('﻿"DT_GERACAO"'))
+        self.assertNotIn('11144477735', saida)
 
 
 def antes(cpf='11144477735', ano=2022, cargo='6', uf='RR', partido='PAB',
