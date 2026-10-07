@@ -2934,6 +2934,10 @@ var FMT_PESSOAS = {curto:function(v){ return inteiro(v); },
                    cheio:function(v){ return inteiro(v) + (v === 1 ? ' pessoa' : ' pessoas'); },
                    coluna:'Pessoas'};
 function temEleitos(){ return !!(META && META.eleitos); }
+/* A aba de eleitos lê só eleitos/BRASIL.json: o arquivo da unidade e o tipo por
+   candidatura do país são megabytes que ela não usa. Ao trocar de aba, cada tela pede o
+   que precisa, como sempre. */
+function naAbaEleitos(){ return S.view === 'lista' && S.v === 'eleitos'; }
 function carregarEleitos(){
   if(ELE || eleEmVoo || !temEleitos()) return;
   eleEmVoo = true; erros.ele = null;
@@ -2946,10 +2950,16 @@ function carregarEleitos(){
     eleEmVoo = false; erros.ele = {s:(e && e.status === 404) ? 404 : 0}; render();
   });
 }
+/* A Presidência só existe na unidade BR e no país: numa UF de estado, o cargo 1 guardado
+   de outra tela volta para a Câmara. */
+function presidenciaNaTela(){ var u = ufDaTela(); return u === 'BRASIL' || u === 'BR'; }
+function cargosEleitosDaTela(){
+  return CARGOS_ELEITOS.filter(function(c){ return c !== '1' || presidenciaNaTela(); });
+}
 function cargoEleitos(){
   if(ufDaTela() === 'BR') return '1';
   var c = String(S.cargo || '');
-  return CARGOS_ELEITOS.indexOf(c) >= 0 ? c : '6';
+  return cargosEleitosDaTela().indexOf(c) >= 0 ? c : '6';
 }
 /* O Senado de 2026 renova as cadeiras eleitas em 2018 */
 function anoAntes(cargo){ return cargo === '5' ? 2018 : 2022; }
@@ -4965,8 +4975,9 @@ function render(){
      tem um recorte para resumir, e a ficha e a busca não têm. */
   porResumo('');
   /* Primeiro o que está aberto por cima da lista (uma ficha, uma busca), e só depois a
-     dimensão: uma ficha é uma ficha em qualquer dimensão. */
-  carregarTiposBrasil();
+     dimensão: uma ficha é uma ficha em qualquer dimensão. A aba de eleitos lê só o
+     próprio arquivo, e não paga pelo tipo por candidatura do país. */
+  if(!naAbaEleitos()) carregarTiposBrasil();
   if(S.view === 'cand') viewCand();
   else if(S.view === 'forn') viewForn();
   else if(S.view === 'busca') viewBusca();
@@ -5151,6 +5162,33 @@ function abrirFiltro(qual, bt){
       return {v:it.v, r:it.r, c:inteiro(o.n || 0) + ' cand. · ' + moeda(o.contratado || 0)};
     });
     abrir('Unidade eleitoral', opcoes('uf', itens, S.uf));
+  } else if(qual === 'cargo' && S.v === 'eleitos'){
+    /* Na aba de eleitos o cargo nunca fica vazio (misturar cargos somaria deputado e
+       senador no mesmo nó): sem "Todos os cargos", só os cargos contados, e a marca no
+       cargo que a tela está mostrando. A Presidência só entra no país e na unidade BR. */
+    var ice = (ufDaTela() === 'BR' ? ['1'] : cargosEleitosDaTela()).map(function(k){
+      return {v:k, r:META.cargos[k] || CARGO_FRASE[k], c:''};
+    });
+    abrir('Cargo', opcoes('cargo', ice, cargoEleitos()));
+  } else if(qual === 'partido' && S.v === 'eleitos' && ELE){
+    /* Na aba de eleitos o arquivo da unidade não é baixado, e o menu sai do próprio
+       arquivo de eleitos: os partidos de 2026 que aparecem nele e as federações deles. */
+    var ipe = [{v:'', r:'Todos os partidos', c:''}];
+    var fe = {};
+    Object.keys(ELE.fed || {}).forEach(function(p){
+      var nome = META.dic.fed[ELE.fed[p]];
+      if(nome) fe[nome] = 1;
+    });
+    var fedsE = Object.keys(fe).sort();
+    if(fedsE.length){
+      ipe.push({sep:'Federações'});
+      fedsE.forEach(function(f){ ipe.push({v:'fed:' + f, r:fedCurta(f), c:''}); });
+      ipe.push({sep:'Partidos'});
+    }
+    Object.keys(PARTIDOS_AGORA).map(function(i){ return siglaDe(+i); }).sort()
+      .forEach(function(p){ ipe.push({v:p, r:p, c:''}); });
+    abrir('Partido ou federação',
+          opcoes('partido', ipe, S.fed ? 'fed:' + S.fed : S.partido));
   } else if(qual === 'cargo'){
     var cc = contarPor(function(r){ return r[4]; }, 'cargo');
     var it = [{v:'', r:'Todos os cargos', c: UFD ? inteiro(UFD.c.length) : ''}];
@@ -5388,7 +5426,8 @@ window.addEventListener('resize', medirBarras);
    da janela dispara isto dezenas de vezes por segundo. */
 var redesenho = null;
 window.addEventListener('resize', function(){
-  if(S.v !== 'geral') return;
+  /* a aba de eleitos também tem fluxo, medido em host.clientWidth e com quantosNos() */
+  if(S.v !== 'geral' && S.v !== 'eleitos') return;
   clearTimeout(redesenho);
   redesenho = setTimeout(function(){
     /* Largura igual não pede nada: no celular, abrir o teclado muda só a altura, e no
@@ -5411,7 +5450,7 @@ function iniciar(){
      meta chegar para ser pedido, e numa rede ruim isso somava duas idas inteiras
      antes da primeira linha aparecer. Se a unidade do endereço não existir, o
      erro 404 já é tratado e o recuo continua sendo a unidade padrão. */
-  if(S.view === 'lista' && ufDaTela()) carregarUF();
+  if(S.view === 'lista' && ufDaTela() && !naAbaEleitos()) carregarUF();
   if(S.view === 'lista' && S.v === 'fornecedor') carregarFornRecorte();
   if(S.view === 'lista' && S.v === 'doador') carregarDoadorRecorte();
   get('meta.json').then(function(d){
@@ -5425,7 +5464,7 @@ function iniciar(){
     /* Adiantar o fetch só vale para a tela que usa o arquivo da unidade. Todo link de ficha
        saído do ranking do país carrega uf=BRASIL, e o arquivo do país são megabytes que a
        ficha não lê. Nas outras telas o render pede o arquivo quando ele fizer falta. */
-    if(S.view === 'lista' && !UFD && ufEmVoo !== ufDaTela()) carregarUF();
+    if(S.view === 'lista' && !UFD && ufEmVoo !== ufDaTela() && !naAbaEleitos()) carregarUF();
     if(UFD && UFD.uf === ufDaTela()) conferirDicionarios(UFD);
     render();
     if(S.view === 'busca') carregarIndice();
