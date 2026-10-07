@@ -527,6 +527,36 @@ class TestEscritaEValidacao(ComSal):
         self.assertEqual(V._checar_eleitos(d, len(dics['partido'].lista),
                                            len(dics['fed'].lista), False), [])
 
+    def test_grava_o_sucessor_de_cada_partido_de_antes(self):
+        suc = {'PSC': 'PODE', 'PRP': 'PATRIOTA', 'PATRIOTA': 'PRD', 'PROS': 'SD'}
+        ps, est = EL.cruzar([antes(partido='PSC'),
+                             antes(cpf='22255588846', partido='PRP', nome='ANA LIMA'),
+                             antes(cpf='33366699957', partido='PT', nome='BIA LIMA')],
+                            [cand(cpf='11144477735', partido='PODE', sit_turno='ELEITO', sq='9')],
+                            suc)
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp, suc=suc)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        lista = dics['partido'].lista
+        legivel = {lista[int(k)]: lista[v] for k, v in d['sucessor'].items()}
+        # PROS nao tem ninguem no arquivo, e PT nao tem sucessor: nenhum dos dois entra
+        self.assertEqual(legivel, {'PSC': 'PODE', 'PRP': 'PRD'})
+        self.assertEqual(V._checar_eleitos(d, len(lista), len(dics['fed'].lista), False), [])
+
+    def test_sem_tabela_de_sucessao_o_mapa_vem_vazio(self):
+        ps, est = EL.cruzar([antes(partido='PSC')], [], {})
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        E.escrever_eleitos(ps, est, dics, self.tmp)
+        d = json.load(open(os.path.join(self.tmp, 'eleitos', 'BRASIL.json'), encoding='utf-8'))
+        self.assertEqual(d['sucessor'], {})
+
+    def test_validador_reprova_sucessor_fora_do_dicionario(self):
+        base = {'c': [linha_ok()]}
+        self.assertEqual(V._checar_eleitos(dict(base, sucessor={'0': 1}), 2, 0, False), [])
+        for ruim in ({'0': 2}, {'2': 0}, {'x': 0}, {'0': '1'}, ['0']):
+            erros = V._checar_eleitos(dict(base, sucessor=ruim), 2, 0, False)
+            self.assertTrue(erros and 'sucessor' in erros[0], (ruim, erros))
+
     def test_sem_ficha_o_sq_fica_vazio(self):
         ps, est = EL.cruzar([antes()],
                             [cand(cpf='11144477735', sit_turno='ELEITO', sq='9'),

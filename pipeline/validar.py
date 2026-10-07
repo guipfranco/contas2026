@@ -498,6 +498,13 @@ def _checar_eleitos(d, n_part, n_fed, completo, mb=0.0):
         if not (0 <= int(p) < n_part) or not (0 <= f < n_fed):
             erros.append(f'{rel}: federacao {p}->{f} fora do dicionario')
             break
+    # partido de antes -> sucessor, os dois como id do dicionario de partidos
+    sucessor = d.get('sucessor', {})
+    if not isinstance(sucessor, dict) or any(
+            not re.fullmatch(r'\d+', k) or not int(k) < n_part
+            or type(v) is not int or not 0 <= v < n_part
+            for k, v in sucessor.items()):
+        erros.append(f'{rel}: sucessor fora do dicionario de partidos')
     # senadores de 2018 lidos pelo registro de 2022: UF de 2 letras -> n > 0
     absorvidos = d.get('absorvidos', {})
     if not isinstance(absorvidos, dict) or any(

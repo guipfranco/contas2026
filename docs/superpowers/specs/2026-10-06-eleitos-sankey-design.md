@@ -82,6 +82,15 @@ do partido de antes. O nó da esquerda mostra o partido **como estava na eleiç�
 de antes** (PSC continua PSC), para a bancada de 2022 sair com o tamanho que teve;
 a faixa do PSC para o Podemos não conta como mudança.
 
+**A tabela e a frase do partido somam o lado de antes pelo sucessor; o desenho
+mostra a sigla como era.** Sem isso, a coluna "Diferença" mostraria o PRD com
+"+N" e o PTB e o Patriota com negativo, só pela fusão, e a frase do Podemos
+deixaria de fora quem foi eleito pelo PSC. O pipeline grava em
+`eleitos/BRASIL.json` o mapa `sucessor` (id do partido extinto para id do
+sucessor, já transitivo), e o front usa esse mapa: na tabela, a linha do PSC some
+dentro da do Podemos; com o filtro do Podemos, o nó do PSC de 2022 acende junto.
+O pé da tela diz: "Na tabela, o partido extinto entra somado ao sucessor."
+
 ## O dado
 
 ### A ferramenta que roda uma vez: `ferramentas/anteriores.py`
@@ -132,6 +141,7 @@ Escreve `eleitos/BRASIL.json`:
 {"anteriores": {"2022": {"6": 513, …}, "2018": {"5": 54}},
  "ligados_por_nome": N, "absorvidos": {"SC": 1, …},
  "fed": {"<id do partido>": <id da federação>},
+ "sucessor": {"<id do partido extinto>": <id do sucessor>},
  "c": [[nome_urna, uf_antes, cargo_antes, partido_antes, ano_antes, destino,
         uf_agora, cargo_agora, partido_agora, desfecho_agora, sq_2026, genero,
         mudou], …]}
@@ -158,6 +168,8 @@ Escreve `eleitos/BRASIL.json`:
 - `mudou` é 1 quando o partido de agora não é o sucessor do partido de antes. O
   front não conhece a tabela de sucessão: quem decide é o pipeline.
 - `fed` liga cada partido de 2026 à sua federação, para o chip de federação.
+- `sucessor` liga cada partido de antes que tem sucessor na tabela ao sucessor,
+  pela regra transitiva; o validador confere que os dois ids estão no dicionário.
 - A UF vai dos dois lados, porque a pessoa pode ter mudado de UF.
 - **Enquanto `tem_desfecho` for falso, o arquivo não é gravado** e a aba não
   aparece. Se `anteriores.json` faltar, tiver `sal_marca` diferente ou estiver
@@ -253,7 +265,7 @@ ligadas pelo nome completo e pela data de nascimento."
 Embaixo do desenho, uma linha por partido: eleitos antes, eleitos agora,
 diferença, e "já eleitos antes, sem mudar de partido" (quem está do lado de agora
 naquele partido, foi eleito antes e tem `mudou` 0). Ordenada pelos eleitos de
-agora. **No celular a tabela vem antes do
+agora. O lado de antes soma pelo sucessor (seção "Partido sucessor"). **No celular a tabela vem antes do
 desenho.**
 
 ## Redação

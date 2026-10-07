@@ -115,7 +115,7 @@ def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0, completo=False):
                   'cadeiras (' + '; '.join(erros) + '). Rode o workflow "eleitos de '
                   'antes" de novo. A aba de eleitos fica de fora.')
             return None
-    b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha)
+    b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha, suc=suc)
     n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
     if est['siglas_sem_par']:
         print('::warning::   aviso: partidos de antes sem par em 2026 nem na '

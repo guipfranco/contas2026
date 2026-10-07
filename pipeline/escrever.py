@@ -24,6 +24,7 @@ from .agregar import CARGOS, NOME_UF
 from .alarmes import faixa, indice
 from .carregar import mascara
 from . import desfecho as D
+from .eleitos import sucessor as sucessor_de
 
 def curto(texto, k=48):
     """Corta com reticencia, para o nome cortado nao parecer o nome inteiro."""
@@ -67,7 +68,7 @@ def grava(caminho, obj):
     return len(texto.encode('utf-8'))
 
 
-def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None):
+def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None, suc=None):
     """eleitos/BRASIL.json: uma linha de 13 campos por pessoa.
 
     Partido vai como indice do dicionario do meta, como na linha do ranking, e
@@ -82,7 +83,14 @@ def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None):
 
     `absorvidos` conta, por UF, os senadores eleitos em 2018 que foram eleitos
     para outro cargo em 2022 e por isso entram na comparacao daquele cargo.
+
+    `sucessor` liga o id de cada partido de antes que tem sucessor na tabela
+    (`suc`, transitiva) ao id do sucessor. O desenho mostra a sigla como era, mas
+    a tabela e a frase do partido somam o lado de antes pelo sucessor: senao o
+    PRD apareceria crescendo e o PTB e o Patriota encolhendo, so pela fusao.
     """
+    suc = suc or {}
+
     def pid(sigla):
         return dics['partido'].id(sigla) if sigla else -1
 
@@ -97,11 +105,16 @@ def escrever_eleitos(pessoas, est, dics, destino, com_ficha=None):
                        p['desfecho'], sq(p), p['genero'], p['mudou']])
     fed = {str(dics['partido'].id(sg)): dics['fed'].id(nome)
            for sg, nome in sorted(est['fed'].items())}
+    sucessor = {}
+    for sg in sorted({p['partido_antes'] for p in pessoas if p['partido_antes']}):
+        novo = sucessor_de(sg, suc)
+        if novo and novo != sg:
+            sucessor[str(pid(sg))] = pid(novo)
     return grava(os.path.join(destino, 'eleitos', 'BRASIL.json'), {
         'anteriores': est['anteriores'],
         'ligados_por_nome': est['ligados_por_nome'],
         'absorvidos': dict(sorted(est['absorvidos'].items())),
-        'fed': fed, 'c': linhas})
+        'fed': fed, 'sucessor': sucessor, 'c': linhas})
 
 
 def escrever_uf(uf, aggs, alarmes_por_sq, dics, destino):
