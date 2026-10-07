@@ -105,15 +105,23 @@ Linha de `anteriores.json`:
 
 Lê `anteriores.json` do diretório de estado e as candidaturas de 2026 que
 `carregar` já entrega (todas, qualquer situação, porque é preciso saber se um
-eleito de antes voltou a concorrer). Liga pela `chave`; quando a pessoa de antes
-não tem CPF, pela `chave_nasc`. `carregar` passa a ler também `DT_NASCIMENTO` e o
-`CD_CARGO` de vice e suplente, se ainda não lê.
+eleito de antes voltou a concorrer). Liga pela `chave` primeiro, em todos os
+registros; só depois, para quem sobrou, pela `chave_nasc`, e só quando um dos dois
+lados não tem CPF: com CPF nos dois lados e diferente, são duas pessoas.
+`carregar` passa a ler também `DT_NASCIMENTO` e o `CD_CARGO` de vice e suplente, se
+ainda não lê.
+
+Quem foi ao 2º turno tem uma linha por turno no `consulta_cand` (`NR_TURNO`), e a
+do turno 2 às vezes vem antes da do turno 1. Vale a linha do turno mais alto que já
+tem desfecho, aqui e em `agregar.juntar_candidaturas`; senão quem perdeu no dia
+25/10 ficaria em "2º turno" para sempre.
 
 Escreve `eleitos/BRASIL.json`:
 
 ```
 {"anteriores": {"2022": {"6": 513, …}, "2018": {"5": 54}},
- "ligados_por_nome": N, "fed": {"<id do partido>": <id da federação>},
+ "ligados_por_nome": N, "absorvidos": {"SC": 1, …},
+ "fed": {"<id do partido>": <id da federação>},
  "c": [[nome_urna, uf_antes, cargo_antes, partido_antes, ano_antes, destino,
         uf_agora, cargo_agora, partido_agora, desfecho_agora, sq_2026, genero,
         mudou], …]}
@@ -122,6 +130,15 @@ Escreve `eleitos/BRASIL.json`:
 - Uma linha por pessoa. Quem não foi eleito antes tem `cargo_antes`,
   `partido_antes` e `destino` vazios; quem não concorreu em 2026 tem os campos de
   agora vazios e `sq_2026` vazio.
+- **`sq_2026` só vai preenchido quando a candidatura tem ficha** (`cand/<sq>.json`,
+  que a rodada só escreve para quem tem movimento ou sinal). Vice, suplência e
+  candidatura sem movimento saem com `sq_2026` vazio, e o nome fica sem link:
+  nome apontando para página que não existe é pior que nome sem link. A rodada
+  passa a `escrever_eleitos` o conjunto dos sq que ganharam ficha naquele laço.
+- `absorvidos` conta, por UF, os senadores eleitos em 2018 que foram eleitos para
+  outro cargo em 2022: a pessoa é lida pelo registro de 2022 e sai da conta do
+  Senado. A frase da tela do Senado diz quantos são, senão o número de eleitos em
+  2018 sairia menor que o real.
 - Entram: todo eleito de antes; toda candidatura de 2026 com desfecho 1 ou 4 nos
   cargos contados. Cerca de 3.500 linhas no país.
 - Cargo e partido vão como índice dos dicionários de `meta.json`, como na linha do
@@ -133,14 +150,17 @@ Escreve `eleitos/BRASIL.json`:
 - `fed` liga cada partido de 2026 à sua federação, para o chip de federação.
 - A UF vai dos dois lados, porque a pessoa pode ter mudado de UF.
 - **Enquanto `tem_desfecho` for falso, o arquivo não é gravado** e a aba não
-  aparece. Se `anteriores.json` faltar ou tiver `sal_marca` diferente, a rodada
-  avisa e segue sem o arquivo: o resto do site não depende dele.
+  aparece. Se `anteriores.json` faltar, tiver `sal_marca` diferente ou estiver
+  truncado ou fora da forma, a rodada avisa e segue sem o arquivo: o resto do site
+  não depende dele. Qualquer outro erro no bloco de eleitos também tira só a aba,
+  com um aviso que diz o tipo do erro e nada do conteúdo da linha.
 
 ### O validador
 
 - Forma da linha (13 campos, tipos, `destino` em 0..6 e 0 exatamente quando
   `ano_antes` é 0, índices de partido em -1 ou dentro do dicionário), e nenhum
-  `sq_2026` repetido.
+  `sq_2026` repetido. `absorvidos`, quando existe, liga UF de duas letras a
+  inteiro positivo.
 - Contagem por cargo dos eleitos de antes contra as cadeiras: 513 na Câmara, 27
   governadores, 1 Presidência, 54 senadores de 2018, 1.059 entre Assembleias e
   Câmara Legislativa. A contagem de 2026 não é conferida contra número fixo: o
@@ -190,6 +210,9 @@ uma dimensão: não entra em `DIMS` como lista.
 - **Tocar numa faixa** abre, embaixo do desenho, a lista das pessoas dela: nome de
   urna, UF, cargo e partido nos dois anos, desfecho de agora. Quem tem `sq_2026`
   ganha link para a ficha da candidatura.
+- O nó de partido liga o filtro de partido só quando aquele partido aparece em
+  2026 em alguma linha do arquivo. A sigla que só existe antes (PSC, PTB) não vira
+  filtro: ele esvaziaria as outras abas.
 
 ### A frase de números
 
@@ -201,7 +224,12 @@ Acima do desenho, só números:
 
 (Números de exemplo; o tamanho da Câmara eleita agora sai do dado.)
 
-Com 2º turno pendente, entra "N disputam o 2º turno em 25/10". Com ligações pelo
+Com 2º turno pendente, entra "N disputam o 2º turno em 25/10", e as candidaturas no
+2º turno que não estão do lado de antes entram também ("Outras N candidaturas
+disputam o 2º turno em 25/10"), para a frase somar o mesmo que o nó. No Senado, os
+`absorvidos` da UF da tela (ou do país) entram como "Outros N eleitos senadores em
+2018 foram eleitos para outro cargo em 2022 e entram na comparação daquele cargo";
+com o lado de antes vazio, só essa frase fica. Com ligações pelo
 nome, uma nota no pé: "N pessoas de 2022 não têm CPF no arquivo do TSE e foram
 ligadas pelo nome completo e pela data de nascimento."
 
