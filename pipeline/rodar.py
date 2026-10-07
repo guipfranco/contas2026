@@ -85,6 +85,15 @@ def carregar_cnae_nome(caminho):
     return nomes
 
 
+def _apagar_eleitos(site):
+    """Quando a aba sai do ar, nenhum eleitos/BRASIL.json de rodada anterior fica
+    no site. Vale para o erro no bloco e para a contagem que nao bate."""
+    try:
+        os.remove(os.path.join(site, 'eleitos', 'BRASIL.json'))
+    except OSError:
+        pass
+
+
 def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0, completo=False):
     """Grava eleitos/BRASIL.json e devolve o pedaco do meta, ou None quando
     anteriores.json nao serve.
@@ -114,6 +123,7 @@ def _eleitos(a, cands, dics, ufs_pedidas, com_ficha, t0, completo=False):
             print('::warning::   aviso: a contagem de anteriores.json nao bate com as '
                   'cadeiras (' + '; '.join(erros) + '). Rode o workflow "eleitos de '
                   'antes" de novo. A aba de eleitos fica de fora.')
+            _apagar_eleitos(a.site)
             return None
     b_ele = E.escrever_eleitos(pessoas, est, dics, a.site, com_ficha=com_ficha, suc=suc)
     n_ant = sum(sum(v.values()) for v in est['anteriores'].values())
@@ -362,10 +372,7 @@ def main(argv=None):
             print(f'::warning::   aviso: a aba de eleitos falhou ({type(e).__name__}) '
                   'e fica de fora desta rodada.')
             eleitos_meta = None
-            try:
-                os.remove(os.path.join(a.site, 'eleitos', 'BRASIL.json'))
-            except OSError:
-                pass
+            _apagar_eleitos(a.site)
     E.escrever_meta(dics, contagens, ufs_saida, sorted(A.CARGOS_PAINEL),
                     hoje, {'gerado': tse_gerado, 'last_modified': lm,
                            'data_max_despesa': nac.data_max},

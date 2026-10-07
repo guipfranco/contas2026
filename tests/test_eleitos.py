@@ -798,6 +798,27 @@ class TestEscritaEValidacao(ComSal):
         self.assertIsNotNone(r)
         self.assertTrue(os.path.exists(os.path.join(a.site, 'eleitos', 'BRASIL.json')))
 
+    def test_cadeiras_erradas_apagam_o_arquivo_de_uma_rodada_anterior(self):
+        # o mesmo que o caminho da excecao faz: nenhum eleitos/BRASIL.json velho
+        # fica no site quando a aba sai do ar
+        from unittest import mock
+        from pipeline import rodar
+        import argparse
+        import time
+        est = os.path.join(self.tmp, 'estado')
+        EL.gravar_anteriores(est, [antes()])
+        a = argparse.Namespace(estado=est, dados=os.path.join(self.tmp, 'sem-dados'),
+                               site=os.path.join(self.tmp, 'site'))
+        dics = {k: E.Dic() for k in ('partido', 'fed')}
+        cs = [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')]
+        arquivo = os.path.join(a.site, 'eleitos', 'BRASIL.json')
+        with mock.patch('sys.stdout', io.StringIO()):
+            self.assertIsNotNone(rodar._eleitos(a, cs, dics, ['RR'], None, time.time()))
+            self.assertTrue(os.path.exists(arquivo))
+            self.assertIsNone(rodar._eleitos(a, cs, dics, [], None, time.time(),
+                                             completo=True))
+        self.assertFalse(os.path.exists(arquivo))
+
     def test_cadeiras_so_no_pais_inteiro(self):
         cheio = {'2022': {'1': 1, '3': 27, '5': 27, '6': 513, '7': 1035, '8': 24},
                  '2018': {'5': 54}}
