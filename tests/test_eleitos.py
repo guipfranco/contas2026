@@ -306,6 +306,25 @@ class TestCruzamento(ComSal):
         _, est = self.um([], [cand(cpf='22255588846', partido='PT', fed='FEDERAÇÃO BRASIL DA ESPERANÇA', sit_turno='ELEITO')])
         self.assertEqual(est['fed'], {'PT': 'FEDERAÇÃO BRASIL DA ESPERANÇA'})
 
+    def test_mesma_pessoa_com_e_sem_cpf_vira_uma_linha(self):
+        ps, est = self.um([antes(ano=2022, cpf='11144477735', nome='MARIA DA SILVA'),
+                           antes(ano=2018, cpf='', nome='MARIA DA SILVA')],
+                          [cand(cpf='11144477735', sit_turno='ELEITO', sq='9')])
+        self.assertEqual(len(ps), 1)
+        self.assertEqual(ps[0]['sq'], '9')
+        self.assertEqual(est['anteriores'], {'2022': {'6': 1}, '2018': {'6': 1}})
+
+    def test_registro_com_cpf_acha_candidatura_sem_cpf(self):
+        ps, est = self.um([antes(cpf='11144477735', nome='MARIA DA SILVA')],
+                          [cand(cpf='', nome='MARIA DA SILVA', sit_turno='ELEITO')])
+        self.assertEqual(len(ps), 1)
+        self.assertEqual((ps[0]['destino'], est['ligados_por_nome']), (EL.MESMO_CARGO, 1))
+
+    def test_partido_antes_vazio_nao_e_mudanca(self):
+        ps, _ = self.um([antes(partido='')],
+                        [cand(cpf='11144477735', partido='PT', sit_turno='ELEITO')])
+        self.assertEqual(ps[0]['mudou'], 0)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

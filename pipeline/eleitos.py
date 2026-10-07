@@ -166,7 +166,7 @@ def _pessoa(a, c, suc):
         'desfecho': D.codigo(c.sit_turno) if c else 0,
         'sq': c.sq if c else '',
         'genero': genero(c.genero) if c else (a or {}).get('genero', ''),
-        'mudou': int(bool(a and c and c.partido
+        'mudou': int(bool(a and c and a['partido'] and c.partido
                           and sucessor(a['partido'], suc) != c.partido)),
     }
 
@@ -177,15 +177,29 @@ def cruzar(anteriores, cands, suc, ufs=None):
     ufs = set(ufs or ())
     brutas = {}
     antes = {}
+    nasc_para_chave = {}
+
+    # Primeira passagem: registros com chave (CPF), e mapa chave_nasc -> chave
     for a in anteriores:
         if ufs and a['uf'] not in ufs:
             continue
         doano = brutas.setdefault(str(a['ano']), {})
         doano[a['cargo']] = doano.get(a['cargo'], 0) + 1
-        k = a['chave'] or a['chave_nasc'] or 'sem:' + a['nome_urna'] + a['uf']
-        # quem foi eleito em 2018 e de novo em 2022 e lido pelo registro de 2022
-        if k not in antes or a['ano'] > antes[k]['ano']:
-            antes[k] = a
+        if a['chave']:
+            k = a['chave']
+            if k not in antes or a['ano'] > antes[k]['ano']:
+                antes[k] = a
+            if a['chave_nasc']:
+                nasc_para_chave.setdefault(a['chave_nasc'], k)
+
+    # Segunda passagem: registros sem chave, mesclam se chave_nasc conhecida
+    for a in anteriores:
+        if ufs and a['uf'] not in ufs:
+            continue
+        if not a['chave'] and a['chave_nasc']:
+            k = nasc_para_chave.get(a['chave_nasc']) or 'sem:' + a['nome_urna'] + a['uf']
+            if k not in antes or a['ano'] > antes[k]['ano']:
+                antes[k] = a
 
     agora, fed = {}, {}
     for c in cands:
@@ -209,10 +223,13 @@ def cruzar(anteriores, cands, suc, ufs=None):
         ka = None
         if a['chave'] and a['chave'] in agora:
             ka = a['chave']
+        elif a['chave'] and a['chave'] not in agora and a['chave_nasc'] in por_nasc:
+            ka = por_nasc[a['chave_nasc']]
+            por_nome += 1
         elif not a['chave'] and a['chave_nasc'] in por_nasc:
             ka = por_nasc[a['chave_nasc']]
             por_nome += 1
-        if ka:
+        if ka and ka not in usados:
             usados.add(ka)
         pessoas.append(_pessoa(a, agora.get(ka) if ka else None, suc))
     for k, c in agora.items():
