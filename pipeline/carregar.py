@@ -69,6 +69,8 @@ COLUNAS_CAND = [
     'DS_GENERO', 'DS_COR_RACA', 'DS_OCUPACAO', 'DT_NASCIMENTO',
     'DS_SIT_TOT_TURNO',
 ]
+# Federacao partidaria existe desde 2022: o arquivo de 2018 nao tem as colunas.
+COLUNAS_CAND_2018 = [c for c in COLUNAS_CAND if 'FEDERACAO' not in c]
 
 Despesa = namedtuple('Despesa', 'uf cargo sq nr nome cpf partido prestador '
                                 'tipo_prest tipo_forn cnae ds_cnae doc forn forn_rfb '
@@ -311,9 +313,10 @@ def originarios(z, uf=None):
             valor=valor(r['VR_RECEITA']))
 
 
-def candidaturas(z, uf=None):
-    for r in _dicts(z, _membro(z, 'consulta_cand_2026', uf), COLUNAS_CAND,
-                    'consulta_cand'):
+def candidaturas(z, uf=None, ano=2026):
+    esperado = COLUNAS_CAND if ano >= 2022 else COLUNAS_CAND_2018
+    nome = 'consulta_cand' if ano == 2026 else f'consulta_cand {ano}'
+    for r in _dicts(z, _membro(z, f'consulta_cand_{ano}', uf), esperado, nome):
         yield Cand(
             uf=limpo(r['SG_UF']), ue=limpo(r['SG_UE']), cargo=limpo(r['CD_CARGO']),
             ds_cargo=limpo(r['DS_CARGO']), sq=limpo(r['SQ_CANDIDATO']),
@@ -322,8 +325,9 @@ def candidaturas(z, uf=None):
             cpf=documento(r['NR_CPF_CANDIDATO']),
             situacao=limpo(r['DS_SITUACAO_CANDIDATURA']),
             nr_partido=limpo(r['NR_PARTIDO']), partido=limpo(r['SG_PARTIDO']),
-            nm_partido=limpo(r['NM_PARTIDO']), nr_fed=limpo(r['NR_FEDERACAO']),
-            fed=limpo(r['NM_FEDERACAO']), comp_fed=limpo(r['DS_COMPOSICAO_FEDERACAO']),
+            nm_partido=limpo(r['NM_PARTIDO']), nr_fed=limpo(r.get('NR_FEDERACAO')),
+            fed=limpo(r.get('NM_FEDERACAO')),
+            comp_fed=limpo(r.get('DS_COMPOSICAO_FEDERACAO')),
             genero=limpo(r['DS_GENERO']), cor_raca=limpo(r['DS_COR_RACA']),
             ocupacao=limpo(r['DS_OCUPACAO']), nascimento=data(r['DT_NASCIMENTO']),
             sit_turno=limpo(r['DS_SIT_TOT_TURNO']))

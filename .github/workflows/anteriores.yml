@@ -1,0 +1,69 @@
+name: eleitos de antes
+
+# Le os eleitos de 2018 (Senado) e de 2022 (todos os cargos contados) e grava
+# anteriores.json na branch dados. Roda a mao: os dois anos nao mudam, e o
+# arquivo so precisa ser refeito se a CONTAS_SAL mudar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      congelar:
+        description: UF cujos arquivos de 2018 e 2022 viram fixture (vazio = nenhuma)
+        default: ''
+      gravar:
+        description: gravar anteriores.json na branch dados
+        type: boolean
+        default: false
+
+# o mesmo grupo da rodada diaria: as duas escrevem na branch dados
+concurrency:
+  group: rodada
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  anteriores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: buscar o estado
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: dados
+          path: estado-repo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: ler 2018 e 2022
+        env:
+          CONTAS_SAL: ${{ secrets.CONTAS_SAL }}
+        run: |
+          mkdir -p estado
+          python -m ferramentas.anteriores --estado estado --destino "$RUNNER_TEMP/tse" \
+            ${{ inputs.congelar != '' && format('--congelar {0} --saida-fixture fixture', inputs.congelar) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.congelar != ''
+        with:
+          name: fixture-anteriores
+          path: fixture
+
+      - name: gravar na branch dados
+        if: inputs.gravar
+        run: |
+          cd estado-repo
+          mkdir -p estado
+          cp ../estado/anteriores.json estado/
+          git config user.name "rodada automatica"
+          git config user.email "noreply@github.com"
+          git add estado/anteriores.json
+          git diff --quiet --cached || git commit -m "eleitos de antes, $(date -I)"
+          git pull --rebase --autostash origin dados || true
+          git push origin HEAD:dados

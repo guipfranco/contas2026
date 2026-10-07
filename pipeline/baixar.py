@@ -34,6 +34,10 @@ CDN = 'https://cdn.tse.jus.br/estatistica/sead/odsele'
 FONTES = {
     'candidatos': f'{CDN}/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_2026.zip',
     'consulta_cand': f'{CDN}/consulta_cand/consulta_cand_2026.zip',
+    # Os dois anos de antes, para a aba de eleitos. Nao mudam: quem os le e
+    # ferramentas/anteriores.py, uma vez, e nunca a rodada diaria.
+    'consulta_cand_2018': f'{CDN}/consulta_cand/consulta_cand_2018.zip',
+    'consulta_cand_2022': f'{CDN}/consulta_cand/consulta_cand_2022.zip',
     'cnpj_campanha': f'{CDN}/prestacao_contas/CNPJ_campanha_2026.zip',
     'orgaos': f'{CDN}/prestacao_contas/prestacao_de_contas_eleitorais_orgaos_partidarios_2026.zip',
 }
