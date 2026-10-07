@@ -50,10 +50,11 @@ def _cpf_no_texto(texto):
     """O primeiro CPF de verdade dentro de um texto, ou vazio.
 
     So campo de texto passa por aqui, nunca o arquivo cru: um valor de R$ 100
-    milhoes em centavos tem onze digitos e seria lido como CPF.
+    milhoes em centavos tem onze digitos e seria lido como CPF. Acha o CPF so
+    com digitos e o pontuado, a mesma forma que limpar_nome tira.
     """
-    from .carregar import cpf_valido
-    for corrida in re.findall(r'(?<!\d)\d{11}(?!\d)', texto or ''):
+    from .carregar import CPF_EM_TEXTO, cpf_valido
+    for corrida in CPF_EM_TEXTO.findall(texto or ''):
         if cpf_valido(corrida):
             return corrida
     return ''

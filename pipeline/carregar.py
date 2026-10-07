@@ -165,15 +165,26 @@ def cpf_valido(doc):
     return True
 
 
+# Onze digitos na forma de CPF: so digitos, pontuado (ddd.ddd.ddd-dd), ou com
+# espaco ou separador faltando no lugar da pontuacao. Nao comeca nem termina
+# colado num digito, nem numa pontuacao colada num digito, para nao pegar um
+# pedaco de CNPJ pontuado ou de numero maior. Quem decide se e CPF e o digito
+# verificador.
+CPF_EM_TEXTO = re.compile(
+    r'(?<!\d)(?<!\d[./-])\d{3}[. ]?\d{3}[. ]?\d{3}[-. ]?\d{2}(?!\d)(?![./-]\d)')
+
+
 def limpar_nome(nome):
     """Tira o CPF de dentro do nome do fornecedor.
 
     A razao social de microempreendedor individual e o nome da pessoa com o CPF
-    colado: 'JOSE DA SILVA 11144477735'. O painel mascara o campo do documento e
-    publicava o numero inteiro no campo ao lado, que e o texto mais visivel da
-    ficha. Sai so a sequencia de onze digitos cujo digito verificador fecha:
-    numero que nao e CPF e parte do nome de alguem, e apagar seria inventar um
-    corte. Medido na fixture de Roraima: muda 5 nomes em 9.581, nenhum fica vazio.
+    colado: 'JOSE DA SILVA 11144477735', ou pontuado, 'JOSE DA SILVA
+    111.444.777-35' (e com espaco ou separador faltando no lugar da pontuacao).
+    O painel mascara o campo do documento e publicava o numero inteiro no campo
+    ao lado, que e o texto mais visivel da ficha. Sai so o numero na forma de
+    CPF (CPF_EM_TEXTO) cujo digito verificador fecha: numero que nao e CPF e
+    parte do nome de alguem, e apagar seria inventar um corte. Medido na fixture
+    de Roraima: muda 5 nomes em 9.581, nenhum fica vazio.
     """
     nome = (nome or '').strip()
     if not nome:
@@ -182,7 +193,7 @@ def limpar_nome(nome):
     def tira(m):
         return '' if cpf_valido(m.group(0)) else m.group(0)
 
-    limpo = re.sub(r'(?<!\d)\d{11}(?!\d)', tira, nome)
+    limpo = CPF_EM_TEXTO.sub(tira, nome)
     limpo = re.sub(r'\s{2,}', ' ', limpo).strip(' -.,')
     # nome que era so o CPF continua como estava: um campo vazio diria menos
     return limpo or nome
