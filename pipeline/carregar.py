@@ -165,13 +165,15 @@ def cpf_valido(doc):
     return True
 
 
-# Onze digitos na forma de CPF: so digitos, pontuado (ddd.ddd.ddd-dd), ou com
-# espaco ou separador faltando no lugar da pontuacao. Nao comeca nem termina
-# colado num digito, nem numa pontuacao colada num digito, para nao pegar um
-# pedaco de CNPJ pontuado ou de numero maior. Quem decide se e CPF e o digito
+# Onze digitos na forma de CPF. Duas formas: so digitos, com qualquer coisa que
+# nao seja digito ao lado (a regra de sempre); e pontuado (ddd.ddd.ddd-dd), ou
+# com espaco ou separador faltando no lugar da pontuacao, que nao comeca nem
+# termina colado num digito nem numa pontuacao colada num digito, para nao pegar
+# um pedaco de CNPJ pontuado ou de numero maior. Quem decide se e CPF e o digito
 # verificador.
 CPF_EM_TEXTO = re.compile(
-    r'(?<!\d)(?<!\d[./-])\d{3}[. ]?\d{3}[. ]?\d{3}[-. ]?\d{2}(?!\d)(?![./-]\d)')
+    r'(?<!\d)\d{11}(?!\d)'
+    r'|(?<!\d)(?<!\d[./-])\d{3}[. ]?\d{3}[. ]?\d{3}[-. ]?\d{2}(?!\d)(?![./-]\d)')
 
 
 def limpar_nome(nome):

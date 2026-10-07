@@ -729,6 +729,17 @@ class TestCpfNoNome(unittest.TestCase):
                      'JOSE DA SILVA 111.444.777 35'):
             self.assertEqual(limpar_nome(nome), 'JOSE DA SILVA', nome)
 
+    def test_cpf_so_com_digitos_colado_em_pontuacao_continua_saindo(self):
+        # a forma so com digitos vale com qualquer coisa que nao seja digito ao
+        # lado, como valia antes da forma pontuada entrar
+        from pipeline.carregar import limpar_nome
+        from pipeline import validar as V
+        for nome in ('X 1-11144477735', 'X 11144477735-1', 'X 2026/11144477735',
+                     'X 11144477735.5'):
+            self.assertNotIn('11144477735', limpar_nome(nome), nome)
+            self.assertEqual(V._cpf_no_texto(nome), '11144477735', nome)
+            self.assertIn('CPF inteiro', V._queixa_do_forn(['', nome, 0, 0], False), nome)
+
     def test_numero_pontuado_que_nao_e_cpf_fica(self):
         from pipeline.carregar import limpar_nome
         for nome in ('TRANSPORTES 111.444.777-36', 'TRANSPORTES 123.456.789-01',
