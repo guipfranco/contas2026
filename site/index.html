@@ -3273,6 +3273,9 @@ function viewEleitos(){
   });
   fluxoDuasColunas(esq, dir, ligs, 'fxele', FMT_PESSOAS);
   ligarEleitos(document.getElementById('fxele'), esq, dir, R, ligs, ano);
+  /* a largura em que este desenho foi feito, como em desenharFluxos: sem ela, voltar a
+     janela para uma largura de antes não redesenhava a aba */
+  ultimaLargura = window.innerWidth;
 }
 
 /* Fluxo 1, do partido para as maiores candidaturas. Ele sai só das linhas do ranking, e
