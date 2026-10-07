@@ -2853,7 +2853,7 @@ function fluxoDuasColunas(esq, dir, ligs, id, fmt){
             '>fora de escala</text>' : '');
       var titulo = '<title>' + esc(n.nome + ': ' + fmt.cheio(n.valor) +
         (n.outros && n.compr < 1 ? ', desenhado fora de escala' : '') +
-        (n.outros ? '. Este nó não abre nada' : (n.href || n.fixo ? '' : '. Sem ficha própria'))) + '</title>';
+        (n.outros ? '. Este nó não abre nada' : (n.href || n.fixo ? '' : (n.semLink || '. Sem ficha própria')))) + '</title>';
       svg += n.href
         ? '<a class="fno" href="#' + esc(n.href) + '" data-no="' + i + '" data-lado="' + lado + '">' + titulo + corpo + '</a>'
         : '<g class="fno" data-no="' + i + '" data-lado="' + lado + '" tabindex="0">' + titulo + corpo + '</g>';
@@ -2912,6 +2912,9 @@ function quantosNos(){ return window.innerWidth < 560 ? 6 : 10; }
    uf, cargo e partido de agora, desfecho, sq, gênero, mudou. Quem decide se a pessoa
    mudou de partido é o pipeline, que conhece a tabela de sucessão. */
 var ELE = null, eleEmVoo = false;
+/* Índices de partido que aparecem em 2026 (campo 8). O nó de um partido que só existe
+   antes não liga filtro: o filtro esvaziaria as outras abas. */
+var PARTIDOS_AGORA = {};
 var CARGOS_ELEITOS = ['6', '5', '3', '7', '8', '1'];
 var CARGO_FRASE = {'1':'a Presidência', '3':'o governo', '5':'o Senado',
                    '6':'a Câmara dos Deputados', '7':'as Assembleias Legislativas',
@@ -2931,7 +2934,10 @@ function carregarEleitos(){
   if(ELE || eleEmVoo || !temEleitos()) return;
   eleEmVoo = true; erros.ele = null;
   get('eleitos/BRASIL.json').then(function(d){
-    eleEmVoo = false; ELE = d; if(META) render();
+    eleEmVoo = false; ELE = d;
+    PARTIDOS_AGORA = {};
+    (d.c || []).forEach(function(l){ if(l[8] >= 0) PARTIDOS_AGORA[l[8]] = 1; });
+    if(META) render();
   })['catch'](function(e){
     eleEmVoo = false; erros.ele = {s:(e && e.status === 404) ? 404 : 0}; render();
   });
@@ -2982,9 +2988,11 @@ function nosEleitos(cont, saidas, n){
   var top = partidos.slice(0, n), resto = partidos.slice(n);
   var rot = function(k){ return k === 1 ? 'outro partido' : 'outros ' + inteiro(k) + ' partidos'; };
   var nos = top.map(function(k){
-    var sg = siglaDe(+k.slice(1));
-    return {nome:sg, valor:cont[k], chaves:[k],
-            href:hashCom({partido:(S.partido === sg ? '' : sg), fed:'', cand:'', q:'', forn:''})};
+    var sg = siglaDe(+k.slice(1)), no = {nome:sg, valor:cont[k], chaves:[k]};
+    if(PARTIDOS_AGORA[+k.slice(1)] || S.partido === sg)
+      no.href = hashCom({partido:(S.partido === sg ? '' : sg), fed:'', cand:'', q:'', forn:''});
+    else no.semLink = '. Partido sem ninguém desta lista em 2026, e por isso não vira filtro';
+    return no;
   });
   if(resto.length){
     nos.push({n:resto.length, rot:rot, nome:rot(resto.length), outros:1, chaves:resto,
@@ -3004,8 +3012,26 @@ function listaPt(xs){
   return xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' e ' + xs[xs.length - 1];
 }
 function contaPt(n, um, varios){ return inteiro(n) + ' ' + (n === 1 ? um : varios); }
+/* Senadores de 2018 que foram eleitos para outro cargo em 2022: o pipeline lê cada pessoa
+   pelo registro de 2022, e eles entram na comparação daquele cargo. Sem esta conta, a
+   frase do Senado diria um número de eleitos em 2018 menor que o real. */
+function absorvidosSenado(uf){
+  var a = (ELE && ELE.absorvidos) || {};
+  if(uf) return a[uf] || 0;
+  return Object.keys(a).reduce(function(s, k){ return s + a[k]; }, 0);
+}
+function fraseAbsorvidos(n, sozinha){
+  if(!n) return '';
+  if(sozinha) return n === 1
+    ? 'O único eleito senador em 2018 foi eleito para outro cargo em 2022 e entra na comparação daquele cargo.'
+    : 'Os ' + inteiro(n) + ' eleitos senadores em 2018 foram eleitos para outro cargo em 2022 e entram na comparação daquele cargo.';
+  return n === 1
+    ? 'Outro eleito senador em 2018 foi eleito para outro cargo em 2022 e entra na comparação daquele cargo.'
+    : 'Outros ' + inteiro(n) + ' eleitos senadores em 2018 foram eleitos para outro cargo em 2022 e entram na comparação daquele cargo.';
+}
 function fraseEleitos(R, cargo, ano, uf){
   var d = {mesmo:0, x2:0, x3:0, x4:0, x5:0, x6:0}, cEsq = 0, cDir = 0, novo = 0, outra = 0;
+  var segundo = 0;
   R.pessoas.forEach(function(p){
     if(p.lado.naEsq){
       cEsq++;
@@ -3016,7 +3042,10 @@ function fraseEleitos(R, cargo, ano, uf){
       if(p.lado.esq === 'xnovo') novo++;
       else if(p.lado.esq === 'xoutra') outra++;
     }
+    // no 2º turno sem ter sido eleito antes neste cargo: está no nó, e precisa estar na frase
+    if(!p.lado.naEsq && p.lado.dir === 'x3') segundo++;
   });
+  var abs = cargo === '5' ? absorvidosSenado(uf) : 0;
   var onde = uf && uf !== 'BR' ? ' ' + ondeUF(uf) : '';
   var f = '';
   if(cEsq){
@@ -3030,10 +3059,13 @@ function fraseEleitos(R, cargo, ano, uf){
     f = (cEsq === 1 ? 'Do único eleito' : 'Dos ' + inteiro(cEsq) + ' eleitos') + ' para ' + CARGO_FRASE[cargo] + onde + ' em ' + ano +
         ', ' + listaPt(partes) + '. ';
   }
+  if(abs) f += fraseAbsorvidos(abs, !cEsq) + ' ';
   var p2 = [];
   if(novo) p2.push(contaPt(novo, 'não tinha sido eleito em ' + ano, 'não tinham sido eleitos em ' + ano));
   if(outra) p2.push(contaPt(outra, 'tinha sido eleito em outra disputa', 'tinham sido eleitos em outra disputa'));
-  if(cDir) f += (cDir === 1 ? 'Do único eleito agora' : 'Dos ' + inteiro(cDir) + ' eleitos agora') + (p2.length ? ', ' + listaPt(p2) : '') + '.';
+  if(cDir) f += (cDir === 1 ? 'Do único eleito agora' : 'Dos ' + inteiro(cDir) + ' eleitos agora') + (p2.length ? ', ' + listaPt(p2) : '') + '. ';
+  if(segundo) f += (segundo === 1 ? 'Outra candidatura disputa o 2º turno em 25/10.'
+                                  : 'Outras ' + inteiro(segundo) + ' candidaturas disputam o 2º turno em 25/10.');
   return f.trim();
 }
 function fraseDoPartido(R, ano){
@@ -3166,8 +3198,10 @@ function viewEleitos(){
     esc('Eleitos para ' + CARGO_FRASE[cargo] + ', ' + ano + ' e 2026' +
         (uf && uf !== 'BR' ? ' ' + ondeUF(uf) : '')) + '</h2>';
   if(!R.pessoas.length){
+    // no Senado, quem foi eleito em 2018 pode estar todo na comparação de outro cargo
+    var fa = cargo === '5' ? fraseAbsorvidos(absorvidosSenado(uf), true) : '';
     m.innerHTML = h + '<p class="frase-ele">' +
-      esc('Nenhuma pessoa eleita para este cargo neste recorte.') + '</p></div>';
+      esc(fa || 'Nenhuma pessoa eleita para este cargo neste recorte.') + '</p></div>';
     return;
   }
   h += '<p class="frase-ele">' + esc(fraseEleitos(R, cargo, ano, uf)) + '</p>';
