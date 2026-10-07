@@ -335,10 +335,58 @@ class TestAnonimizar(unittest.TestCase):
         self.assertTrue(saida.startswith('"DT_GERACAO";"SG_UF";'))
         self.assertEqual(saida.count('\r\n'), 3)
 
+    def _uma(self, cpf='11144477735', social='#NULO', nasc='17/03/1970', chave=b'k' * 32):
+        from ferramentas.anonimizar import anonimizar_csv
+        t = self._texto([['06/10/2026', 'RR', 'ANA DE SOUZA', social, cpf, '#NULO',
+                          '#NULO', nasc, 'ELEITO']])
+        saida = anonimizar_csv(t, chave)
+        return saida, self._linhas(saida)[1]
+
+    def test_cpf_pontuado_vira_o_mesmo_falso_do_cpf_so_com_digitos(self):
+        i = self.CAB.index('NR_CPF_CANDIDATO')
+        _, puro = self._uma('11144477735')
+        saida, pontuado = self._uma('111.444.777-35')
+        self.assertEqual(pontuado[i], puro[i])
+        self.assertNotIn('111.444.777-35', saida)
+        self.assertNotIn('11144477735', saida)
+
+    def test_cpf_sem_zero_a_esquerda_e_completado_e_trocado(self):
+        i = self.CAB.index('NR_CPF_CANDIDATO')
+        _, cheio = self._uma('00111444777')
+        saida, curto = self._uma('111444777')
+        self.assertEqual(curto[i], cheio[i])
+        self.assertTrue(C.cpf_valido(curto[i]))
+        self.assertNotIn('111444777', saida)
+
+    def test_cpf_sem_digito_ou_comprido_demais_vira_nulo(self):
+        i = self.CAB.index('NR_CPF_CANDIDATO')
+        for ruim in ('NAO INFORMADO', '123456789012', 'x'):
+            saida, l = self._uma(ruim)
+            self.assertEqual(l[i], '#NULO', ruim)
+            self.assertNotIn(ruim, saida)
+
+    def test_cpf_colado_pontuado_em_outro_campo_e_trocado(self):
+        i = self.CAB.index('NR_CPF_CANDIDATO')
+        for social in ('ANA 111.444.777-35', 'ANA 11144477735'):
+            saida, l = self._uma('11144477735', social=social)
+            self.assertNotIn('111.444.777-35', saida, social)
+            self.assertNotIn('11144477735', saida, social)
+            falso = l[i]
+            pontuado = f'{falso[:3]}.{falso[3:6]}.{falso[6:9]}-{falso[9:]}'
+            self.assertIn(l[self.CAB.index('NM_SOCIAL_CANDIDATO')],
+                          ('ANA ' + falso, 'ANA ' + pontuado))
+
+    def test_data_em_outro_formato_vira_nulo(self):
+        n = self.CAB.index('DT_NASCIMENTO')
+        for ruim in ('1970-03-17', '17/3/1970', '17031970', 'nasceu em 1970'):
+            saida, l = self._uma(nasc=ruim)
+            self.assertEqual(l[n], '#NULO', ruim)
+            self.assertNotIn(ruim, saida)
+
     def test_bom_no_cabecalho_fica(self):
         from ferramentas.anonimizar import anonimizar_csv
-        saida = anonimizar_csv('﻿' + self.t1, b'k' * 32)
-        self.assertTrue(saida.startswith('﻿"DT_GERACAO"'))
+        saida = anonimizar_csv('\ufeff' + self.t1, b'k' * 32)
+        self.assertTrue(saida.startswith('\ufeff"DT_GERACAO"'))
         self.assertNotIn('11144477735', saida)
 
 
