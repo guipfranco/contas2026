@@ -44,16 +44,27 @@ jobs:
       - name: ler 2018 e 2022
         env:
           CONTAS_SAL: ${{ secrets.CONTAS_SAL }}
+          # o valor digitado entra pelo ambiente, e nunca colado no script
+          CONGELAR: ${{ inputs.congelar }}
         run: |
           mkdir -p estado
-          python -m ferramentas.anteriores --estado estado --destino "$RUNNER_TEMP/tse" \
-            ${{ inputs.congelar != '' && format('--congelar {0} --saida-fixture fixture', inputs.congelar) || '' }}
+          extra=()
+          if [ -n "$CONGELAR" ]; then
+            if ! [[ "$CONGELAR" =~ ^[A-Z]{2}$ ]]; then
+              echo "::error::congelar aceita so a sigla de uma UF, em duas letras maiusculas"
+              exit 1
+            fi
+            extra=(--congelar "$CONGELAR" --saida-fixture fixture)
+          fi
+          python -m ferramentas.anteriores --estado estado --destino "$RUNNER_TEMP/tse" "${extra[@]}"
 
+      # CSV cru do TSE, com CPF, num repositorio publico: o artefato vive um dia
       - uses: actions/upload-artifact@v4
         if: inputs.congelar != ''
         with:
           name: fixture-anteriores
           path: fixture
+          retention-days: 1
 
       - name: gravar na branch dados
         if: inputs.gravar
