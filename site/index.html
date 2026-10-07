@@ -680,7 +680,9 @@ button.selo::after{content:"";position:absolute;top:-9px;bottom:-9px;left:-3px;r
 .ele .nota-ele{order:4}
 .ele .tabfx th{white-space:normal}
 .ele .cab-ele{order:1;display:flex;justify-content:space-between;margin:10px var(--gut) 0;font:600 12px var(--sans);color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
-@media(max-width:559px){.ele .eletab{order:0}}
+.ele .eletab{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ele .eletab table{width:auto;min-width:100%}
+@media(max-width:559px){.ele .eletab{order:0}.ele .tabfx th,.ele .tabfx td{padding-left:8px;padding-right:8px}}
 .tit-ele{margin:14px var(--gut) 4px;font-size:17px}
 .frase-ele{margin:6px var(--gut);line-height:1.5}
 .tit-faixa{margin:14px var(--gut) 6px;font-size:15px}
@@ -2921,7 +2923,7 @@ var SAIDA_ELEITOS = {x2:'eleitos em outro cargo ou UF',
                      x6:'sem candidatura em 2026'};
 var CURTO_ELEITOS = {x2:'outro cargo', x3:'2º turno', x4:'vice, suplência',
                      x5:'não se elegeram', x6:'sem candidatura'};
-var FMT_PESSOAS ={curto:function(v){ return inteiro(v); },
+var FMT_PESSOAS = {curto:function(v){ return inteiro(v); },
                    cheio:function(v){ return inteiro(v) + (v === 1 ? ' pessoa' : ' pessoas'); },
                    coluna:'Pessoas'};
 function temEleitos(){ return !!(META && META.eleitos); }
@@ -3015,7 +3017,7 @@ function fraseEleitos(R, cargo, ano, uf){
       else if(p.lado.esq === 'xoutra') outra++;
     }
   });
-  var onde = uf ? ' ' + ondeUF(uf) : '';
+  var onde = uf && uf !== 'BR' ? ' ' + ondeUF(uf) : '';
   var f = '';
   if(cEsq){
     var partes = [];
