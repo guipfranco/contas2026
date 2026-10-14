@@ -75176,3 +75176,21 @@
 {"cnpj": "22982004003847", "quando": "2026-10-14", "dados": {"razao_social": "SAFETY PARK ESTACIONAMENTOS LTDA", "situacao_cadastral": "Ativa", "data_situacao_cadastral": "2025-10-17", "data_inicio_atividade": "2025-10-17", "cnae_principal": "5223100", "natureza_juridica": "Sociedade Empresária Limitada", "porte_empresa": "EMPRESA DE PEQUENO PORTE", "socios": [{"nome": "RAFAEL COELHO DA COSTA", "qualificacao": "Sócio-Administrador", "doc": "***469147**"}, {"nome": "RICARDO COELHO AUGUSTO DA MATTA", "qualificacao": "Sócio", "doc": "***122197**"}], "quando": "2026-10-14"}}
 {"cnpj": "52452953000194", "quando": "2026-10-14", "dados": {"razao_social": "KLM SHIP CHANDLER LTDA", "situacao_cadastral": "Ativa", "data_situacao_cadastral": "2023-10-06", "data_inicio_atividade": "2023-10-06", "cnae_principal": "4712100", "natureza_juridica": "Sociedade Empresária Limitada", "porte_empresa": "EMPRESA DE PEQUENO PORTE", "socios": [{"nome": "KARINE MAIA DE CARVALHO", "qualificacao": "Sócio-Administrador", "doc": "***917062**"}, {"nome": "VANUZA DA SILVA FERREIRA", "qualificacao": "Sócio-Administrador", "doc": "***012642**"}], "quando": "2026-10-14"}}
 {"cnpj": "57034139000173", "quando": "2026-10-14", "dados": {"razao_social": "MERCADINHO FAMILY COMERCIO DE PRODUTOS ALIMENTICIOS LTDA", "situacao_cadastral": "Ativa", "data_situacao_cadastral": "2024-08-27", "data_inicio_atividade": "2024-08-27", "cnae_principal": "4712100", "natureza_juridica": "Sociedade Empresária Limitada", "porte_empresa": "MICRO EMPRESA", "socios": [{"nome": "DEMETRIUS PIETER PANTOJA", "qualificacao": "Sócio", "doc": "***259422**"}, {"nome": "JHONATAS DOS SANTOS PANTOJA", "qualificacao": "Sócio-Administrador", "doc": "***015262**"}, {"nome": "PATRICIA DOS SANTOS PANTOJA", "qualificacao": "Sócio", "doc": "***879992**"}], "quando": "2026-10-14"}}
+{"cnpj": "43607470000140", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "10567760000128", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "68156540000145", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "99452618191181", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "21278380000010", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "60157581000010", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "00662625306978", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "50090396000000", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "21849180000140", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "03259263032592", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "45498191000010", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "40408845000145", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "34381616000141", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "15621614000110", "quando": "2026-10-14", "erro": "nao encontrado na Receita"}
+{"cnpj": "08719266000010", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "26588921001000", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "12030565000010", "quando": "2026-10-14", "erro": "HTTP 500"}
+{"cnpj": "05353435000800", "quando": "2026-10-14", "erro": "HTTP 500"}
