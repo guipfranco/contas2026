@@ -75,7 +75,8 @@ def a1_a2_receita(a, ctx):
         dados = ctx.receita.get(doc)
         if not dados:
             continue
-        valor, nome = e[0], (e[2] or 'o fornecedor')[:34]
+        valor, citado = e[0], (e[2] or '')[:34]
+        nome = citado or 'o fornecedor'
         abertura = dados.get('data_inicio_atividade') or ''
         if valor >= MIN_A1 and abertura:
             dias = _dias(abertura, a.primeira or ctx.hoje)
@@ -84,7 +85,8 @@ def a1_a2_receita(a, ctx):
                 yield Alarme('A1', 3 if grave else 2, a.sq, doc, valor,
                              f'{nome} recebeu {moeda(valor)}. O CNPJ foi aberto '
                              f'{dias} dias antes da primeira despesa '
-                             f'({abertura[8:]}/{abertura[5:7]}/{abertura[:4]}).')
+                             f'({abertura[8:]}/{abertura[5:7]}/{abertura[:4]}).',
+                             citado=(citado,))
         sit = (dados.get('situacao_cadastral') or '').upper()
         if valor >= MIN_A2 and sit and not sit.startswith('ATIVA'):
             grave = (any(s in sit for s in SITUACAO_GRAVE)
@@ -94,7 +96,8 @@ def a1_a2_receita(a, ctx):
                      if len(quando) == 10 else '')
             yield Alarme('A2', 3 if grave else 2, a.sq, doc, valor,
                          f'{nome} recebeu {moeda(valor)}. A Receita registra a '
-                         f'empresa como {sit.lower()}{desde}.')
+                         f'empresa como {sit.lower()}{desde}.',
+                         citado=(citado,))
 
 
 def a3_fornecedor_candidato(a, ctx):
@@ -105,7 +108,8 @@ def a3_fornecedor_candidato(a, ctx):
             continue
         if _repasse(e[6] if len(e) > 6 else ''):
             continue
-        valor, nome = e[0], (e[2] or 'o fornecedor')[:34]
+        valor, citado = e[0], (e[2] or '')[:34]
+        nome = citado or 'o fornecedor'
         if sq_forn == a.sq:
             yield Alarme('A3', 3, a.sq, doc, valor,
                          f'{moeda(valor)} foram pagos ao próprio candidato, '
@@ -114,7 +118,8 @@ def a3_fornecedor_candidato(a, ctx):
             yield Alarme('A3', 1, a.sq, doc, valor,
                          f'{nome} recebeu {moeda(valor)} e também é candidato '
                          f'nesta eleição. Ceder bem ou serviço a outra '
-                         f'candidatura é permitido e precisa ser declarado.')
+                         f'candidatura é permitido e precisa ser declarado.',
+                         citado=(citado,))
 
 
 def a4_cnae(a, ctx):
@@ -140,10 +145,14 @@ def a4_cnae(a, ctx):
         nome_cnae = ctx.cnae_nome.get(e[4]) or ctx.cnae_nome.get(cnae) or ''
         if not nome_cnae:
             continue
+        nome = (e[2] or '')[:30]
+        # o tipo vem do TSE e a atividade da tabela do IBGE: "Servicos de
+        # lavagem, lubrificacao..." e um CNAE de verdade
         yield Alarme('A4', 2 if e[0] >= MIN_A4_GRAVE else 1, a.sq, doc, e[0],
-                     f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])} em '
+                     f'{nome or "O fornecedor"} recebeu {moeda(e[0])} em '
                      f'"{tipo[:32]}". A atividade registrada da empresa é '
-                     f'"{nome_cnae[:38]}".')
+                     f'"{nome_cnae[:38]}".',
+                     citado=(nome, tipo[:32], nome_cnae[:38]))
 
 
 def a5_concentracao(a, ctx):
@@ -153,10 +162,12 @@ def a5_concentracao(a, ctx):
     fatia = pct(e[0], a.contratado)
     if fatia < A5_FATIA:
         return
+    nome = (e[2] or '')[:30]
     yield Alarme('A5', 2 if fatia >= A5_FATIA_GRAVE else 1, a.sq, doc, e[0],
                  f'{fatia} % do gasto declarado ({moeda(e[0])} de '
                  f'{moeda(a.contratado)}) foi para um só fornecedor, '
-                 f'{(e[2] or "não informado")[:30]}.')
+                 f'{nome or "não informado"}.',
+                 citado=(nome,))
 
 
 def a6_pessoa_fisica(a, ctx):
@@ -171,9 +182,11 @@ def a6_pessoa_fisica(a, ctx):
             alem = (f' A mesma pessoa aparece como fornecedora de '
                     f'{muitos} candidaturas, somando {moeda(nac[0])}.')
         grave = e[0] >= A6_GRAVE or muitos >= A6_MUITOS_CANDIDATOS
+        nome = (e[2] or '')[:32]
         yield Alarme('A6', 2 if grave else 1, a.sq, doc, e[0],
-                     f'{(e[2] or "Uma pessoa física")[:32]} recebeu '
-                     f'{moeda(e[0])} em {lanc}, como pessoa física.{alem}')
+                     f'{nome or "Uma pessoa física"} recebeu '
+                     f'{moeda(e[0])} em {lanc}, como pessoa física.{alem}',
+                     citado=(nome,))
 
 
 def _dv_ok(doc):
@@ -206,10 +219,12 @@ def a7_documento_invalido(a, ctx):
         if e[0] < MIN_A7 or _dv_ok(doc):
             continue
         tipo = 'CNPJ' if len(doc) == 14 else 'CPF'
+        nome = (e[2] or '')[:30]
         yield Alarme('A7', 2, a.sq, doc, e[0],
-                     f'{(e[2] or "O fornecedor")[:30]} recebeu {moeda(e[0])} '
+                     f'{nome or "O fornecedor"} recebeu {moeda(e[0])} '
                      f'com um {tipo} cujo dígito verificador não fecha. '
-                     f'Costuma ser erro de digitação na prestação de contas.')
+                     f'Costuma ser erro de digitação na prestação de contas.',
+                     citado=(nome,))
 
 
 def avaliar(a, ctx):

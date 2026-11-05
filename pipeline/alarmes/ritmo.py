@@ -19,9 +19,11 @@ def d1_fornecedor_novo(a, ctx):
     for doc, e in a.por_forn.items():
         if e[0] < D1_MIN or doc in ctx.primeira_vez:
             continue
+        nome = (e[2] or '')[:32]
         yield Alarme('D1', 1, a.sq, doc, e[0],
-                     f'{(e[2] or "Um fornecedor")[:32]} aparece pela primeira '
-                     f'vez na base hoje, com {moeda(e[0])} declarados.')
+                     f'{nome or "Um fornecedor"} aparece pela primeira '
+                     f'vez na base hoje, com {moeda(e[0])} declarados.',
+                     citado=(nome,))
 
 
 def d2_salto(a, ctx):
@@ -61,13 +63,14 @@ def d3_nota_repetida(a, ctx):
         if valor < D3_MIN:
             continue
         e = a.por_forn.get(doc)
-        nome = (e[2] if e else '') or 'um fornecedor'
+        nome = ((e[2] if e else '') or '')[:28]
         n = len(outros)
         plural = 's' if n > 1 else ''
         yield Alarme('D3', 2 if n >= 3 else 1, a.sq, doc, valor,
-                     f'O documento {num} de {nome[:28]} aparece também na conta '
-                     f'de {n} outro{plural} candidato{plural}. Rateio de '
-                     f'material conjunto é legal e gera esse padrão.')
+                     f'O documento {num} de {nome or "um fornecedor"} aparece '
+                     f'também na conta de {n} outro{plural} candidato{plural}. '
+                     f'Rateio de material conjunto é legal e gera esse padrão.',
+                     citado=(num, nome))
 
 
 def indexar_colisoes(nac, aggs):
