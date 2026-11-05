@@ -88,6 +88,14 @@ era fechada, e o site passou o fim do primeiro turno parado no que foi publicado
 em 21/09. Agora a rodada roda às 06h30 e às 12h de Brasília. Para pausar de novo,
 comente os dois `cron`; `gh workflow run diario.yml` publica à mão nos dois casos.
 
+**O agendamento vai até 01/12/2026, inclusive** `[decidido, Guilherme 05/11/2026]`. A
+prestação final fechou em 03/11 para quem disputou só o 1º turno e fecha em 14/11 para
+quem foi ao 2º (Lei 9.504/1997, art. 29, III e IV); a folga cobre o zip que o TSE
+regenera na manhã seguinte e a conta entregue atrasada ou retificada. A partir de 02/12
+(data de Brasília) o job `agenda` de `diario.yml` pula a rodada agendada, sem publicar e
+sem e-mail de falha. O disparo manual roda sempre. Para estender, mude `ULTIMO_DIA` no
+workflow.
+
 A fila de CNPJ da Receita zerou em 21/09, com 46.489 no cache: a rodada agendada só
 consulta quem entrou no TSE desde a anterior. Com `sem_receita=true` a rodada leva dois
 minutos e usa o cache de CNPJ já coletado; com a fila cheia, ela chegava a 80 minutos
