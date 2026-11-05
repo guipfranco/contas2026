@@ -22,8 +22,15 @@ medida de ilegalidade, e ordem de fila de quem vai checar.
 """
 import collections
 
+# `citado` sao os trechos do texto que vem do dado, e nao da redacao deste
+# painel: nome de fornecedor ou de doador, tipo de despesa do TSE, nome de
+# CNAE. A trava de palavras vale para o que o painel escreve; o nome que a
+# empresa registrou sai como o TSE publicou. Em 04/11/2026 a rodada inteira
+# caiu duas vezes porque "CENTRAL FACHADAS PLACAS LTDA" tem "fachada" no nome.
+# Sem `citado`, o texto inteiro passa pela trava: o esquecimento falha fechado.
 Alarme = collections.namedtuple(
-    'Alarme', 'codigo grav sq doc valor texto', defaults=('', 0, ''))
+    'Alarme', 'codigo grav sq doc valor texto citado',
+    defaults=('', 0, '', ()))
 
 # codigo -> (familia, nome, o que significa, o que NAO significa)
 # O codigo e endereco interno: ele nao aparece na tela. Quem le ve o
@@ -175,7 +182,11 @@ def confere_redacao(alarmes):
     """Devolve os textos que violam as travas de redacao. Vazio e o esperado."""
     ruins = []
     for x in alarmes:
-        baixo = x.texto.lower()
+        redigido = x.texto
+        # o mais longo primeiro: um citado que contem outro sai inteiro
+        for c in sorted({c for c in x.citado if c}, key=len, reverse=True):
+            redigido = redigido.replace(c, ' ')
+        baixo = redigido.lower()
         for p in PROIBIDAS:
             if p in baixo:
                 ruins.append((x.codigo, p, x.texto))

@@ -58,12 +58,14 @@ def b1_doador_fornecedor(a, ctx):
         f = a.por_forn.get(doc)
         if not f or d[0] < B1_MIN or f[0] < B1_MIN:
             continue
-        nome = (d[2] or f[2] or 'A mesma pessoa')[:32]
+        nome = (d[2] or f[2] or '')[:32]
         grave = d[0] >= B1_GRAVE and f[0] >= B1_GRAVE
         yield Alarme('B1', 2 if grave else 1, a.sq, doc, max(d[0], f[0]),
-                     f'{nome} doou {moeda(d[0])} para a campanha e recebeu '
-                     f'{moeda(f[0])} dela como fornecedor. Doar e prestar '
-                     f'serviço são atos distintos, ambos permitidos.')
+                     f'{nome or "A mesma pessoa"} doou {moeda(d[0])} para a '
+                     f'campanha e recebeu {moeda(f[0])} dela como fornecedor. '
+                     f'Doar e prestar serviço são atos distintos, ambos '
+                     'permitidos.',
+                     citado=(nome,))
 
 
 def b3_recursos_proprios(a, ctx):

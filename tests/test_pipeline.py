@@ -377,6 +377,44 @@ class TestAlarmes(unittest.TestCase):
         self._forn('5' * 14, 5000000)
         self.assertEqual(al_ritmo.avaliar(self.a, self.ctx), [])
 
+    def test_nome_com_palavra_proibida_nao_derruba_a_rodada(self):
+        """Em 04/11/2026 a rodada caiu duas vezes, depois de 1 h de Receita,
+        porque um fornecedor se chama CENTRAL FACHADAS PLACAS LTDA.
+
+        A trava de palavras vale para o que o painel escreve. O nome que a
+        empresa registrou, o tipo de despesa do TSE e o nome do CNAE saem como
+        vieram, e todo sinal que cita um deles tem de passar pela trava.
+        """
+        cnpj, cpf, quebrado = '11222333000181', '11144477735', '13347016000118'
+        self.a.primeira = '2026-09-01'
+        self._forn(cnpj, 60000000, nome='CENTRAL FACHADAS PLACAS LTDA',
+                   cnae='4520005', sq_forn='888')
+        self.a.por_forn[cnpj][6] = 'Publicidade por placas'
+        self._forn(quebrado, 500000, nome='LARANJA COMUNICACAO VISUAL')
+        self.a.por_forn[cpf] = [12000000, 1, 'ANA PAULA LARANJA', 'PESSOA FISICA',
+                                '', '', '', 12000000]
+        self.a.contratado += 12000000
+        self.a.por_doador[cpf] = [3000000, 1, 'ANA PAULA LARANJA',
+                                  'Recursos de pessoas fisicas']
+        self.ctx.receita = {cnpj: {'data_inicio_atividade': '2026-08-01',
+                                   'situacao_cadastral': 'BAIXADA',
+                                   'data_situacao_cadastral': '2026-10-01'}}
+        self.ctx.cnae_por_tipo = {'Publicidade por placas': {'73'}}
+        self.ctx.cnae_nome = {'4520005': 'Serviços de lavagem, lubrificação e '
+                                         'polimento de veículos automotores'}
+        self.ctx.primeira_vez = {'99999999000191': '2026-09-01'}
+        self.ctx.colisao_por_cand = {'999': {cnpj: ('4521', {'888'}, 200000)}}
+
+        xs = avaliar(self.a, self.ctx)
+        citam = {'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'B1', 'D1', 'D3'}
+        self.assertLessEqual(citam, {x.codigo for x in xs})
+        self.assertEqual(confere_redacao(xs), [])
+        self.assertTrue(any('CENTRAL FACHADAS' in x.texto for x in xs))
+        self.assertTrue(any('lavagem' in x.texto for x in xs))
+        # e o cenario de fato exercita a trava: sem o citado, todos caem
+        sem_citado = [x._replace(citado=()) for x in xs]
+        self.assertEqual({r[0] for r in confere_redacao(sem_citado)}, citam)
+
     def test_d2_salto_precisa_de_ontem(self):
         self.a.contratado = 50000000
         self.ctx.ontem = {'999': 10000000}
@@ -459,6 +497,39 @@ class TestRedacao(unittest.TestCase):
         from pipeline.alarmes import Alarme
         ruim = [Alarme('A1', 2, '1', '', 0, 'Fornecedor recente')]
         self.assertTrue(confere_redacao(ruim))
+
+    def test_confere_redacao_nao_le_o_trecho_citado(self):
+        """O nome que a empresa registrou nao e redacao deste painel."""
+        from pipeline.alarmes import Alarme
+        nome = 'CENTRAL FACHADAS PLACAS LTDA'
+        x = Alarme('D1', 1, '1', '', 2300000,
+                   f'{nome} aparece pela primeira vez na base hoje, com '
+                   'R$ 23 mil declarados.', citado=(nome,))
+        self.assertEqual(confere_redacao([x]), [])
+        # sem dizer o que e citado, a trava continua lendo o texto inteiro
+        self.assertTrue(confere_redacao([x._replace(citado=())]))
+
+    def test_confere_redacao_le_o_que_fica_fora_do_citado(self):
+        from pipeline.alarmes import Alarme
+        x = Alarme('A1', 2, '1', '', 0, 'EMPRESA X, de fachada, aberta há 3 dias',
+                   citado=('EMPRESA X',))
+        self.assertTrue(confere_redacao([x]))
+
+    def test_nenhum_modelo_de_sinal_usa_palavra_proibida(self):
+        """A trava da rodada deixa passar o trecho citado do dado; o que o
+        painel escreve em volta dele e conferido aqui, no fonte, como faz o
+        teste de acento."""
+        import re
+        from pipeline.alarmes import candidato, doador, fornecedor, ritmo
+        achados = []
+        for mod in (candidato, doador, fornecedor, ritmo):
+            with open(mod.__file__, encoding='utf-8') as f:
+                fonte = f.read()
+            for m in re.findall(r"f?'([^'\n]{8,})'", fonte):
+                fora = re.sub(r'\{[^}]*\}', '', m).lower()
+                achados += [(mod.__name__, p, m[:60]) for p in PROIBIDAS
+                            if p in fora]
+        self.assertEqual(achados, [], f'{len(achados)} modelos com palavra proibida')
 
     def test_nenhum_texto_de_sinal_sai_sem_acento(self):
         """Portugues sem acento numa tela publica e erro, nao estilo.
