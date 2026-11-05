@@ -8,7 +8,8 @@ on:
   # O agendamento ficou pausado de 18/09 a 05/10, enquanto a tela nova era fechada,
   # e voltou a pedido do dono: o site passou o fim do primeiro turno parado no que
   # foi publicado a mao em 21/09. Para pausar de novo, comente os dois cron; o
-  # disparo manual continua valendo nos dois casos.
+  # disparo manual continua valendo nos dois casos. Depois de 01/12/2026 o job
+  # `agenda`, abaixo, pula sozinho a rodada agendada.
   schedule:
     - cron: '30 9 * * *'    # 06:30 em Brasilia
     - cron: '0 15 * * *'    # 12:00 em Brasilia
@@ -36,7 +37,34 @@ permissions:
   id-token: write
 
 jobs:
+  # O agendamento vale ate 01/12/2026, inclusive. A prestacao final fechou em
+  # 03/11 para quem disputou so o 1o turno e fecha em 14/11 para quem foi ao 2o
+  # (Lei 9.504/1997, art. 29, III e IV). A folga cobre o zip que o TSE regenera
+  # na manha seguinte e a conta entregue atrasada ou retificada. Depois disso a
+  # rodada agendada aparece como pulada, sem publicar e sem e-mail de falha; o
+  # disparo manual roda sempre. Para estender, mude ULTIMO_DIA.
+  agenda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rodar: ${{ steps.data.outputs.rodar }}
+    steps:
+      - id: data
+        env:
+          EVENTO: ${{ github.event_name }}
+          ULTIMO_DIA: '2026-12-01'
+        run: |
+          hoje=$(TZ=America/Sao_Paulo date +%F)
+          if [ "$EVENTO" = schedule ] && [[ "$hoje" > "$ULTIMO_DIA" ]]; then
+            echo "agendamento encerrado em $ULTIMO_DIA (hoje e $hoje em Brasilia): nada roda"
+            echo "rodar=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rodar=true" >> "$GITHUB_OUTPUT"
+          fi
+
   construir:
+    needs: agenda
+    if: needs.agenda.outputs.rodar == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     outputs:
